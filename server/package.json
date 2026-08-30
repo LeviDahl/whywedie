@@ -1,0 +1,17 @@
+{
+  "name": "whywedie-api",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Small proxy between the Why We Die frontend and the CDC WONDER API — CDC WONDER has no CORS support and only accepts XML/POST, so this translates simple JSON requests from the browser into WONDER XML queries and back.",
+  "main": "app.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "fast-xml-parser": "^4.5.0"
+  }
+}

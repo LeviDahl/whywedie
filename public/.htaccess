@@ -1,0 +1,18 @@
+# Vue Router uses "history mode" — real-looking URLs like /death-statistics
+# that are actually handled client-side. Without this, Apache 404s on a
+# direct link or a page refresh to any route other than the homepage.
+#
+# This rule serves the request as-is if it matches a real file or directory
+# (so real assets like /assets/app.js still work normally), and otherwise
+# falls back to index.html so Vue Router can take over.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  RewriteRule ^ index.html [L]
+</IfModule>
