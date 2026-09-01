@@ -1,14 +1,21 @@
-# Vue Router uses "history mode" — real-looking URLs like /death-statistics
-# that are actually handled client-side. Without this, Apache 404s on a
-# direct link or a page refresh to any route other than the homepage.
+# 1. Force HTTPS — redirect any plain http:// request to https://.
+#    (This was previously handled by a cPanel-managed block that isn't part
+#    of this repo's source .htaccess — folding it in here so it survives
+#    every future build/upload instead of depending on cPanel re-adding it.)
 #
-# This rule serves the request as-is if it matches a real file or directory
-# (so real assets like /assets/app.js still work normally), and otherwise
-# falls back to index.html so Vue Router can take over.
+# 2. Vue Router uses "history mode" — real-looking URLs like /death-statistics
+#    that are actually handled client-side. Without this, Apache 404s on a
+#    direct link or a page refresh to any route other than the homepage.
+#    This rule serves the request as-is if it matches a real file or
+#    directory (so real assets like /assets/app.js still work normally),
+#    and otherwise falls back to index.html so Vue Router can take over.
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
