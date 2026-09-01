@@ -25,6 +25,33 @@ const props = defineProps({
 
 const multi = computed(() => props.series.length > 1)
 
+// Wrap a category label onto at most `maxLines` lines of ~`maxChars` each,
+// so long cause names stay readable on a narrow (phone) viewport instead of
+// being clipped by Chart.js. Returns a string or string[] (Chart.js renders
+// an array as stacked lines). The tooltip still shows the full label.
+function wrapLabel(text, maxChars = 20, maxLines = 2) {
+  if (text.length <= maxChars) return text
+  const words = text.split(/\s+/)
+  const lines = []
+  let line = ''
+  let i = 0
+  for (; i < words.length; i++) {
+    const next = line ? line + ' ' + words[i] : words[i]
+    if (next.length <= maxChars) {
+      line = next
+    } else {
+      if (line) lines.push(line)
+      line = words[i]
+      if (lines.length === maxLines - 1) break
+    }
+  }
+  // whatever's left (current `line` + any untried words) goes on the last line
+  let last = [line, ...words.slice(i + 1)].filter(Boolean).join(' ')
+  if (last.length > maxChars) last = last.slice(0, maxChars - 1).trimEnd() + '…'
+  lines.push(last)
+  return lines
+}
+
 const chartData = computed(() => ({
   labels: props.labels,
   datasets: props.series.map((s, i) => ({
@@ -71,7 +98,15 @@ const chartOptions = computed(() => ({
     },
     y: {
       grid: { display: false },
-      ticks: { color: '#171717', font: { weight: '500' }, autoSkip: false }
+      ticks: {
+        color: '#171717',
+        font: { weight: '500', size: 11 },
+        autoSkip: false,
+        crossAlign: 'far',
+        callback(value) {
+          return wrapLabel(this.getLabelForValue(value), 20, 2)
+        }
+      }
     }
   }
 }))

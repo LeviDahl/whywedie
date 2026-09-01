@@ -4,10 +4,16 @@ import PageHeader from '@/components/PageHeader.vue'
 import RankedBarChart from '@/components/RankedBarChart.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
+import { useNamePreference } from '@/composables/useNamePreference.js'
 import { fetchCausesOfDeath } from '@/api/causesOfDeath.js'
+import { displayName } from '@/data/causeNames.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'causes-of-death')
+
+// Friendly vs official cause names (persisted, shared app-wide).
+const { nameStyle } = useNamePreference()
+const label = (officialName) => displayName(officialName, nameStyle.value)
 
 const { data, error, loading, load } = useAsyncData(fetchCausesOfDeath)
 onMounted(load)
@@ -98,6 +104,10 @@ const rankedCauseNames = computed(() => {
     .map(([name]) => name)
 })
 
+// Chart y-axis labels — display names; data below stays keyed by the
+// official name.
+const rankedLabels = computed(() => rankedCauseNames.value.map(label))
+
 const rankedSeries = computed(() =>
   periods.value.map((p, i) => ({
     label: periodLabel(p),
@@ -142,13 +152,15 @@ function removePeriod(i) {
 
 // --- trend ----------------------------------------------------------
 const availableTrendCauses = computed(() =>
-  (data.value?.causes ?? []).filter((c) => !trendCauses.value.includes(c))
+  (data.value?.causes ?? [])
+    .filter((c) => !trendCauses.value.includes(c))
+    .sort((a, b) => label(a).localeCompare(label(b)))
 )
 
 const trendSeries = computed(() =>
   trendCauses.value
     .filter((name) => data.value?.byCause[name])
-    .map((name) => ({ label: name, values: data.value.byCause[name][metric.value] }))
+    .map((name) => ({ label: label(name), values: data.value.byCause[name][metric.value] }))
 )
 const trendYearLabels = computed(() => data.value?.years.map(String) ?? [])
 
@@ -185,20 +197,38 @@ function removeTrendCause(i) {
       </div>
 
       <template v-else-if="data">
-        <!-- Metric toggle — shared by both charts -->
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="text-xs font-medium uppercase tracking-wide text-muted">Metric</span>
-          <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
-            <button
-              v-for="(m, key) in METRICS"
-              :key="key"
-              type="button"
-              class="px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
-              :class="metric === key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
-              @click="metric = key"
-            >
-              {{ m.label }}
-            </button>
+        <!-- Controls — shared by both charts below -->
+        <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="text-xs font-medium uppercase tracking-wide text-muted">Metric</span>
+            <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="(m, key) in METRICS"
+                :key="key"
+                type="button"
+                class="px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="metric === key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="metric = key"
+              >
+                {{ m.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="text-xs font-medium uppercase tracking-wide text-muted">Names</span>
+            <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="opt in ['friendly', 'official']"
+                :key="opt"
+                type="button"
+                class="px-3.5 py-1.5 text-sm font-medium capitalize transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="nameStyle === opt ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="nameStyle = opt"
+              >
+                {{ opt }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -207,7 +237,7 @@ function removeTrendCause(i) {
           <dt class="text-xs font-medium uppercase tracking-wide text-muted">
             Leading cause of death, {{ periodLabel(periods[0]) }}
           </dt>
-          <dd class="mt-1.5 text-2xl font-semibold tracking-tight text-ink">{{ primaryTop.cause }}</dd>
+          <dd class="mt-1.5 text-2xl font-semibold tracking-tight text-ink">{{ label(primaryTop.cause) }}</dd>
           <dd class="mt-1 text-sm text-muted">
             {{ valueFormatter(primaryTop.value) }} {{ metricUnit }}
           </dd>
@@ -284,7 +314,7 @@ function removeTrendCause(i) {
 
           <div class="card">
             <RankedBarChart
-              :labels="rankedCauseNames"
+              :labels="rankedLabels"
               :series="rankedSeries"
               :value-formatter="valueFormatter"
             />
@@ -309,7 +339,7 @@ function removeTrendCause(i) {
               :key="name"
               class="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-paper py-1 pl-2.5 pr-1 text-sm text-ink"
             >
-              {{ name }}
+              {{ label(name) }}
               <button
                 v-if="trendCauses.length > 1"
                 type="button"
@@ -326,7 +356,7 @@ function removeTrendCause(i) {
               @change="onAddCauseSelect"
             >
               <option value="">+ Add cause…</option>
-              <option v-for="c in availableTrendCauses" :key="c" :value="c">{{ c }}</option>
+              <option v-for="c in availableTrendCauses" :key="c" :value="c">{{ label(c) }}</option>
             </select>
           </div>
 
