@@ -51,18 +51,25 @@ export async function fetchCausesOfDeath() {
       }))
   }
 
-  // Per-cause time series, keyed by display name so the view can bind a
-  // <select> straight to it.
+  // Per-cause time series, keyed by display name and ALIGNED to the full
+  // `years` axis (missing years -> null) so the view can overlay several
+  // causes on one chart without re-indexing. A cause that only appears
+  // partway through the range (e.g. COVID-19) simply has leading nulls.
+  const allYears = raw.years
   const byCause = {}
   for (const c of leading) {
-    const series = raw.byCause[`${c.icdVersion}:${c.code}`]
-    if (!series) continue
+    const s = raw.byCause[`${c.icdVersion}:${c.code}`]
+    if (!s) continue
+    const at = (arr) => {
+      const m = new Map(s.years.map((y, i) => [y, arr[i]]))
+      return allYears.map((y) => (m.has(y) ? m.get(y) : null))
+    }
     byCause[c.name] = {
       code: c.code,
-      years: series.years,
-      deaths: series.deaths,
-      crudeRate: series.crudeRate,
-      ageAdjustedRate: series.ageAdjustedRate
+      years: allYears,
+      deaths: at(s.deaths),
+      crudeRate: at(s.crudeRate),
+      ageAdjustedRate: at(s.ageAdjustedRate)
     }
   }
 

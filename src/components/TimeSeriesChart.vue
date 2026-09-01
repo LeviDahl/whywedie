@@ -8,42 +8,79 @@ import {
   PointElement,
   LineElement,
   Tooltip,
+  Legend,
   Filler
 } from 'chart.js'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler)
 
 const props = defineProps({
   labels: { type: Array, required: true },
-  values: { type: Array, required: true },
-  seriesLabel: { type: String, required: true },
+  // Single-series form (unchanged): pass `values` + `seriesLabel`.
+  values: { type: Array, default: null },
+  seriesLabel: { type: String, default: '' },
+  // Multi-series form: pass `series` = [{ label, values, muted? }]. When set,
+  // `values`/`seriesLabel` are ignored and a legend is shown.
+  series: { type: Array, default: null },
   valueFormatter: { type: Function, default: (v) => v?.toLocaleString() ?? '—' },
-  // Optional array of booleans, same length as values — points flagged true
-  // (e.g. a partial/incomplete period) render in a muted gray instead of
-  // solid black, as a visual "don't over-read this one" cue.
+  // Single-series only: booleans same length as `values` — points flagged
+  // true (e.g. a partial period) render muted gray as a "don't over-read" cue.
   mutedPoints: { type: Array, default: () => [] }
 })
 
-const pointColor = (i) => (props.mutedPoints[i] ? '#a3a3a3' : '#0a0a0a')
+// Grayscale ramp + dash patterns so overlaid lines stay distinguishable
+// without color.
+const STROKES = [
+  { color: '#0a0a0a', dash: [] },
+  { color: '#525252', dash: [6, 3] },
+  { color: '#8a8a8a', dash: [2, 3] },
+  { color: '#171717', dash: [9, 4, 2, 4] },
+  { color: '#a3a3a3', dash: [1, 2] }
+]
+
+const normalized = computed(() => {
+  if (props.series && props.series.length) {
+    return props.series.map((s, i) => ({
+      label: s.label ?? `Series ${i + 1}`,
+      values: s.values,
+      stroke: STROKES[i % STROKES.length],
+      fill: props.series.length === 1,
+      mutedPoints: s.muted ?? []
+    }))
+  }
+  return [
+    {
+      label: props.seriesLabel,
+      values: props.values ?? [],
+      stroke: STROKES[0],
+      fill: true,
+      mutedPoints: props.mutedPoints
+    }
+  ]
+})
+
+const multi = computed(() => normalized.value.length > 1)
 
 const chartData = computed(() => ({
   labels: props.labels.map(String),
-  datasets: [
-    {
-      label: props.seriesLabel,
-      data: props.values,
-      borderColor: '#0a0a0a',
-      backgroundColor: 'rgba(10, 10, 10, 0.06)',
-      pointBackgroundColor: props.values.map((_, i) => pointColor(i)),
-      pointBorderColor: '#ffffff',
-      pointBorderWidth: 1.5,
-      pointRadius: 3,
-      pointHoverRadius: 5.5,
-      borderWidth: 2,
-      tension: 0.25,
-      fill: true
-    }
-  ]
+  datasets: normalized.value.map((s) => ({
+    label: s.label,
+    data: s.values,
+    borderColor: s.stroke.color,
+    borderDash: s.stroke.dash,
+    backgroundColor: multi.value ? 'transparent' : 'rgba(10, 10, 10, 0.06)',
+    pointBackgroundColor: s.values.map((_, i) =>
+      s.mutedPoints[i] ? '#a3a3a3' : s.stroke.color
+    ),
+    pointBorderColor: '#ffffff',
+    pointBorderWidth: 1.5,
+    pointRadius: multi.value ? 2.5 : 3,
+    pointHoverRadius: 5.5,
+    borderWidth: 2,
+    tension: 0.25,
+    fill: s.fill,
+    spanGaps: false
+  }))
 }))
 
 const chartOptions = computed(() => ({
@@ -51,20 +88,32 @@ const chartOptions = computed(() => ({
   maintainAspectRatio: false,
   interaction: { mode: 'index', intersect: false },
   plugins: {
-    legend: { display: false },
+    legend: {
+      display: multi.value,
+      position: 'bottom',
+      labels: {
+        color: '#171717',
+        boxWidth: 22,
+        boxHeight: 2,
+        usePointStyle: false,
+        font: { size: 11 }
+      }
+    },
     tooltip: {
       backgroundColor: '#0a0a0a',
       titleColor: '#ffffff',
       bodyColor: '#ffffff',
       padding: 10,
       cornerRadius: 6,
-      displayColors: false,
+      displayColors: multi.value,
       titleFont: { weight: '600' },
       callbacks: {
         title: (items) => items[0]?.label,
         label: (item) => {
-          const suffix = props.mutedPoints[item.dataIndex] ? ' (partial)' : ''
-          return `${props.seriesLabel}: ${props.valueFormatter(item.parsed.y)}${suffix}`
+          const s = normalized.value[item.datasetIndex]
+          const suffix = s?.mutedPoints[item.dataIndex] ? ' (partial)' : ''
+          const name = multi.value ? `${item.dataset.label}: ` : `${props.seriesLabel}: `
+          return `${name}${props.valueFormatter(item.parsed.y)}${suffix}`
         }
       }
     }
