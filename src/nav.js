@@ -49,9 +49,10 @@ export const sections = [
     name: 'population-change',
     label: 'Population Decline / Gain',
     shortLabel: 'Population Change',
-    status: 'coming-soon',
+    status: 'available',
     description:
-      'Net population change derived from births vs. deaths, year over year.',
-    source: 'CDC (data.cdc.gov, Socrata) — combines the birth and death pipelines above'
+      'Births vs. deaths and the shrinking natural increase between them, plus a century of US births.',
+    source:
+      'CDC (data.cdc.gov, Socrata) — NCHS Births and General Fertility Rates (e6fc-ccez) + Leading Causes of Death "All causes" (bi63-dtpu)'
   }
 ]

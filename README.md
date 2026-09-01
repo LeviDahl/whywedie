@@ -253,6 +253,8 @@ drawer on mobile, toggled from a top bar.
 - [ ] Stand the pipeline up for real — run the D76 import into MySQL, wire
       the snapshot publish step, schedule it (see `pipeline/README.md`).
 - [ ] Birth Statistics page — `fetchCurrentMonthlyBirths` already exists.
-- [ ] Population Decline/Gain — combine the births and deaths pipelines.
+- [x] Population Decline/Gain — v1 live: births (e6fc-ccez, 1909–2018) vs
+      deaths (bi63-dtpu "All causes", 1999–2017) + natural increase. Extend
+      past 2017 (and reach the 2021 crossover) via the WONDER pipeline.
 - [ ] Periodically re-check whether `hmz2-vwda` has resumed updating past
       June 2024, or whether CDC has published a replacement dataset.

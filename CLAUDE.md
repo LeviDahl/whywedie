@@ -295,5 +295,7 @@ old and new into one series.
    `/data/mortality.json` is only the committed baseline.
 3. Birth Statistics page — `fetchCurrentMonthlyBirths()` already exists in
    `currentVitalEvents.js`; the page just needs building.
-4. Population Decline/Gain — combine the births and deaths pipelines.
+4. Population Decline/Gain — v1 live (births e6fc-ccez vs deaths bi63-dtpu
+   "All causes", 1999–2017 overlap). Extend past 2017 via the WONDER
+   pipeline (no-cause D76 total + natality databases).
 5. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).

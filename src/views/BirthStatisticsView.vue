@@ -106,8 +106,18 @@ const yoy = computed(() => {
         </template>
       </section>
 
-      <!-- Roadmap note for annual history -->
-      <section>
+      <!-- Population-trend hook + roadmap note -->
+      <section class="space-y-4">
+        <div class="card">
+          <h2 class="text-base font-semibold text-ink">Births vs. deaths</h2>
+          <p class="mt-2 text-sm text-muted">
+            The US still records well over a million more births than deaths a year — but that margin
+            has shrunk by roughly a third since 1999, and in 2021 deaths briefly won. The
+            <RouterLink to="/population-change" class="link-underline">Population Decline / Gain</RouterLink>
+            page tracks that gap.
+          </p>
+        </div>
+
         <div class="card bg-paper-soft">
           <h2 class="text-base font-semibold text-ink">Annual Births &amp; Fertility Rate</h2>
           <p class="mt-2 text-sm text-muted">
