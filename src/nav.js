@@ -27,10 +27,11 @@ export const sections = [
     name: 'causes-of-death',
     label: 'Causes of Death',
     shortLabel: 'Causes of Death',
-    status: 'coming-soon',
+    status: 'available',
     description:
-      'Leading causes of death by ICD-10 category, and how their ranking has shifted over time.',
-    source: 'CDC (data.cdc.gov, Socrata) — exact dataset not chosen yet'
+      'Leading causes of death, ranked by year (1999–2020), plus how each cause has trended over time — with deaths, crude rate, and age-adjusted rate.',
+    source:
+      'CDC WONDER — Underlying Cause of Death, 1999–2020 (database D76), national, via the whywedie data pipeline (/data/mortality.json)'
   },
   {
     path: '/birth-statistics',
