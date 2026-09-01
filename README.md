@@ -1,12 +1,14 @@
 # Why We Die — whywedie.org
 
 An interactive site tracking US death, birth, and population statistics,
-sourced live from CDC's open data platform (data.cdc.gov).
+sourced from CDC data.
 
-**Current state:** full sidebar shell, Home page, and a live **Death
-Statistics Over Time** page (two charts — see below). Causes of Death,
-Birth Statistics, and Population Decline/Gain are still "coming soon"
-placeholders.
+**Current state:** full sidebar shell, Home page, a live **Death Statistics
+Over Time** page (data.cdc.gov / Socrata), and a live **Causes of Death**
+page (CDC WONDER, via the data pipeline in [`pipeline/`](pipeline/) →
+`/data/mortality.json`). Causes of Death supports overlaying multiple
+periods (single years or decade ranges) and multiple causes. Birth
+Statistics and Population Decline/Gain are still "coming soon" placeholders.
 
 ## Tech stack
 
@@ -15,11 +17,15 @@ placeholders.
 - **Vue Router 4** — client-side routing
 - **Tailwind CSS v4** — utility-first styling, zero-config content detection
   via the `@tailwindcss/vite` plugin
-- **Chart.js + vue-chartjs** — the Death Statistics charts
+- **Chart.js + vue-chartjs** — all charts
 
-That's it — **no backend.** The site calls data.cdc.gov's Socrata JSON API
-directly from the browser (see "How the data pipelines work" below), so
-this is a fully static site.
+**The site itself is static** — no server, no build-time data fetch. It
+either calls data.cdc.gov's Socrata JSON API directly from the browser, or
+reads a static JSON file (`/data/mortality.json`). That JSON is produced
+out-of-band by the Node pipeline in [`pipeline/`](pipeline/), which runs on
+its own schedule against CDC WONDER and is completely separate from the
+frontend (its own `package.json`, never imported by the app). See
+[`pipeline/README.md`](pipeline/README.md).
 
 `package.json` pins dependencies to their current major versions with `^`
 ranges, so `npm install` will pull the latest compatible release.
@@ -98,42 +104,78 @@ GET https://data.cdc.gov/resource/muzy-jte6.json
   than show a misleading total — see the muted point + caption on the
   annual chart in `DeathStatisticsView.vue`.
 
-### 3. Birth statistics (pipeline implemented, page not built yet)
+### 3. Leading causes of death (CDC WONDER, not Socrata)
+
+**Source:** CDC WONDER "Underlying Cause of Death, 1999–2020" (database
+`D76`), national, grouped by year × the NCHS 113 Selected Causes list.
+**Frontend module:** `src/api/causesOfDeath.js` — fetches the static
+snapshot `/data/mortality.json` (same-origin file, no API call, no CORS).
+**Producer:** [`pipeline/`](pipeline/) — a Node job that POSTs XML to the
+WONDER API, parses the response, upserts to a MySQL database, and emits the
+JSON snapshot. Runs off-box (cPanel has no Node runtime); see
+[`pipeline/README.md`](pipeline/README.md).
+
+The snapshot carries deaths, population, crude rate and age-adjusted rate
+per cause per year. `causesOfDeath.js` exposes only the NCHS *rankable*
+("#"-prefixed) causes — the 113 list also contains roll-up super-categories
+and sub-detail that would double-count in a ranking — and aligns each
+cause's series to the full year axis so several can be overlaid.
+
+⚠️ Worth knowing:
+- **The WONDER API is national-only for vital statistics** — it refuses any
+  State / County / Region grouping or filter. Every row is US-wide.
+- `/data/mortality.json` is committed as a baseline so the site works on a
+  fresh deploy; the pipeline's publish step overwrites it in production.
+- Coverage is **1999–2020** (D76's range). Earlier decades (ICD-9 1979–98,
+  ICD-8 1968–78) and 2021+ need additional WONDER databases wired into the
+  pipeline — the comparison UI already has disabled controls for them.
+
+### 4. Birth statistics (pipeline implemented, page not built yet)
 
 Same dataset as #1 (`hmz2-vwda`), `indicator='Number of Live Births'`.
 `fetchCurrentMonthlyBirths()` in `src/api/currentVitalEvents.js` is ready
 to use — `BirthStatisticsView.vue` just hasn't been built out yet (still a
 placeholder).
 
-### Scope note vs. the original CDC WONDER approach
+### Socrata vs. CDC WONDER
 
-This site originally used the CDC WONDER API (1999–2020 finalized data via
-a Node proxy, since WONDER requires XML/POST and has no CORS support).
-That's been fully removed in favor of these Socrata pipelines, which are
-simpler (no backend, plain JSON, CORS-friendly) but cover a **much shorter
-time range** (2020–present, not 1999–present) and **no age-adjusted rate**
-— only raw counts. That's a real tradeoff, not just an implementation
-detail; if multi-decade trend charts matter later, a finalized-data source
-covering more years (CDC WONDER, or something else) may still be worth
-adding back for the historical end specifically, run alongside these
-Socrata pipelines for the current end. Not done in this pass — flagging it
-so the tradeoff is a deliberate choice, not a silent regression.
+Two data strategies coexist on purpose:
+
+- **Socrata** (`data.cdc.gov`) — plain JSON + CORS, so the browser calls it
+  directly, no infrastructure. Powers Death Statistics (current monthly +
+  annual rollup). Downside: short coverage (2020–present) and raw counts
+  only, no rate.
+- **CDC WONDER** — XML/POST, no CORS, and its API is national-only. Needs
+  the out-of-band [`pipeline/`](pipeline/) (an earlier version used an
+  always-on Node proxy; that's gone — the pipeline is a scheduled batch job
+  that writes a static file). Upside: finalized multi-decade data with
+  age-adjusted rates. Powers Causes of Death.
+
+If Death Statistics ever wants real multi-decade history, the move is to
+add a WONDER annual-totals pull to the pipeline rather than stretch
+Socrata.
 
 ## Deploying to GoDaddy
 
-Since there's no backend anymore, deployment is simpler than before — the
-whole site is static files:
+The site is static files in `public_html`:
 
-1. `npm run build` locally — produces `dist/`.
+1. `npm run build` locally — produces `dist/` (including `.htaccess` and
+   `data/mortality.json`, both copied from `public/`).
 2. Upload the **contents** of `dist/` (not the `dist` folder itself) into
-   `public_html`, via cPanel File Manager or FTP.
-3. `public/.htaccess` is already in this project and gets copied into
-   `dist/` automatically on build — it's required for Vue Router's
-   client-side routing to survive a direct link or a page refresh on a
-   route like `/death-statistics` (otherwise Apache 404s).
+   `public_html`, via cPanel File Manager or FTP. Overwrite `index.html`
+   and `assets/`.
+3. **After a File Manager zip-extract, fix permissions:** `public_html`
+   itself must be `755`, and every file `644` (folders `755`). The extract
+   can leave `.htaccess` as `600`, which Apache can't read → the whole site
+   403s. This has bitten the site more than once.
+4. `public/.htaccess` folds two rules into one `mod_rewrite` block: force
+   HTTPS, and the Vue Router history-mode fallback (so a direct link /
+   refresh on `/causes-of-death` doesn't 404). Keep them together.
 
-(No Node app / cPanel "Setup Node.js App" needed anymore — that was only
-for the now-removed CDC WONDER proxy.)
+`data/mortality.json` in the build is a baseline; once the pipeline is
+scheduled its publish step (FTP upload into `public_html/data/`) keeps that
+file fresh independently of site deploys. The pipeline itself does **not**
+run on cPanel — see [`pipeline/README.md`](pipeline/README.md).
 
 ## Project structure
 
@@ -143,26 +185,34 @@ src/
   router/index.js            # routes generated from nav.js
   App.vue                    # app shell: sidebar + mobile top bar + page transitions
   style.css                  # Tailwind import, black/white design tokens, component classes
+  charts/
+    palette.js                # validated color palette for chart MARKS only (chrome stays mono)
   api/
     socrata.js                # generic data.cdc.gov Socrata client
-    currentVitalEvents.js     # pipeline 1 & 3: current monthly deaths + births (hmz2-vwda)
-    historicalDeaths.js       # pipeline 2: historical annual death rollup (muzy-jte6)
+    currentVitalEvents.js     # current monthly deaths + births (Socrata hmz2-vwda)
+    historicalDeaths.js       # historical annual death rollup (Socrata muzy-jte6)
+    causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
   composables/
     useAsyncData.js           # shared loading/error/data helper for section views
   components/
     AppSidebar.vue            # sidebar nav (desktop: static, mobile: slide-in drawer)
     NavIcon.vue                # inline SVG icons per section
     PageHeader.vue             # consistent page title/description header
-    ComingSoonPanel.vue        # placeholder panel used by the 3 unbuilt sections
-    TimeSeriesChart.vue        # Chart.js line chart, reused for both Death Statistics charts
+    ComingSoonPanel.vue        # placeholder panel used by the 2 unbuilt sections
+    TimeSeriesChart.vue        # Chart.js line chart, single- or multi-series (Death Stats + trend)
+    RankedBarChart.vue         # Chart.js horizontal bar chart, single- or multi-series (period compare)
   views/
     HomeView.vue               # project overview (built out)
     DeathStatisticsView.vue    # live: annual chart + monthly chart, each with its own caveats
-    CausesOfDeathView.vue      # placeholder
+    CausesOfDeathView.vue      # live: ranked bars (compare periods) + trend (compare causes)
     BirthStatisticsView.vue    # placeholder
     PopulationChangeView.vue   # placeholder
 public/
-  .htaccess                   # Apache rewrite for Vue Router history mode (copied into dist/ on build)
+  .htaccess                   # Apache: HTTPS redirect + Vue Router history-mode fallback
+  data/
+    mortality.json            # committed baseline snapshot; pipeline/ refreshes it in prod
+pipeline/                     # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
+                              #   (own package.json; see pipeline/README.md)
 ```
 
 Adding a 6th sidebar section: add an entry to `nav.js`, add a view file, add
@@ -175,29 +225,34 @@ query against the live API before assuming a dataset's fields/quirks — see
 
 ## Design system
 
-Strictly black, white, and gray — no color anywhere. Tokens live in
-`src/style.css` under `@theme` (`--color-ink`, `--color-paper`,
-`--color-line`, `--color-muted`, etc.), and reusable component classes
-(`.btn-primary`, `.btn-secondary`, `.card`, `.badge`, `.link-underline`) keep
-buttons and links consistent across pages — rounded corners, subtle shadows,
-hover/active states, and visible focus rings throughout (nothing removes
-`:focus-visible`, so the site stays keyboard-accessible). Custom reusable
-pieces that other classes compose via `@apply` (like `.btn`) are declared
-with Tailwind v4's `@utility` at-rule rather than a plain class — plain
-classes in `@layer components` can't be `@apply`'d by other classes in v4.
-Font is Inter, loaded from Google Fonts with a system-font fallback.
+The **chrome** (sidebar, headers, buttons, cards, stat numbers, body copy)
+is strictly black, white, and gray. Tokens live in `src/style.css` under
+`@theme` (`--color-ink`, `--color-paper`, `--color-line`, `--color-muted`,
+etc.), and reusable component classes (`.btn-primary`, `.btn-secondary`,
+`.card`, `.badge`, `.link-underline`) keep buttons and links consistent —
+rounded corners, subtle shadows, hover/active states, and visible focus
+rings throughout (nothing removes `:focus-visible`). Custom reusable pieces
+that other classes compose via `@apply` (like `.btn`) are declared with
+Tailwind v4's `@utility` at-rule. Font is Inter, from Google Fonts, with a
+system-font fallback.
+
+**Chart marks are the exception** — bars and lines use a small validated
+color palette (`src/charts/palette.js`) so multiple series and
+period-vs-period comparisons stay legible. Axis / grid / tooltip / all text
+stay in the gray tokens; a legend is always shown for 2+ series and line
+series also carry a dash pattern (identity never rests on color alone).
 
 The sidebar is a fixed dark panel on desktop (≥1024px) and an off-canvas
 drawer on mobile, toggled from a top bar.
 
 ## What's next
 
-- [ ] Causes of Death — pick a data.cdc.gov dataset for cause breakdowns,
-      build following the same pattern
-- [ ] Birth Statistics page — the data pipeline already exists
-      (`fetchCurrentMonthlyBirths`), just needs a view
-- [ ] Population Decline/Gain — combine the births and deaths pipelines
-- [ ] Decide whether to reintroduce a finalized, longer-history data source
-      for multi-decade trend views (see "Scope note" above)
+- [ ] Extend the Causes of Death pipeline: WONDER `D16` (ICD-9, 1979–1998)
+      and `D15` (ICD-8, 1968–1978) for deep history, `D176` for 2021+. The
+      comparison UI's disabled decade buttons light up once the data lands.
+- [ ] Stand the pipeline up for real — run the D76 import into MySQL, wire
+      the snapshot publish step, schedule it (see `pipeline/README.md`).
+- [ ] Birth Statistics page — `fetchCurrentMonthlyBirths` already exists.
+- [ ] Population Decline/Gain — combine the births and deaths pipelines.
 - [ ] Periodically re-check whether `hmz2-vwda` has resumed updating past
-      June 2024, or whether CDC has published a replacement dataset
+      June 2024, or whether CDC has published a replacement dataset.

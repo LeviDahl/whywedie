@@ -17,3 +17,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# transient deploy bundle (built + sent, not source)
+whywedie-dist.zip

@@ -9,27 +9,38 @@ authentication.
 Full sidebar shell (Home, Death Statistics Over Time, Causes of Death, Birth
 Statistics, Population Decline/Gain). Home is fleshed out. **Death
 Statistics Over Time is live** — two Chart.js charts (annual historical
-deaths, current monthly deaths), fetched directly from data.cdc.gov's
-Socrata JSON API in the browser. The other three sections are still "coming
-soon" placeholders.
+deaths, current monthly deaths), fetched from data.cdc.gov's Socrata JSON
+API in the browser. **Causes of Death is live** — a ranked horizontal bar
+chart and a trend line chart, with a deaths / crude-rate / age-adjusted-rate
+toggle. It can overlay multiple **periods** (single years or decade ranges,
+shown as mean annual values) on the ranked chart and multiple **causes** on
+the trend chart. Its data is CDC WONDER (national, 1999–2020), read from the
+static file `/data/mortality.json`. Birth Statistics and Population
+Decline/Gain are still "coming soon" placeholders.
 
-**This is a fully static site — no backend.** An earlier version used the
-CDC WONDER API via a Node/Express proxy (`server/`); that's been removed
-entirely. WONDER required XML/POST and had no CORS support, so it needed a
-backend. data.cdc.gov's Socrata API is plain JSON with CORS support, so the
-frontend calls it directly. Don't reintroduce a backend/proxy without a real
-reason — the whole point of this rework was to not need one.
+**The site itself is static — no server, no build-time data fetch.** It
+either calls Socrata directly from the browser, or reads a committed JSON
+file. Do **not** add a backend/proxy *to the site*.
 
-## Development Environment & Sandboxing
+`/data/mortality.json` is produced out-of-band by **`pipeline/`** — a
+standalone Node job (its own `package.json`; never imported by the app) that
+POSTs XML to the CDC WONDER API, parses it, upserts to a MySQL database, and
+emits the JSON snapshot. It runs off-box (GoDaddy's cPanel has no Node
+runtime) on its own schedule. An earlier version of the WONDER integration
+was an always-on Node/Express proxy in `server/` — that's gone; the pipeline
+is a batch job that writes a file, not a request-time service. Full detail
+in [`pipeline/README.md`](pipeline/README.md). Note: **the WONDER API is
+national-only for vital statistics** — it refuses State/County/Region
+grouping, so every pipeline row is US-wide.
+
+## Development Environment
 
 - **OS Platform:** macOS (Darwin). Use Unix-compliant commands only.
-- **Sandboxing Rules:** Builds, package installations, and process executions
-  should happen within the designated sandbox/dev environment for this repo,
-  not against the host system directly.
-- **Filesystem Isolation:** Never execute terminal commands that modify,
-  write, or read files outside the project root directory, or on the host
-  macOS filesystem. Do not alter global user configuration
-  (`~/.zshrc`, `~/.npmrc`, etc.).
+- **Runs directly on the user's Mac** — there's no separate sandbox for this
+  project; `npm install` / `npm run build` / git commands operate on the
+  real local filesystem and the real repo. Stay scoped to the project root:
+  don't modify, write, or read files outside it, and don't touch global
+  user config (`~/.zshrc`, `~/.npmrc`, etc.) or other system-level settings.
 
 ## Build & Verification Commands
 
@@ -44,7 +55,53 @@ There is no TypeScript, ESLint, or test runner configured yet. If any of
 those get added later, update this section (and `package.json`'s `scripts`)
 to match — don't reference `type-check` / `lint` / `test:unit` commands
 until they actually exist, since that misleads whoever (human or Claude)
-reads this file next.
+reads this file next. With real local shell access, actually run
+`npm run build` before considering a change done — don't just reason about
+whether it would pass.
+
+## Deployment & Git
+
+- **Hosting:** whywedie.org is on GoDaddy shared hosting (cPanel), served as
+  static files from `public_html`. SSL is handled by GoDaddy's AutoSSL —
+  already set up, shouldn't need attention.
+- **Deploy process:** `npm run build` → upload the **contents** of `dist/`
+  (not the `dist` folder itself) into `public_html`, via cPanel File Manager
+  or FTP. `public/.htaccess` is copied into `dist/` automatically by the
+  build and does two jobs in one `<IfModule mod_rewrite.c>` block — keep
+  them together, don't split them apart:
+  1. Redirects plain `http://` to `https://`
+  2. Vue Router history-mode fallback (serves `index.html` for any route
+     that isn't a real file/directory, so a direct link or a refresh on
+     e.g. `/death-statistics` doesn't 404)
+
+  These were accidentally split apart once already — the HTTPS redirect got
+  dropped when `.htaccess` was rewritten to add the Vue Router rule, since
+  the redirect had originally been added by cPanel's AutoSSL flow rather
+  than living in this repo's source `.htaccess`. Now that it's folded into
+  the same file/block, it survives every future build — don't regenerate
+  `.htaccess` from scratch without carrying both rules forward.
+- **⚠️ GoDaddy zip-extract permissions, hit more than once:** extracting an
+  upload in cPanel File Manager can leave files/dirs with permissions Apache
+  can't read → a generic 403 for the whole site even though every file looks
+  present. Two known cases: (a) `public_html` *itself* ends up not `755`;
+  (b) `.htaccess` extracts as `600` (owner-only), which Apache can't read.
+  After any File Manager extract: `public_html` = `755`, every file = `644`
+  (dirs `755`), and specifically confirm `.htaccess` is `644`. Check this
+  before suspecting the `.htaccess` rules or the app.
+- **`/data/mortality.json`** must exist at the site root in production (the
+  Causes of Death page fetches it). It's committed in `public/data/` so a
+  plain `dist/` upload includes it; the `pipeline/` publish step later
+  overwrites it on the server with fresher data. Don't let a site redeploy
+  clobber a newer pipeline-published file with the committed baseline —
+  re-run the pipeline publish after a deploy, or exclude `data/` from the
+  upload.
+- **Git:** this is a git repo (`git init -b main` already run), intended to
+  be pushed to a new public GitHub repo. Don't assume the current state —
+  check `git status` / `git log` / `git remote -v` directly (this
+  environment has real shell access, unlike some earlier sessions that
+  worked on this file through a broken remote-device bridge and could only
+  hand off manual commands). If there's anything uncommitted or unpushed,
+  finish that as part of picking up this project.
 
 ## Architecture & Code Conventions
 
@@ -84,15 +141,14 @@ reads this file next.
   (`component: () => import(...)`) for code-splitting — this is already the
   pattern in place.
 
-## macOS-Specific & Tooling Guidelines
+## macOS-Specific Guidelines
 
 - **Case Sensitivity:** macOS (APFS) is typically case-insensitive but
   case-preserving; Linux-based build/CI environments are case-sensitive.
   Make sure imports match file casing exactly on disk.
 - **System Junk:** Ignore `.DS_Store` entirely (already in `.gitignore`).
-- **Tooling Execution:** Right now, `npm run build` is the only automated
-  verification available — run it before considering a change done. Don't
-  request host macOS permissions, system keychains, or system notifications.
+- Don't request host macOS permissions, system keychains, or system
+  notifications — nothing here needs them.
 
 ## Project structure
 
@@ -102,35 +158,44 @@ src/
   router/index.js            # routes generated from nav.js
   App.vue                    # app shell: sidebar + mobile top bar + page transitions
   style.css                  # Tailwind import, black/white design tokens, component classes
+  charts/
+    palette.js                # validated color palette for chart MARKS only (chrome stays mono)
   api/
     socrata.js                # generic data.cdc.gov Socrata (SODA) JSON client
-    currentVitalEvents.js     # current monthly deaths + births (dataset hmz2-vwda)
-    historicalDeaths.js       # historical annual death rollup (dataset muzy-jte6)
+    currentVitalEvents.js     # current monthly deaths + births (Socrata hmz2-vwda)
+    historicalDeaths.js       # historical annual death rollup (Socrata muzy-jte6)
+    causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
   composables/
     useAsyncData.js          # shared loading/error/data helper for section views
   components/
     AppSidebar.vue           # sidebar nav (desktop: static, mobile: slide-in drawer)
     NavIcon.vue               # inline SVG icons per section
     PageHeader.vue            # consistent page title/description header
-    ComingSoonPanel.vue       # placeholder panel used by the 3 unbuilt sections
-    TimeSeriesChart.vue       # generic Chart.js line chart, reused across sections
+    ComingSoonPanel.vue       # placeholder panel used by the 2 unbuilt sections
+    TimeSeriesChart.vue       # Chart.js line chart — single- OR multi-series (pass `series`)
+    RankedBarChart.vue        # Chart.js horizontal bars — single- OR multi-series (period compare)
   views/
     HomeView.vue              # project overview (built out)
     DeathStatisticsView.vue   # live: annual chart + monthly chart, each with own caveats
-    CausesOfDeathView.vue     # placeholder
+    CausesOfDeathView.vue     # live: ranked bars (compare periods) + trend (compare causes)
     BirthStatisticsView.vue   # placeholder
     PopulationChangeView.vue  # placeholder
 public/
-  .htaccess                  # Apache rewrite for Vue Router history mode
+  .htaccess                  # Apache: HTTPS redirect + Vue Router history-mode fallback
+  data/mortality.json        # committed baseline snapshot; pipeline/ refreshes it in prod
+pipeline/                    # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
+                             #   own package.json (axios, mysql2, fast-xml-parser); see its README
 ```
 
 Adding a 6th sidebar section: add an entry to `nav.js`, add a view file, add
 it to the `viewComponents` map in `router/index.js`. Adding a new live-data
-section: see "data.cdc.gov / Socrata API" below.
+section: see "data.cdc.gov / Socrata API" below, or `pipeline/README.md` for
+a WONDER-backed one.
 
 ## Design system
 
-Strictly black, white, and gray — no color anywhere. Tokens live in
+The **chrome** — sidebar, headers, buttons, cards, stat numbers, page
+copy — is strictly black, white, and gray, no color. Tokens live in
 `src/style.css` under `@theme` (`--color-ink`, `--color-paper`,
 `--color-line`, `--color-muted`, etc.). Reusable component classes
 (`.btn-primary`, `.btn-secondary`, `.card`, `.badge`, `.link-underline`)
@@ -138,11 +203,21 @@ keep buttons/links/cards consistent — rounded corners, subtle shadows,
 hover/active states, visible focus rings (never remove `:focus-visible`).
 Font is Inter (Google Fonts) with a system-font fallback.
 
-## data.cdc.gov / Socrata API — read before touching a live-data section
+**Charts are the one exception**: chart *marks* (bars, lines) may use
+color, so multiple series and period-vs-period comparisons stay legible.
+The palette is `src/charts/palette.js` — a validated categorical set (blue,
+orange, aqua, yellow) from the `dataviz` skill's reference palette. Rules:
+assign slots in fixed order (never cycle/recolor on filter change); a
+legend is always shown for 2+ series and line series also carry a dash
+pattern (identity never rests on color alone); axis/grid/tooltip stay in
+the gray tokens; text never wears a series color. If you add or change
+chart colors, re-run the skill's `validate_palette.js` first.
 
-This is a fully static site precisely because Socrata's API is
-browser-friendly. That only holds if every new data pipeline follows the
-same rules:
+## data.cdc.gov / Socrata API — read before touching a Socrata-backed section
+
+Socrata is the *browser-direct* data path (Death Statistics). It stays that
+way — no proxy — only if every Socrata pipeline follows these rules. (The
+WONDER path is different and lives in `pipeline/`; see its README.)
 
 - **JSON over GET, with CORS.** Call `src/api/socrata.js`'s `socrataQuery()`
   directly from view/composable code — no proxy, no backend. (CORS support
@@ -178,6 +253,17 @@ updating it or replaced it with a new dataset ID — if a fresher one turns
 up, swap `DATASET_ID` in `currentVitalEvents.js`, the query shape should
 carry over directly.
 
+### Causes of Death no longer uses Socrata
+
+It used to (`bi63-dtpu`, 1999–2017, national). It now reads
+`/data/mortality.json` produced by **`pipeline/`** from CDC WONDER database
+`D76` (1999–2020, national, deaths + population + crude + age-adjusted
+rate). `src/api/causesOfDeath.js` just fetches that file and reshapes it;
+there is no live API call for this page. Everything about the WONDER side —
+the national-only constraint, the `#`-prefixed "rankable" cause convention,
+the template format, the schema — is in `pipeline/README.md` and
+`pipeline/templates/README.md`. Don't reach for `bi63-dtpu` again.
+
 ### ⚠️ `muzy-jte6` (historical annual rollup) has a partial final year
 
 At time of writing, the most recent year (2023) only has 37 of ~52 weeks of
@@ -187,23 +273,27 @@ weeks (muted chart point + caption) instead of showing a misleadingly low
 total next to full years. Keep this pattern for any future annual rollup
 from a weekly/monthly source — don't silently sum an in-progress period.
 
-### Scope tradeoff vs. the removed CDC WONDER approach
+### Socrata vs. CDC WONDER — two strategies on purpose
 
-WONDER (removed) had finalized annual data back to 1999 plus an
-age-adjusted rate measure. These Socrata pipelines only cover 2020–present
-and raw counts only (no rate). That's a deliberate tradeoff for removing
-the backend, not an oversight — if multi-decade trend views matter later,
-consider adding a finalized longer-history source back for the historical
-end specifically, run alongside these Socrata pipelines for the current
-end, rather than trying to force old and new together into one series.
+- **Socrata** (Death Statistics): browser calls it directly, zero
+  infrastructure, but short coverage (2020–present) and counts only.
+- **CDC WONDER** (Causes of Death): finalized multi-decade data with rates,
+  but XML/POST, no CORS, national-only — so it needs `pipeline/` (a
+  scheduled batch job writing a static file, *not* a request-time proxy).
+
+If Death Statistics ever needs real multi-decade history, add a WONDER
+annual-totals pull to `pipeline/` rather than stretch Socrata — don't force
+old and new into one series.
 
 ## Next steps
 
-1. Causes of Death — pick a data.cdc.gov dataset for cause-of-death
-   breakdowns, build following the pattern above (test the real API first)
-2. Birth Statistics page — `fetchCurrentMonthlyBirths()` already exists in
-   `currentVitalEvents.js`; the page just needs building
-3. Population Decline/Gain — combine the births and deaths pipelines
-4. Decide whether to add back a longer-history data source (see "Scope
-   tradeoff" above)
-5. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above)
+1. Extend `pipeline/` beyond D76: `D16` (ICD-9, 1979–98), `D15` (ICD-8,
+   1968–78), `D176` (2021+). The Causes of Death comparison UI already has
+   disabled decade buttons waiting on this data.
+2. Stand `pipeline/` up for real — D76 import into MySQL, the snapshot
+   publish step, the cron schedule (all in `pipeline/README.md`). Right now
+   `/data/mortality.json` is only the committed baseline.
+3. Birth Statistics page — `fetchCurrentMonthlyBirths()` already exists in
+   `currentVitalEvents.js`; the page just needs building.
+4. Population Decline/Gain — combine the births and deaths pipelines.
+5. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
