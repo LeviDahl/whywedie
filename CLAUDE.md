@@ -177,6 +177,7 @@ src/
     causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
     populationChange.js       # births (e6fc-ccez) vs deaths (bi63-dtpu "All causes") + natural increase
     dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
+    yearFacts.js              # per-year births/deaths/leading-cause for the Home "pick a year" panel
   composables/
     useAsyncData.js          # shared loading/error/data helper for section views
     useNamePreference.js     # friendly vs official cause names, persisted (localStorage)
@@ -184,6 +185,7 @@ src/
     AppSidebar.vue           # sidebar nav (desktop: static, mobile: slide-in drawer)
     NavIcon.vue               # inline SVG icons per section (one v-if branch per section name)
     PageHeader.vue            # consistent page title/description header
+    YearLookup.vue            # Home "in the year N" cross-section lookup
     ComingSoonPanel.vue       # placeholder panel — no longer used (all sections live)
     TimeSeriesChart.vue       # Chart.js line chart — single- OR multi-series (pass `series`)
     RankedBarChart.vue        # Chart.js horizontal bars — single- OR multi-series (period compare)

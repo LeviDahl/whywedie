@@ -1,5 +1,6 @@
 <script setup>
 import { sections } from '@/nav.js'
+import YearLookup from '@/components/YearLookup.vue'
 
 const dataSections = sections.filter((s) => s.path !== '/')
 </script>
@@ -33,6 +34,12 @@ const dataSections = sections.filter((s) => s.path !== '/')
         </div>
       </div>
     </header>
+
+    <section class="border-b border-line px-6 py-12 sm:px-10 sm:py-16">
+      <div class="mx-auto max-w-3xl">
+        <YearLookup />
+      </div>
+    </section>
 
     <section class="px-6 py-12 sm:px-10 sm:py-16">
       <div class="mx-auto max-w-3xl">
@@ -91,7 +98,7 @@ const dataSections = sections.filter((s) => s.path !== '/')
           </div>
           <div>
             <dt class="text-xs font-medium uppercase tracking-wide text-muted">Coverage</dt>
-            <dd class="mt-1.5 text-sm text-ink">National (US), 2020–present</dd>
+            <dd class="mt-1.5 text-sm text-ink">National (US); 1909–2020 depending on the series</dd>
           </div>
           <div>
             <dt class="text-xs font-medium uppercase tracking-wide text-muted">Access</dt>

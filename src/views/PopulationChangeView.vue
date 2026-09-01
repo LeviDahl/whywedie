@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
@@ -53,6 +53,43 @@ const last = computed(() => {
 const dropPct = computed(() => {
   if (!first.value || !last.value || !first.value.ni) return null
   return ((last.value.ni - first.value.ni) / first.value.ni) * 100
+})
+
+// --- long birth history: optional era-shape comparison ---
+const ERA_PRESETS = [
+  { label: 'Baby boom', from: 1946, to: 1964 },
+  { label: 'Baby bust', from: 1965, to: 1976 },
+  { label: 'Millennial echo', from: 1982, to: 1995 },
+  { label: 'Since 2007', from: 2007, to: 2018 }
+]
+const eras = ref([])
+
+function toggleEra(p) {
+  const i = eras.value.findIndex((e) => e.from === p.from && e.to === p.to)
+  if (i >= 0) eras.value.splice(i, 1)
+  else if (eras.value.length < 4) eras.value.push({ from: p.from, to: p.to })
+}
+const eraActive = (p) => eras.value.some((e) => e.from === p.from && e.to === p.to)
+
+const historyByYear = computed(() => {
+  const d = history.data.value
+  if (!d) return new Map()
+  return new Map(d.years.map((y, i) => [y, d.births[i]]))
+})
+
+// When eras are chosen, re-plot each span aligned to "year 1" so their
+// shapes sit on top of each other.
+const eraOverlay = computed(() => {
+  if (!eras.value.length) return null
+  const map = historyByYear.value
+  const maxLen = Math.max(...eras.value.map((e) => e.to - e.from + 1))
+  return {
+    labels: Array.from({ length: maxLen }, (_, i) => `Year ${i + 1}`),
+    series: eras.value.map((e) => ({
+      label: `${e.from}–${e.to}`,
+      values: Array.from({ length: maxLen }, (_, i) => map.get(e.from + i) ?? null)
+    }))
+  }
 })
 </script>
 
@@ -160,8 +197,37 @@ const dropPct = computed(() => {
           <button type="button" class="btn-secondary mt-4" @click="history.load">Try again</button>
         </div>
         <template v-else-if="history.data.value?.years?.length">
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <span class="text-xs font-medium uppercase tracking-wide text-muted">Compare eras</span>
+            <button
+              v-for="p in ERA_PRESETS"
+              :key="p.label"
+              type="button"
+              class="badge cursor-pointer transition-colors duration-150"
+              :class="eraActive(p) ? 'border-ink bg-ink text-paper' : 'text-ink hover:border-ink'"
+              @click="toggleEra(p)"
+            >
+              {{ p.label }}
+            </button>
+            <button
+              v-if="eras.length"
+              type="button"
+              class="text-xs text-muted underline decoration-line-strong underline-offset-2 hover:text-ink"
+              @click="eras = []"
+            >
+              clear
+            </button>
+          </div>
+
           <div class="card">
             <TimeSeriesChart
+              v-if="eraOverlay"
+              :labels="eraOverlay.labels"
+              :series="eraOverlay.series"
+              :value-formatter="compact"
+            />
+            <TimeSeriesChart
+              v-else
               :labels="history.data.value.years"
               :values="history.data.value.births"
               series-label="Births"
@@ -169,8 +235,15 @@ const dropPct = computed(() => {
             />
           </div>
           <p class="mt-3 text-xs text-muted">
-            The 1946–1964 baby boom, the 1970s "baby bust", the early-2000s echo, and the steady
-            decline since 2007 are all visible here.
+            <template v-if="eraOverlay">
+              Each era is lined up from its first year, so you're comparing the <em>shape</em> — how
+              fast births rose or fell — not the calendar.
+            </template>
+            <template v-else>
+              The 1946–1964 baby boom, the 1970s "baby bust", the early-2000s echo, and the steady
+              decline since 2007 are all visible here. Pick an era or two above to compare their
+              shapes side by side.
+            </template>
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ history.data.value.source }}.</p>
         </template>
