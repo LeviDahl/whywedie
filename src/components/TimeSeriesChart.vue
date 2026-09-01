@@ -11,6 +11,15 @@ import {
   Legend,
   Filler
 } from 'chart.js'
+import {
+  SERIES,
+  SERIES_DASH,
+  fillFor,
+  GRID_LINE,
+  AXIS_TEXT,
+  MUTED_MARK,
+  TOOLTIP_BG
+} from '@/charts/palette.js'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler)
 
@@ -28,22 +37,13 @@ const props = defineProps({
   mutedPoints: { type: Array, default: () => [] }
 })
 
-// Grayscale ramp + dash patterns so overlaid lines stay distinguishable
-// without color.
-const STROKES = [
-  { color: '#0a0a0a', dash: [] },
-  { color: '#525252', dash: [6, 3] },
-  { color: '#8a8a8a', dash: [2, 3] },
-  { color: '#171717', dash: [9, 4, 2, 4] },
-  { color: '#a3a3a3', dash: [1, 2] }
-]
-
 const normalized = computed(() => {
   if (props.series && props.series.length) {
     return props.series.map((s, i) => ({
       label: s.label ?? `Series ${i + 1}`,
       values: s.values,
-      stroke: STROKES[i % STROKES.length],
+      color: SERIES[i % SERIES.length],
+      dash: SERIES_DASH[i % SERIES_DASH.length],
       fill: props.series.length === 1,
       mutedPoints: s.muted ?? []
     }))
@@ -52,7 +52,8 @@ const normalized = computed(() => {
     {
       label: props.seriesLabel,
       values: props.values ?? [],
-      stroke: STROKES[0],
+      color: SERIES[0],
+      dash: [],
       fill: true,
       mutedPoints: props.mutedPoints
     }
@@ -66,12 +67,10 @@ const chartData = computed(() => ({
   datasets: normalized.value.map((s) => ({
     label: s.label,
     data: s.values,
-    borderColor: s.stroke.color,
-    borderDash: s.stroke.dash,
-    backgroundColor: multi.value ? 'transparent' : 'rgba(10, 10, 10, 0.06)',
-    pointBackgroundColor: s.values.map((_, i) =>
-      s.mutedPoints[i] ? '#a3a3a3' : s.stroke.color
-    ),
+    borderColor: s.color,
+    borderDash: s.dash,
+    backgroundColor: multi.value ? 'transparent' : fillFor(s.color, 0.1),
+    pointBackgroundColor: s.values.map((_, i) => (s.mutedPoints[i] ? MUTED_MARK : s.color)),
     pointBorderColor: '#ffffff',
     pointBorderWidth: 1.5,
     pointRadius: multi.value ? 2.5 : 3,
@@ -100,7 +99,7 @@ const chartOptions = computed(() => ({
       }
     },
     tooltip: {
-      backgroundColor: '#0a0a0a',
+      backgroundColor: TOOLTIP_BG,
       titleColor: '#ffffff',
       bodyColor: '#ffffff',
       padding: 10,
@@ -121,13 +120,13 @@ const chartOptions = computed(() => ({
   scales: {
     x: {
       grid: { display: false },
-      ticks: { color: '#737373', maxRotation: 0, autoSkipPadding: 16 }
+      ticks: { color: AXIS_TEXT, maxRotation: 0, autoSkipPadding: 16 }
     },
     y: {
       beginAtZero: false,
-      grid: { color: '#e5e5e5' },
+      grid: { color: GRID_LINE },
       ticks: {
-        color: '#737373',
+        color: AXIS_TEXT,
         callback: (value) => props.valueFormatter(value)
       }
     }

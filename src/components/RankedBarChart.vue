@@ -9,21 +9,19 @@ import {
   Tooltip,
   Legend
 } from 'chart.js'
+import { SERIES, GRID_LINE, AXIS_TEXT, TOOLTIP_BG } from '@/charts/palette.js'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
 // Horizontal ranked bar chart. `labels` are category names (causes). Pass
 // one or more series in `series` = [{ label, values }]; with more than one,
-// bars are grouped per category and a legend is shown — this is how the
-// "compare periods" overlay works.
+// bars are grouped per category, coloured per series, and a legend is shown
+// — this is how the "compare periods" overlay works.
 const props = defineProps({
   labels: { type: Array, required: true },
   series: { type: Array, required: true },
   valueFormatter: { type: Function, default: (v) => v?.toLocaleString() ?? '—' }
 })
-
-// Grayscale ramp for up to ~5 overlaid periods.
-const FILLS = ['#0a0a0a', '#525252', '#8a8a8a', '#b8b8b8', '#d4d4d4']
 
 const multi = computed(() => props.series.length > 1)
 
@@ -32,8 +30,9 @@ const chartData = computed(() => ({
   datasets: props.series.map((s, i) => ({
     label: s.label,
     data: s.values,
-    backgroundColor: FILLS[i % FILLS.length],
-    borderRadius: 3,
+    backgroundColor: SERIES[i % SERIES.length],
+    borderRadius: 4,
+    borderSkipped: 'start',
     maxBarThickness: multi.value ? 14 : 22
   }))
 }))
@@ -49,7 +48,7 @@ const chartOptions = computed(() => ({
       labels: { color: '#171717', boxWidth: 12, boxHeight: 12, font: { size: 11 } }
     },
     tooltip: {
-      backgroundColor: '#0a0a0a',
+      backgroundColor: TOOLTIP_BG,
       titleColor: '#ffffff',
       bodyColor: '#ffffff',
       padding: 10,
@@ -67,8 +66,8 @@ const chartOptions = computed(() => ({
   scales: {
     x: {
       beginAtZero: true,
-      grid: { color: '#e5e5e5' },
-      ticks: { color: '#737373', callback: (value) => props.valueFormatter(value) }
+      grid: { color: GRID_LINE },
+      ticks: { color: AXIS_TEXT, callback: (value) => props.valueFormatter(value) }
     },
     y: {
       grid: { display: false },
