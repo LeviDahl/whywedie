@@ -38,10 +38,11 @@ export const sections = [
     name: 'birth-statistics',
     label: 'Birth Statistics',
     shortLabel: 'Birth Statistics',
-    status: 'coming-soon',
-    description: 'US birth counts tracked over time.',
+    status: 'available',
+    description:
+      "CDC's most current provisional monthly US birth counts. Calendar-year history and the fertility rate are coming from the WONDER natality pipeline.",
     source:
-      "CDC (data.cdc.gov, Socrata) — AH Monthly Provisional Counts of Live Births, Deaths, and Other Vital Events (dataset hmz2-vwda, indicator 'Number of Live Births'); fetch already implemented in src/api/currentVitalEvents.js"
+      "CDC (data.cdc.gov, Socrata) — AH Monthly Provisional Counts of Live Births, Deaths, and Other Vital Events (dataset hmz2-vwda, indicator 'Number of Live Births')"
   },
   {
     path: '/population-change',
