@@ -1,0 +1,17 @@
+# Secrets — real values live ONLY on the GoDaddy server (chmod 600). Never commit.
+.env
+.env.*
+!.env.example
+
+node_modules/
+
+# build-snapshots.js output when run locally (on the server it writes to public_html/data)
+snapshots/
+
+# cron / run logs
+logs/*
+!logs/.gitkeep
+
+# raw WONDER responses dumped for debugging (fetch.js --dump)
+*.raw.xml
+rows.json

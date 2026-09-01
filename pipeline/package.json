@@ -1,0 +1,22 @@
+{
+  "name": "whywedie-pipeline",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CDC WONDER XML API -> cPanel MySQL (remote) -> static JSON snapshots for whywedie.org. Runs on any Node >=20.6 host; isolated from the Vite frontend.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "schema": "node apply-schema.js",
+    "fetch": "node fetch.js",
+    "snapshots": "node build-snapshots.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "fast-xml-parser": "^4.5.0",
+    "mysql2": "^3.11.3"
+  }
+}
