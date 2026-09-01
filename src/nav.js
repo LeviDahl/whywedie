@@ -54,5 +54,16 @@ export const sections = [
       'Births vs. deaths and the shrinking natural increase between them, plus a century of US births.',
     source:
       'CDC (data.cdc.gov, Socrata) — NCHS Births and General Fertility Rates (e6fc-ccez) + Leading Causes of Death "All causes" (bi63-dtpu)'
+  },
+  {
+    path: '/by-the-numbers',
+    name: 'by-the-numbers',
+    label: 'By the Numbers',
+    shortLabel: 'By the Numbers',
+    status: 'available',
+    description:
+      'US births and deaths as a daily average — next to a few other things that happen in the same 24 hours.',
+    source:
+      'CDC (data.cdc.gov, Socrata) for births & deaths (hmz2-vwda); assorted public estimates for the rest'
   }
 ]

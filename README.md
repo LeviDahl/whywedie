@@ -3,12 +3,16 @@
 An interactive site tracking US death, birth, and population statistics,
 sourced from CDC data.
 
-**Current state:** full sidebar shell, Home page, a live **Death Statistics
-Over Time** page (data.cdc.gov / Socrata), and a live **Causes of Death**
-page (CDC WONDER, via the data pipeline in [`pipeline/`](pipeline/) →
-`/data/mortality.json`). Causes of Death supports overlaying multiple
-periods (single years or decade ranges) and multiple causes. Birth
-Statistics and Population Decline/Gain are still "coming soon" placeholders.
+**Current state:** all six sidebar sections are live.
+
+| section | data | notes |
+|---|---|---|
+| Home | — | project overview |
+| Death Statistics Over Time | Socrata | annual rollup + current monthly |
+| Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | overlay multiple periods (years or decade ranges) and multiple causes; friendly ↔ official cause names |
+| Birth Statistics | Socrata | provisional monthly births; annual history pending the WONDER natality pipeline |
+| Population Decline / Gain | Socrata | births vs. deaths + natural increase (1999–2017), century-long birth history |
+| By the Numbers | Socrata + public estimates | births/deaths as a daily average + rotating scale-comparison facts |
 
 ## Tech stack
 
@@ -130,12 +134,36 @@ cause's series to the full year axis so several can be overlaid.
   ICD-8 1968–78) and 2021+ need additional WONDER databases wired into the
   pipeline — the comparison UI already has disabled controls for them.
 
-### 4. Birth statistics (pipeline implemented, page not built yet)
+### 4. Birth statistics
 
-Same dataset as #1 (`hmz2-vwda`), `indicator='Number of Live Births'`.
-`fetchCurrentMonthlyBirths()` in `src/api/currentVitalEvents.js` is ready
-to use — `BirthStatisticsView.vue` just hasn't been built out yet (still a
-placeholder).
+`fetchCurrentMonthlyBirths()` in `src/api/currentVitalEvents.js` — same
+dataset as #1 (`hmz2-vwda`), `indicator='Number of Live Births'`. Powers
+`BirthStatisticsView.vue`: provisional monthly national births + a rough
+year-over-year. Annual calendar-year history + fertility rate are noted as
+pending the WONDER natality pipeline (D149 / D66 / D27).
+
+### 5. Population change (births vs. deaths)
+
+`src/api/populationChange.js` combines two Socrata datasets, browser-direct:
+- **`e6fc-ccez`** — NCHS Births and General Fertility Rates: annual US birth
+  counts + crude birth rate, **1909–2018** (`year` is a *string* here).
+- **`bi63-dtpu`** — the `cause_name='All causes'` rows are the national
+  annual death total, **1999–2017** (`state='United States'`, not all-caps).
+
+`fetchBirthsVsDeaths()` returns the 1999–2017 overlap with natural increase
+(births − deaths); `fetchBirthHistory()` returns the full 1909–2018 birth
+line. `PopulationChangeView.vue` notes that 2021 — the first year US deaths
+exceeded births — is just past the data's edge and needs the WONDER
+pipeline.
+
+### 6. By the Numbers (daily pace)
+
+`src/api/dailyStats.js` reads `hmz2-vwda`'s `period='12 Month-ending'` rows
+(most recent month with both births and deaths, ÷ 365) for a "typical day"
+figure — more current than the annual files (reaches ~mid-2024).
+`src/data/dailyFacts.js` is a small hand-curated list of rough public "N per
+year" estimates (pizzas, coffee, lightning, …) shown as annual ÷ 365 for
+scale, clearly labelled as estimates.
 
 ### Socrata vs. CDC WONDER
 
@@ -181,32 +209,39 @@ run on cPanel — see [`pipeline/README.md`](pipeline/README.md).
 
 ```
 src/
-  nav.js                     # single source of truth for the 5 sidebar sections
+  nav.js                     # single source of truth for the 6 sidebar sections
   router/index.js            # routes generated from nav.js
   App.vue                    # app shell: sidebar + mobile top bar + page transitions
   style.css                  # Tailwind import, black/white design tokens, component classes
   charts/
     palette.js                # validated color palette for chart MARKS only (chrome stays mono)
+  data/
+    causeNames.js             # friendly labels for the 49 rankable causes
+    dailyFacts.js             # rough "N per year" scale facts for By the Numbers
   api/
     socrata.js                # generic data.cdc.gov Socrata client
     currentVitalEvents.js     # current monthly deaths + births (Socrata hmz2-vwda)
     historicalDeaths.js       # historical annual death rollup (Socrata muzy-jte6)
     causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
+    populationChange.js       # births (e6fc-ccez) vs deaths (bi63-dtpu) + natural increase
+    dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
   composables/
     useAsyncData.js           # shared loading/error/data helper for section views
+    useNamePreference.js      # friendly vs official cause names, persisted (localStorage)
   components/
     AppSidebar.vue            # sidebar nav (desktop: static, mobile: slide-in drawer)
     NavIcon.vue                # inline SVG icons per section
     PageHeader.vue             # consistent page title/description header
-    ComingSoonPanel.vue        # placeholder panel used by the 2 unbuilt sections
+    ComingSoonPanel.vue        # placeholder panel (no longer used — all sections live)
     TimeSeriesChart.vue        # Chart.js line chart, single- or multi-series (Death Stats + trend)
     RankedBarChart.vue         # Chart.js horizontal bar chart, single- or multi-series (period compare)
   views/
     HomeView.vue               # project overview (built out)
-    DeathStatisticsView.vue    # live: annual chart + monthly chart, each with its own caveats
-    CausesOfDeathView.vue      # live: ranked bars (compare periods) + trend (compare causes)
-    BirthStatisticsView.vue    # placeholder
-    PopulationChangeView.vue   # placeholder
+    DeathStatisticsView.vue    # annual chart + monthly chart, each with its own caveats
+    CausesOfDeathView.vue      # ranked bars (compare periods) + trend (compare causes)
+    BirthStatisticsView.vue    # provisional monthly births + YoY
+    PopulationChangeView.vue   # births vs deaths, natural increase, century birth history
+    ByTheNumbersView.vue       # births/deaths as a daily average + rotating scale facts
 public/
   .htaccess                   # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/
@@ -215,13 +250,14 @@ pipeline/                     # standalone Node job: CDC WONDER -> MySQL -> /dat
                               #   (own package.json; see pipeline/README.md)
 ```
 
-Adding a 6th sidebar section: add an entry to `nav.js`, add a view file, add
-it to the `viewComponents` map in `router/index.js`. Adding a new live-data
-section: add a `src/api/*.js` module following the pattern in
-`historicalDeaths.js` / `currentVitalEvents.js` (always test the actual
-query against the live API before assuming a dataset's fields/quirks — see
-"How the data pipelines work" above for why that matters), and a view using
-`useAsyncData` + `TimeSeriesChart` the way `DeathStatisticsView.vue` does.
+Adding a sidebar section: add an entry to `nav.js`, a view file, an icon
+branch in `NavIcon.vue`, and a line in the `viewComponents` map in
+`router/index.js`. Adding a new live-data section: add a `src/api/*.js`
+module following the pattern in `historicalDeaths.js` /
+`currentVitalEvents.js` (always test the actual query against the live API
+before assuming a dataset's fields/quirks — see "How the data pipelines
+work" above), and a view using `useAsyncData` + a chart component the way
+`DeathStatisticsView.vue` does.
 
 ## Design system
 
@@ -252,9 +288,9 @@ drawer on mobile, toggled from a top bar.
       comparison UI's disabled decade buttons light up once the data lands.
 - [ ] Stand the pipeline up for real — run the D76 import into MySQL, wire
       the snapshot publish step, schedule it (see `pipeline/README.md`).
-- [ ] Birth Statistics page — `fetchCurrentMonthlyBirths` already exists.
-- [x] Population Decline/Gain — v1 live: births (e6fc-ccez, 1909–2018) vs
-      deaths (bi63-dtpu "All causes", 1999–2017) + natural increase. Extend
-      past 2017 (and reach the 2021 crossover) via the WONDER pipeline.
+- [ ] Birth Statistics: add annual calendar-year births + fertility rate
+      from the WONDER natality databases (D149 / D66 / D27).
+- [ ] Population Decline / Gain: extend past 2017 (and reach the 2021
+      crossover where deaths first exceeded births) via the WONDER pipeline.
 - [ ] Periodically re-check whether `hmz2-vwda` has resumed updating past
       June 2024, or whether CDC has published a replacement dataset.
