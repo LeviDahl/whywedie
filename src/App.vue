@@ -63,15 +63,12 @@ watch(
     <AppSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
     <main class="min-w-0 flex-1">
+      <!-- No page-change <Transition> here: wrapping the lazy-loaded route
+           components in one (without <Suspense>) left them stuck in the
+           enter-from state — opacity:0 — on a fresh load / direct link /
+           refresh, i.e. a blank page. Not worth a 200ms fade. -->
       <router-view v-slot="{ Component, route: currentRoute }">
-        <Transition
-          mode="out-in"
-          enter-active-class="transition duration-200 ease-out"
-          enter-from-class="opacity-0 translate-y-1"
-          enter-to-class="opacity-100 translate-y-0"
-        >
-          <component :is="Component" :key="currentRoute.path" />
-        </Transition>
+        <component :is="Component" :key="currentRoute.path" />
       </router-view>
     </main>
   </div>

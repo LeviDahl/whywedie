@@ -203,7 +203,7 @@ const eraOverlay = computed(() => {
               v-for="p in ERA_PRESETS"
               :key="p.label"
               type="button"
-              class="badge cursor-pointer transition-colors duration-150"
+              class="badge min-h-[34px] cursor-pointer px-3.5 py-1.5 transition-colors duration-150"
               :class="eraActive(p) ? 'border-ink bg-ink text-paper' : 'text-ink hover:border-ink'"
               @click="toggleEra(p)"
             >

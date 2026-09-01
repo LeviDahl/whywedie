@@ -255,7 +255,7 @@ function removeTrendCause(i) {
                 v-for="b in decadeButtons"
                 :key="b.key"
                 type="button"
-                class="badge transition-colors duration-150"
+                class="badge min-h-[34px] px-3.5 py-1.5 transition-colors duration-150"
                 :class="
                   b.available
                     ? 'cursor-pointer text-ink hover:border-ink'
@@ -274,11 +274,11 @@ function removeTrendCause(i) {
               <div
                 v-for="(p, i) in periods"
                 :key="i"
-                class="inline-flex items-center gap-1 rounded-lg border border-line-strong bg-paper py-1 pl-2 pr-1 text-sm"
+                class="inline-flex items-center gap-1 rounded-lg border border-line-strong bg-paper py-1.5 pl-2 pr-1 text-sm"
               >
                 <select
                   v-model.number="p.from"
-                  class="bg-transparent text-ink focus-visible:outline-none"
+                  class="min-h-[28px] bg-transparent py-0.5 text-ink focus-visible:outline-none"
                   aria-label="Period start year"
                 >
                   <option v-for="y in data.years" :key="y" :value="y">{{ y }}</option>
@@ -286,7 +286,7 @@ function removeTrendCause(i) {
                 <span class="text-muted">–</span>
                 <select
                   v-model.number="p.to"
-                  class="bg-transparent text-ink focus-visible:outline-none"
+                  class="min-h-[28px] bg-transparent py-0.5 text-ink focus-visible:outline-none"
                   aria-label="Period end year"
                 >
                   <option v-for="y in data.years" :key="y" :value="y">{{ y }}</option>
@@ -294,7 +294,7 @@ function removeTrendCause(i) {
                 <button
                   v-if="periods.length > 1"
                   type="button"
-                  class="ml-1 rounded px-1.5 text-muted hover:bg-paper-soft hover:text-ink"
+                  class="ml-1 rounded px-2 py-1 text-muted hover:bg-paper-soft hover:text-ink"
                   aria-label="Remove period"
                   @click="removePeriod(i)"
                 >
@@ -337,13 +337,13 @@ function removeTrendCause(i) {
             <span
               v-for="(name, i) in trendCauses"
               :key="name"
-              class="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-paper py-1 pl-2.5 pr-1 text-sm text-ink"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-paper py-1.5 pl-2.5 pr-1 text-sm text-ink"
             >
               {{ label(name) }}
               <button
                 v-if="trendCauses.length > 1"
                 type="button"
-                class="rounded px-1 text-muted hover:bg-paper-soft hover:text-ink"
+                class="rounded px-2 py-1 text-muted hover:bg-paper-soft hover:text-ink"
                 aria-label="Remove cause"
                 @click="removeTrendCause(i)"
               >
