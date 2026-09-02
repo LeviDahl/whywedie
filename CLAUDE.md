@@ -406,14 +406,18 @@ range tabs, By-the-Numbers daily pace now off the monthly WONDER snapshots
 (12 months ending ~mid-2026, not the stale Socrata table), Population
 Change long view uses generations on a real calendar axis (was an "Year
 1..N" era overlay), `.htaccess` cache headers (revalidate `/data/*.json`),
-local `./deploy.sh` (build + lftp FTPS mirror).
+local `./deploy.sh` (build + lftp FTPS mirror), **Death Statistics annual
+chart — Total-deaths / Age-adjusted-rate metric toggle, rate spliced back
+to 1900** from Socrata `w9j2-ggv5` (counts stay 1968+), natural-increase
+caption reworded off the old "since 1999" framing.
 
 ## Coverage by page (as of the last review)
 
 | page / chart | span | notes |
 |---|---|---|
 | Home "pick a year" | births 1909–, deaths 1968–, **leading cause 1999–** | leading-cause field only exists for the 113-list era |
-| Death Statistics — annual | 1968–2025 | monthly 2018–present |
+| Death Statistics — annual, **counts** | 1968–2025 | monthly 2018–present |
+| Death Statistics — annual, **age-adjusted rate** | **1900–2025** | pre-1968 from Socrata `w9j2-ggv5` (2000-std, matches WONDER at the seam); metric toggle on the chart |
 | Causes of Death — ranked + trend | **1999–2025** | 113 list; pre-1999 is chapter grain only (see below) |
 | Causes of Death — Sex/Race breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race) |
 | Causes of Death — Broad Chapters | **1968–1998** | ICD-8/9 chapters; stops at 1998 — no ICD-10 chapter roll-up in the snapshot |
@@ -449,13 +453,27 @@ local `./deploy.sh` (build + lftp FTPS mirror).
    still used for the pre-1960 birth history and as the By-the-Numbers /
    monthly-births fallback.
 
-**Enhancements noted in review:**
+**On the 1909 / 1968 / 1999 start dates** (from a review question):
 
-- Consider Pew generation bands on the Home "pick a year" context, for
-  consistency with the two births charts.
-- The Population Change stat cards / captions still frame the natural-
-  increase narrative around 1999 ("narrowed since 1999") though the series
-  now starts at 1968 — reword when convenient.
+- **Births — 1909 is the real limit.** Nationwide US birth registration
+  began in 1915 and wasn't complete until 1933; NCHS's own series starts
+  1909 (Socrata `e6fc-ccez`). There is no authoritative earlier national
+  count.
+- **Deaths — 1968 is WONDER's limit, not the data's.** WONDER's oldest
+  mortality DB is D74 (1968). The **age-adjusted rate now runs to 1900**
+  via `w9j2-ggv5`; a pre-1968 *count* would need a historical crude rate +
+  a historical US population series (Census intercensal), and pre-1933
+  covers only the expanding death-registration area — not attempted.
+- **Leading cause — 1999 is the 113-list (ICD-10) limit.** Pre-1999 ships
+  at ICD-chapter grain ("Broad Chapters"). Finer is possible: D16/D74 also
+  expose the **"ICD-9 72 Groups" / "ICD-8 69 Groups"** intermediate lists
+  (~70 causes, seen on their request forms as `D16.V4-level1` /
+  `D74.V4-level1`) — a `--dump` away. A *continuous* ranked view across the
+  ICD-8/9/10 seam still needs the comparability crosswalk (Future effort).
+
+**Enhancement noted in review:** show which Pew generation a looked-up
+birth year falls in, on the Home "pick a year" panel (it's a text lookup,
+not a chart — no bands, just a label).
 
 **Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
 ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).

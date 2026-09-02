@@ -1,12 +1,13 @@
 // One-shot loader for the "pick a year" panel on Home. Pulls the series
 // that have per-year US figures and returns a year → facts map.
 //
-//   births + birth rate  : /data/natality.json (WONDER pipeline, 1960–2022),
-//                          with Socrata e6fc-ccez (1909–2018) filling the
-//                          pre-1960 tail for deep history
+//   births + birth rate  : /data/natality.json (WONDER pipeline, 1960–
+//                          present), with Socrata e6fc-ccez (1909–2018)
+//                          filling the pre-1960 tail for deep history
 //   total deaths         : /data/mortality.json "All causes" row
-//                          (D76 1999–2020 + D176 provisional 2021–present)
-//   leading cause        : /data/mortality.json per-cause rows (1999–2020)
+//                          (D74/D16 1968–1998 + D76 1999–2020 + D176 2021+)
+//   leading cause        : /data/mortality.json rankable ('#') rows —
+//                          1999–present only (the 113-cause-list era)
 //
 // Any given year fills in whatever the sources cover — the panel hides the
 // rest.

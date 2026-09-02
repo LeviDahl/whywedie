@@ -239,7 +239,8 @@ const historyTable = computed(() => {
           </div>
           <p class="mt-3 text-xs text-muted">
             The gap between the lines is <strong>natural increase</strong> — how much the population
-            grows before any immigration. It has narrowed almost every year since 1999.
+            grows before any immigration. It ran well over a million a year for decades, has trended
+            down since the 2000s, and briefly went negative in 2021.
           </p>
           <p v-if="hasProvisional" class="mt-1 text-xs text-muted">
             The greyed deaths tail (2021+) is CDC provisional data.
