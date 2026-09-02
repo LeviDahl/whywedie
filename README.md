@@ -301,18 +301,20 @@ WONDER templates exported and a run:
 
 - [ ] **Run D76** — makes Causes of Death live instead of a static
       baseline. D76 is finalized, so a one-time run + commit is enough.
-- [ ] **Natality templates** — `natality_current.xml` (D192, "Provisional
-      Natality, 2023 through Last Month", 2023+), `natality_modern.xml`
-      (D149, 2016–2022), `natality_mid.xml` (D66), `natality_old.xml`
-      (D27). Replaces the committed Socrata natality baseline (ends 2018)
-      with a series that reaches the current month; adds fertility rate.
-      D192's latest year is partial/provisional — flag it in the UI.
-- [ ] Then D16 (ICD-9) + D15 (ICD-8) for pre-1999 — lights up the disabled
-      decade buttons on Causes of Death.
+- [ ] **Natality: run D66 + D27** (`natality_mid.xml` 2007–2022,
+      `natality_gap.xml` 2003–2006) — built and tested. Extends the
+      Birth-page annual series past the Socrata baseline. `build-snapshots.js`
+      merges pre-2003 from the baseline.
+- [ ] **`natality_current.xml` (D192)** — "Provisional Natality, 2023
+      through Last Month", updated monthly. Placeholder; needs its API
+      parameter set from WONDER (its "expanded" param names differ from
+      D66/D27). This is the piece that gets births to the current month.
+- [ ] D16 (ICD-9) + D15 (ICD-8) for pre-1999 mortality — lights up the
+      disabled decade buttons on Causes of Death.
 - [ ] Recent-years mortality (2021+) for Causes of Death — needs a
       provisional Underlying-Cause-of-Death WONDER DB + its own era.
 - [ ] Stand the pipeline up on a schedule (host + cron + publish, see
-      `pipeline/README.md`) once the updating datasets (D192 natality) are
-      in — D76 alone doesn't need it.
+      `pipeline/README.md`) once D192 natality is in — the finalized
+      datasets don't need it.
 - [ ] Periodically re-check whether `hmz2-vwda` has resumed updating past
       June 2024, or whether CDC has published a replacement dataset.

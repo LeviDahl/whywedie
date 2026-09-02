@@ -310,26 +310,30 @@ old and new into one series.
 
 ## Next steps
 
-`pipeline/` code is wired for D76 (mortality) and four natality eras —
-`current` D192 ("Provisional Natality, 2023 through Last Month", 2023+),
-`modern` D149 (2016–2022), `mid` D66, `old` D27. `build-snapshots.js`
-output matches the frontend. What's left is exporting the WONDER templates
-and running:
+`pipeline/` code is wired for D76 (mortality) and three natality eras:
+`mid` D66 (2007–2022) and `gap` D27 (2003–2006) are **built + tested**
+(templates from the wonderapi `*_Defaults.xml` skeletons; Year × M1 Births
++ M5 → Female Pop + Fertility Rate; `fetch.js` clips each era to its
+`[yearMin,yearMax]` since the DBs return extra years). `current` D192
+("Provisional Natality, 2023 through Last Month") is a **placeholder** —
+its expanded param names differ and must come from WONDER.
+`build-snapshots.js buildNatality()` merges pre-2003 from the committed
+Socrata `natality.json` baseline. WONDER API rate limit: ≥15 s between
+requests (429 otherwise).
 
 1. **Run D76** — turns Causes of Death from the committed baseline into
-   real pipeline output. D76 is finalized: a one-time run + commit of
-   `public/data/mortality.json` is enough, no schedule needed.
-2. **Natality templates** (`natality_current.xml` D192, `natality_modern.xml`
-   D149, `natality_mid.xml` D66, `natality_old.xml` D27) — replace the
-   Socrata natality baseline (`public/data/natality.json`, ends 2018) with
-   a series reaching the current month; adds a `fertility_rate` column.
-   Non-overlapping year ranges (D192 = 2023+, D149 = 2016–2022, …).
-   D192's latest year is partial/provisional — `natality.js` /
-   `BirthStatisticsView.vue` should flag it.
-3. **D16 + D15** — pre-1999 mortality; lights up the disabled decade
+   real pipeline output. Finalized: one run + commit of
+   `public/data/mortality.json`, no schedule needed.
+2. **Run natality `mid` + `gap`** — extends the Birth-page annual series
+   past the Socrata baseline (2003–2022 from WONDER, pre-2003 merged).
+3. **`natality_current.xml` (D192)** — get its parameter set from WONDER;
+   this is what gets births to the current month. Its latest year is
+   partial/provisional — `natality.js` / `BirthStatisticsView.vue` should
+   flag it (not done yet).
+4. **D16 + D15** — pre-1999 mortality; lights up the disabled decade
    buttons on Causes of Death.
-4. **Recent-years mortality (2021+)** for Causes of Death — needs a
+5. **Recent-years mortality (2021+)** for Causes of Death — needs a
    provisional Underlying-Cause-of-Death WONDER DB + its own era.
-5. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) once
+6. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) once
    the *updating* dataset (D192 natality) is in.
-6. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+7. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).

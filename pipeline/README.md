@@ -105,15 +105,23 @@ template's Group By / Measure order doesn't match `lib/datasets.js`.
 
 ### 5. First run
 
+WONDER rejects requests less than **15 seconds apart** (HTTP 429), so a
+manual loop needs a sleep between chunks:
+
 ```
-node --env-file=.env fetch.js --type=mortality --era=icd10
-node --env-file=.env fetch.js --type=mortality --era=icd9
-node --env-file=.env fetch.js --type=mortality --era=icd8
-node --env-file=.env fetch.js --type=natality  --era=modern
-node --env-file=.env fetch.js --type=natality  --era=mid
-node --env-file=.env fetch.js --type=natality  --era=old
-node --env-file=.env build-snapshots.js
+for chunk in \
+  "mortality icd10" \
+  "natality mid" "natality gap" "natality current" ; do
+  set -- $chunk
+  node --env-file=.env fetch.js --type=$1 --era=$2 || exit 1
+  sleep 16
+done
+SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
 ```
+
+(`natality current` = D192; skip it until `natality_current.xml` is a real
+template — see `templates/README.md`. `mortality icd9`/`icd8` and the
+pre-2003 natality are deeper-history TODOs.)
 
 `ON DUPLICATE KEY UPDATE` makes every run re-runnable. If a mortality era
 errors on size/timeout, slice it (needs the `{{YEAR_LIST}}` token in that
@@ -159,14 +167,13 @@ so no two overlap. `NODE` = absolute path to node (or a `source …/activate`
 line if it's a venv); `DIR` = the pipeline directory.
 
 ```
-5  3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=icd10 >> logs/cron.log 2>&1
-20 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=icd9  >> logs/cron.log 2>&1
-35 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=icd8  >> logs/cron.log 2>&1
-50 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=modern >> logs/cron.log 2>&1
-5  4 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=mid    >> logs/cron.log 2>&1
-20 4 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=old    >> logs/cron.log 2>&1
+5  3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=icd10   >> logs/cron.log 2>&1
+20 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=mid     >> logs/cron.log 2>&1
+35 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=gap     >> logs/cron.log 2>&1
+50 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=current >> logs/cron.log 2>&1
 40 4 1 * *  cd DIR && NODE --env-file=.env build-snapshots.js >> logs/cron.log 2>&1
 # 55 4 1 * *  ...then the snapshot-publish step from section 6
+# add --era=icd9 / --era=icd8 lines when those templates exist
 ```
 
 On GitHub Actions, one workflow with `on: schedule: - cron: '0 3 1 * *'`

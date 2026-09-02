@@ -11,7 +11,7 @@
 // / byCause) so the coming frontend switch from Socrata to these snapshots
 // is a small change.
 
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { query, closePool } from './lib/db.js'
 import { DATASETS } from './lib/datasets.js'
@@ -106,7 +106,7 @@ async function buildMortality() {
   return { file: payload, count: rows.length }
 }
 
-async function buildNatality() {
+async function buildNatality(outDir) {
   const rows = await query(
     `SELECT year, birth_count, population, birth_rate, fertility_rate, suppressed
        FROM natality
@@ -115,17 +115,28 @@ async function buildNatality() {
   )
   if (rows.length === 0) return { file: null, count: 0 }
 
-  const years = rows.map((r) => r.year)
+  // The WONDER natality databases wired so far start at 2003. Merge the
+  // committed Socrata baseline (usually 1960-2018) so pre-2003 history
+  // survives — DB rows win for any year they cover.
   const byYear = {}
+  try {
+    const base = JSON.parse(await readFile(join(outDir, 'natality.json'), 'utf8'))
+    for (const [y, v] of Object.entries(base.byYear ?? {})) byYear[y] = v
+    log.info(`  merged ${Object.keys(byYear).length} baseline natality years`)
+  } catch {
+    /* no baseline present — fine */
+  }
+
   for (const r of rows) {
     byYear[r.year] = {
       births: r.birth_count,
       population: r.population,
-      birthRate: r.birth_rate,
+      birthRate: r.birth_rate ?? byYear[r.year]?.birthRate ?? null,
       fertilityRate: r.fertility_rate,
       suppressed: Boolean(r.suppressed),
     }
   }
+  const years = Object.keys(byYear).map(Number).sort((a, b) => a - b)
 
   const payload = {
     source: NATALITY_SOURCE,
@@ -134,10 +145,11 @@ async function buildNatality() {
       yearMin: years[0],
       yearMax: years[years.length - 1],
       note:
-        'National totals only. Built from WONDER natality databases D149 ' +
-        '(2016+), D66 (2007-2015) and D27 (1995-2002); years 2003-2006 are ' +
-        'not covered by that set of databases. Fertility rate = births per ' +
-        '1,000 women aged 15-44.',
+        'National totals only. Pre-2003 years are the committed Socrata ' +
+        'baseline (NCHS Natality Measures by Race); 2003+ is from WONDER ' +
+        '(D27 2003-2006, D66 2007-2022, D192 provisional 2023+). Fertility ' +
+        'rate = births per 1,000 women aged 15-44; the newest D192 year is ' +
+        'partial and provisional.',
     },
     years,
     byYear,
@@ -152,7 +164,7 @@ async function main() {
   log.info(`output dir: ${outDir}`)
 
   const mortality = await buildMortality()
-  const natality = await buildNatality()
+  const natality = await buildNatality(outDir)
 
   const sources = {}
   for (const [type, eras] of Object.entries(DATASETS)) {

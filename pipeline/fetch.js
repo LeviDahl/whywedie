@@ -122,19 +122,33 @@ async function main() {
   const { grid, rawRowCount } = parseTable(raw, dataset.columns.length)
   log.info(`parsed ${rawRowCount} table rows`)
 
-  const { rows, stats } = mapGrid(grid, dataset)
+  const mapped = mapGrid(grid, dataset)
+  const stats = mapped.stats
   log.info(
     `mapped ${stats.mapped} rows  (skipped ${stats.skipped} non-data rows, ` +
       `${stats.suppressed} suppressed counts)`
   )
 
+  // Clip to the era's declared [yearMin, yearMax]. WONDER natality
+  // databases return more years than an era should own (e.g. D66 now
+  // reaches 2024); clipping keeps the eras non-overlapping so the
+  // year+state UNIQUE key never collides between eras.
+  const rows = mapped.rows.filter(
+    (r) => r.year >= dataset.yearMin && r.year <= dataset.yearMax
+  )
+  const clippedOut = mapped.rows.length - rows.length
+  if (clippedOut > 0) {
+    log.info(`  clipped ${clippedOut} rows outside ${dataset.yearMin}-${dataset.yearMax}`)
+  }
+
   if (rows.length) {
     const years = rows.map((r) => r.year)
-    const lo = Math.min(...years)
-    const hi = Math.max(...years)
-    log.info(`  year range in response: ${lo}-${hi} (dataset nominal ${dataset.yearMin}-${dataset.yearMax})`)
+    log.info(
+      `  kept years ${Math.min(...years)}-${Math.max(...years)} ` +
+        `(era range ${dataset.yearMin}-${dataset.yearMax})`
+    )
   } else {
-    log.warn('no data rows mapped — check the template grouping/measures against datasets.js columns')
+    log.warn('no data rows in range — check the template grouping/measures against datasets.js columns')
   }
 
   // ---- sink -------------------------------------------------------

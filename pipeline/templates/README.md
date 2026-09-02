@@ -6,29 +6,46 @@ substitution, data-use consent), and POSTs it to
 `https://wonder.cdc.gov/controller/datarequest/<DB>`.
 
 ```
-mortality_icd10.xml   -> D76    Underlying Cause of Death, 1999-2020         [BUILT + TESTED]
-mortality_icd9.xml    -> D16    Compressed Mortality, 1979-1998             [TODO]
-mortality_icd8.xml    -> D15    Compressed Mortality, 1968-1978             [TODO]
-natality_current.xml  -> D192   Provisional Natality, 2023 through Last Month — pull 2023+   [TODO]
-natality_modern.xml   -> D149   Natality, 2016-2024 (finalized) — pull 2016-2022 only       [TODO]
-natality_mid.xml      -> D66    Natality, 2007-2015                         [TODO]
-natality_old.xml      -> D27    Natality, 1995-2002                         [TODO]
+mortality_icd10.xml   -> D76    Underlying Cause of Death, 1999-2020            [BUILT + TESTED]
+mortality_icd9.xml    -> D16    Compressed Mortality, 1979-1998                [TODO]
+mortality_icd8.xml    -> D15    Compressed Mortality, 1968-1978                [TODO]
+natality_mid.xml      -> D66    Natality, 2007-2022 (returns to 2024)          [BUILT + TESTED]
+natality_gap.xml      -> D27    Natality, 2003-2006                            [BUILT + TESTED]
+natality_current.xml  -> D192   Provisional Natality, 2023 through Last Month  [PLACEHOLDER — needs its param set from WONDER]
 ```
 
 Commit these files — they contain no secrets and make the pipeline
 reproducible.
 
-The four natality eras must **not share a year** (natality's UNIQUE key is
-just year+state). Their `{{YEAR_LIST}}` ranges: D192 = 2023+, D149 =
-2016-2022, D66 = 2007-2015, D27 = 1995-2002. `datasets.js` already has
-these bounds.
+### Natality eras — how they work
 
-⚠️ **D192 is provisional and updated monthly** ("Provisional Natality, 2023
-through Last Month"). Grouped by Year it returns 2023, 2024, 2025 plus a
-*partial* current year — the frontend flags the last point. When you build
-`natality_current.xml`, confirm D192 exposes a plain **Fertility Rate**
-measure; if not, drop measure 5 and the `fertility_rate` column from the
-`current` era in `datasets.js`.
+- **No year filter in the natality templates.** `fetch.js` clips each
+  era's rows to its `datasets.js` `[yearMin, yearMax]`, so the WONDER
+  databases can return whatever they like and the eras still don't
+  collide (natality's UNIQUE key is just year+state). D66 now reaches 2024
+  but the `mid` era keeps only 2007-2022; D27 is really "Natality,
+  2003-2006".
+- **build-snapshots.js merges pre-2003** from the committed Socrata
+  `natality.json` baseline, so deep history (1960-2002) survives a
+  pipeline run. DB rows win for any year they cover.
+- `natality_mid.xml` / `natality_gap.xml` were built from the wonderapi
+  `*_Defaults.xml` files: Group By `<db>.V20` (Year); measures `<db>.M1`
+  (Births) + `<db>.M5` (yields Female Population 15-44 **and** General
+  Fertility Rate); `O_show_totals=false`. Response columns: year, births,
+  population, fertility_rate.
+
+### ⚠️ D192 (`natality_current.xml`) still needs its parameter set
+
+Its "expanded/provisional" param names differ from D66/D27 and aren't in
+any public example — get them from WONDER (see the comment inside
+`natality_current.xml`) and paste a working attempt (or its error) to
+adapt. `fetch.js` clips to 2023+, so no year filter is needed.
+
+### ⚠️ WONDER rate limit
+
+The API rejects requests less than **15 seconds** apart (HTTP 429). Cron
+staggers the eras, but a manual loop needs `sleep 16` between `fetch.js`
+calls.
 
 Recent-years *mortality* for Causes of Death (2021+) is still unwired — it
 needs a provisional "Underlying Cause of Death" WONDER database plus its own
@@ -130,27 +147,30 @@ Non-numeric measure cells (`Suppressed`, `Unreliable`, `Not Applicable`,
 `suppressed = 1`. (WONDER hides suppressed rows by default, so at national
 scale you'll see few or none.)
 
-### Natality — `natality_modern.xml` / `_mid` / `_old`
+### Natality — `natality_mid.xml` (D66) / `natality_gap.xml` (D27) / `natality_current.xml` (D192)
 
-Group by **Year** only. Select these measures, in this order:
+Built from the wonderapi `*_Defaults.xml` skeletons. Group By = **Year**
+(`<db>.V20`, `B_2..B_5` = `*None*`), then two measure params: `M_1`
+(`<db>.M1` — Births) and `M_5` (`<db>.M5`). `M_5` expands to **two**
+response columns — Female Population 15-44, then General Fertility Rate.
+`O_show_totals` = `false`. No year filter (fetch.js clips).
 
-| cell | WONDER measure | DB field |
+| response cell | value | DB field |
 |---|---|---|
-| 1 | Year (group-by) | `year` |
+| 1 | Year | `year` |
 | 2 | Births | `birth_count` |
-| 3 | Female Population (15-44), or Total Population if that's all the era gives | `population` |
-| 4 | Birth Rate (crude, per 1,000 population) | `birth_rate` |
-| 5 | Fertility Rate (per 1,000 women 15-44) | `fertility_rate` |
+| 3 | Female Population (15-44) | `population` |
+| 4 | General Fertility Rate (per 1,000 women 15-44) | `fertility_rate` |
 
-If an era doesn't offer Fertility Rate, drop measure 5 and remove
-`{ kind: 'measure', field: 'fertility_rate' }` from that era in
-`lib/datasets.js`. Likewise if it returns only Births, trim to
-`[{ kind: 'year' }, { kind: 'measure', field: 'birth_count', countField: true }]`.
+`birth_rate` (crude, per 1,000 total population) is **not** in these
+natality databases — it stays whatever the committed Socrata baseline had.
+
+D192's params differ (see above); `natality_current.xml` is a placeholder
+until you supply them.
 
 The frontend reads `/data/natality.json` (`BirthStatisticsView.vue`, via
-`src/api/natality.js`); a Socrata baseline (1960–2018) ships committed and
-the pipeline overwrites it with the WONDER series once these three templates
-exist.
+`src/api/natality.js`); the Socrata baseline (1960–2018) ships committed,
+`build-snapshots.js` merges it with the DB rows.
 
 ---
 

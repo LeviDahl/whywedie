@@ -1,0 +1,43 @@
+<request-parameters>
+<!--
+  PLACEHOLDER — not a working template yet.
+
+  D192 = "Provisional Natality, 2023 through Last Month". Its API parameter
+  set differs from D66/D27 and isn't in any public example, so it has to
+  come from WONDER itself. Get it one of these ways:
+
+    1. Open the D192 database on wonder.cdc.gov, set Group By = Year and
+       Measures = Births + General Fertility Rate, national, turn "Show
+       Totals" OFF, accept the data-use agreement, and export / capture the
+       request XML (or paste a working D66-style attempt and its error and
+       I'll adapt it).
+    2. Save it here as natality_current.xml with:
+         B_1   = D192.V20      (Year)   ; B_2..B_5 = *None*
+         M_004 = D192.M004     (Births)
+         M_007 = D192.M007     (General Fertility Rate -> yields population + rate)
+         O_show_totals = false
+       plus whatever V_ / F_ / finder-stage params WONDER's default set
+       includes for D192.
+
+  fetch.js clips rows to 2023+ (the `current` era range), so no year
+  filter is needed in the template. Then:
+       node --env-file=.env fetch.js --type=natality --era=current --years=2024 --out=rows.json --dump
+  and iterate on the response until `rows.json` has year/births/population/
+  fertility_rate.
+
+  D66 (natality_mid.xml, 2007-2022) and D27 (natality_gap.xml, 2003-2006)
+  are already built and tested — this is the only natality template left.
+-->
+<parameter><name>accept_datause_restrictions</name><value>true</value></parameter>
+<parameter><name>B_1</name><value>D192.V20</value></parameter>
+<parameter><name>B_2</name><value>*None*</value></parameter>
+<parameter><name>B_3</name><value>*None*</value></parameter>
+<parameter><name>B_4</name><value>*None*</value></parameter>
+<parameter><name>B_5</name><value>*None*</value></parameter>
+<parameter><name>M_004</name><value>D192.M004</value></parameter>
+<parameter><name>M_007</name><value>D192.M007</value></parameter>
+<parameter><name>O_show_totals</name><value>false</value></parameter>
+<parameter><name>O_timeout</name><value>600</value></parameter>
+<parameter><name>action-Send</name><value>Send</value></parameter>
+<parameter><name>stage</name><value>request</value></parameter>
+</request-parameters>

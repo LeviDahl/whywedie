@@ -84,14 +84,19 @@ export const DATASETS = {
   },
 
   natality: {
-    // Four non-overlapping eras (natality's UNIQUE key is just year+state,
-    // so eras must not share a year). build-snapshots.js concatenates them
-    // into one continuous series.
+    // Non-overlapping eras (natality's UNIQUE key is just year+state).
+    // fetch.js clips each era's rows to [yearMin, yearMax] — the WONDER
+    // databases return more years than their name implies (D66 now reaches
+    // 2024, D27 is actually "Natality, 2003-2006"), so the clip is what
+    // keeps eras from colliding. build-snapshots.js concatenates them and
+    // merges pre-2003 years from the committed natality.json baseline.
+    //
+    // Every era: Group By = Year (<db>.V20); Measures = <db>.M1 (Births) +
+    // <db>.M5 (which yields Female Population 15-44 and General Fertility
+    // Rate). Response columns: year, births, population, fertility_rate.
     //
     // D192 = "Provisional Natality, 2023 through Last Month" — updated
-    // monthly (latest set ~July 2026). Grouped by Year it gives 2023, 2024,
-    // 2025 (final-ish) plus a PARTIAL current year. Provisional; the
-    // frontend should flag the partial latest year.
+    // monthly. Its newest year is PARTIAL/provisional; the frontend flags it.
     current: {
       databaseId: 'D192',
       templateFile: 'natality_current.xml',
@@ -103,54 +108,36 @@ export const DATASETS = {
         { kind: 'year' },
         { kind: 'measure', field: 'birth_count', countField: true },
         { kind: 'measure', field: 'population' },
-        { kind: 'measure', field: 'birth_rate' },
         { kind: 'measure', field: 'fertility_rate' },
       ],
     },
-    // D149 = "Natality, 2016-2024" (finalized). Pull 2016-2022 only so it
-    // never overlaps D192's 2023+.
-    modern: {
-      databaseId: 'D149',
-      templateFile: 'natality_modern.xml',
-      table: 'natality',
-      fixed: {},
-      yearMin: 2016,
-      yearMax: 2022,
-      columns: [
-        { kind: 'year' },
-        { kind: 'measure', field: 'birth_count', countField: true },
-        { kind: 'measure', field: 'population' },
-        { kind: 'measure', field: 'birth_rate' },
-        { kind: 'measure', field: 'fertility_rate' },
-      ],
-    },
+    // D66 = "Natality, 2007-2022" (returns through 2024 — clipped to 2022).
     mid: {
       databaseId: 'D66',
       templateFile: 'natality_mid.xml',
       table: 'natality',
       fixed: {},
       yearMin: 2007,
-      yearMax: 2015,
+      yearMax: 2022,
       columns: [
         { kind: 'year' },
         { kind: 'measure', field: 'birth_count', countField: true },
         { kind: 'measure', field: 'population' },
-        { kind: 'measure', field: 'birth_rate' },
         { kind: 'measure', field: 'fertility_rate' },
       ],
     },
-    old: {
+    // D27 = "Natality, 2003-2006" (fills the old Socrata gap).
+    gap: {
       databaseId: 'D27',
-      templateFile: 'natality_old.xml',
+      templateFile: 'natality_gap.xml',
       table: 'natality',
       fixed: {},
-      yearMin: 1995,
-      yearMax: 2002,
+      yearMin: 2003,
+      yearMax: 2006,
       columns: [
         { kind: 'year' },
         { kind: 'measure', field: 'birth_count', countField: true },
         { kind: 'measure', field: 'population' },
-        { kind: 'measure', field: 'birth_rate' },
         { kind: 'measure', field: 'fertility_rate' },
       ],
     },
