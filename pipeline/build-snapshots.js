@@ -277,6 +277,39 @@ async function buildNatality(outDir) {
   return { file: payload, count: rows.length }
 }
 
+async function buildNatalityMonthly() {
+  const rows = await query(
+    `SELECT year, month, birth_count, suppressed
+       FROM natality_monthly
+      WHERE state_code = 'US'
+      ORDER BY year ASC, month ASC`
+  ).catch((err) => {
+    if (/doesn'?t exist|Unknown table|no such table/i.test(err.message)) return []
+    throw err
+  })
+  if (rows.length === 0) return { file: null, count: 0 }
+
+  const months = rows.map((r) => {
+    const mm = String(r.month).padStart(2, '0')
+    return {
+      ym: `${r.year}-${mm}`,
+      year: r.year,
+      month: r.month,
+      label: `${MONTH_ABBR[r.month - 1]} ${r.year}`,
+      births: r.birth_count,
+      suppressed: Boolean(r.suppressed),
+    }
+  })
+
+  const payload = {
+    source: 'CDC WONDER (wonder.cdc.gov) — Provisional Natality (D192), national, by month',
+    fetchedAt: new Date().toISOString(),
+    coverage: { first: months[0].ym, last: months[months.length - 1].ym },
+    months,
+  }
+  return { file: payload, count: rows.length }
+}
+
 async function main() {
   const outDir = getSnapshotOutDir()
   await mkdir(outDir, { recursive: true })
@@ -286,6 +319,7 @@ async function main() {
   const mortalityDemographic = await buildMortalityDemographic()
   const mortalityMonthly = await buildMortalityMonthly()
   const natality = await buildNatality(outDir)
+  const natalityMonthly = await buildNatalityMonthly()
 
   const sources = {}
   for (const [type, eras] of Object.entries(DATASETS)) {
@@ -335,6 +369,7 @@ async function main() {
     mortalityDemographic.file && ['mortality_demographic.json', mortalityDemographic.file],
     mortalityMonthly.file && ['mortality_monthly.json', mortalityMonthly.file],
     natality.file && ['natality.json', natality.file],
+    natalityMonthly.file && ['natality_monthly.json', natalityMonthly.file],
   ].filter(Boolean)
 
   for (const [name, data] of writes) {
@@ -347,6 +382,7 @@ async function main() {
     elapsed: log.elapsed(),
     mortalityRows: mortality.count,
     natalityRows: natality.count,
+    natalityMonths: natalityMonthly.count,
     files: writes.length,
   })
 }

@@ -5,7 +5,7 @@ import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
 import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
-import { fetchCurrentMonthlyBirths } from '@/api/currentVitalEvents.js'
+import { fetchMonthlyBirths } from '@/api/monthlyBirths.js'
 import { fetchAnnualNatality } from '@/api/natality.js'
 import { sections } from '@/nav.js'
 
@@ -14,7 +14,7 @@ const section = sections.find((s) => s.name === 'birth-statistics')
 // Two sources: provisional monthly counts (Socrata, browser-direct), and
 // the annual births + fertility-rate series (/data/natality.json — Socrata
 // baseline now, WONDER natality pipeline later).
-const monthly = useAsyncData(fetchCurrentMonthlyBirths)
+const monthly = useAsyncData(fetchMonthlyBirths)
 const annual = useAsyncData(fetchAnnualNatality)
 onMounted(() => {
   monthly.load()
@@ -27,20 +27,29 @@ const tail = (arr, n) =>
   n === Infinity ? (arr ?? []).slice() : (arr ?? []).slice(Math.max(0, (arr ?? []).length - n))
 
 // --- monthly ---
-const latestIndex = computed(() =>
-  monthly.data.value?.labels?.length ? monthly.data.value.labels.length - 1 : -1
-)
+// Headline the latest COMPLETE month — the trailing one or two are still
+// accumulating late-filed records (flagged `partial` by the api module).
+const latestCompleteIndex = computed(() => {
+  const d = monthly.data.value
+  if (!d?.labels?.length) return -1
+  const p = d.partial ?? []
+  for (let i = d.labels.length - 1; i >= 0; i--) {
+    if (!p[i] && d.values[i] != null) return i
+  }
+  return d.labels.length - 1
+})
 const latestLabel = computed(() =>
-  latestIndex.value >= 0 ? monthly.data.value.labels[latestIndex.value] : null
+  latestCompleteIndex.value >= 0 ? monthly.data.value.labels[latestCompleteIndex.value] : null
 )
 const latestBirths = computed(() =>
-  latestIndex.value >= 0 ? monthly.data.value.values[latestIndex.value] : null
+  latestCompleteIndex.value >= 0 ? monthly.data.value.values[latestCompleteIndex.value] : null
 )
 const yoy = computed(() => {
   const d = monthly.data.value
-  if (!d || latestIndex.value < 12) return null
-  const now = d.values[latestIndex.value]
-  const prior = d.values[latestIndex.value - 12]
+  const i = latestCompleteIndex.value
+  if (!d || i < 12) return null
+  const now = d.values[i]
+  const prior = d.values[i - 12]
   if (!now || !prior) return null
   return ((now - prior) / prior) * 100
 })
@@ -55,6 +64,7 @@ const monthlyTable = computed(() => {
 })
 const MONTHLY_RANGES = [
   { key: '1y', label: '1 yr', n: 12 },
+  { key: '3y', label: '3 yr', n: 36 },
   { key: 'max', label: 'Max', n: Infinity }
 ]
 const monthlyRange = ref('max')
@@ -62,8 +72,13 @@ const monthlyView = computed(() => {
   const d = monthly.data.value
   if (!d?.labels?.length) return null
   const n = MONTHLY_RANGES.find((r) => r.key === monthlyRange.value)?.n ?? Infinity
-  return { labels: tail(d.labels, n), values: tail(d.values, n) }
+  return {
+    labels: tail(d.labels, n),
+    values: tail(d.values, n),
+    muted: tail(d.partial ?? d.labels.map(() => false), n)
+  }
 })
+const monthlyIsWonder = computed(() => /WONDER/i.test(monthly.data.value?.source ?? ''))
 
 // --- annual ---
 const ANNUAL_METRICS = {
@@ -411,6 +426,8 @@ const annualTable = computed(() => {
             <TimeSeriesChart
               :labels="monthlyView.labels"
               :values="monthlyView.values"
+              :muted-points="monthlyView.muted"
+              muted-label="incomplete"
               series-label="Births"
               :value-formatter="integerFormatter"
             />
@@ -423,9 +440,16 @@ const annualTable = computed(() => {
             />
           </div>
           <p class="mt-3 text-xs text-muted">
-            CDC's provisional monthly release, published on a quarterly cycle — it won't always reach
-            the present month. {{ latestLabel }} is the most recent month CDC has published as of this
-            data pull.
+            <template v-if="monthlyIsWonder">
+              Provisional counts from CDC WONDER, updated monthly. The dashed, greyed tail is still
+              filling in — recent months keep rising as late birth records are filed —
+              so {{ latestLabel }} is the newest month that looks complete.
+            </template>
+            <template v-else>
+              CDC's Socrata provisional release, published on a quarterly cycle — it won't always
+              reach the present month. {{ latestLabel }} is the most recent month CDC has published
+              as of this data pull.
+            </template>
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ monthly.data.value.source }}.</p>
         </template>

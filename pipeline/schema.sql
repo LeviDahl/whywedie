@@ -111,3 +111,24 @@ CREATE TABLE IF NOT EXISTS natality (
   UNIQUE KEY uniq_natality (year, state_code),
   KEY idx_natality_year (year)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- natality_monthly : one birth count per (year, month, state) from D192
+--   "Provisional Natality, 2023 through Last Month" grouped by Year x Month.
+--   Feeds the Birth Statistics "monthly" chart with a continuous series back
+--   to Jan 2023 (the older Socrata table hmz2-vwda was trimmed to a rolling
+--   window). D192 has no rate measure, so births only. National only.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS natality_monthly (
+  id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  year         SMALLINT UNSIGNED NOT NULL,
+  month        TINYINT UNSIGNED NOT NULL,             -- 1-12
+  state_code   VARCHAR(2)   NOT NULL DEFAULT 'US',
+  birth_count  INT UNSIGNED NULL,
+  suppressed   TINYINT(1)   NOT NULL DEFAULT 0,
+  status       VARCHAR(24)  NULL,
+  updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_natality_monthly (year, month, state_code),
+  KEY idx_natality_monthly_ym (year, month)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

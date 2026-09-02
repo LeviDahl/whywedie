@@ -184,7 +184,8 @@ src/
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
   api/
     socrata.js                # generic data.cdc.gov Socrata (SODA) JSON client
-    currentVitalEvents.js     # current monthly births (Socrata hmz2-vwda)
+    currentVitalEvents.js     # Socrata hmz2-vwda monthly births (fallback source for monthlyBirths.js)
+    monthlyBirths.js          # monthly births from /data/natality_monthly.json (D192), Socrata fallback
     monthlyDeaths.js          # monthly all-cause deaths from /data/mortality_monthly.json
     historicalDeaths.js       # annual all-cause deaths from /data/mortality.json "All causes"
     causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
@@ -219,7 +220,9 @@ public/
   .htaccess                  # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/mortality.json        # committed baseline snapshot; pipeline/ refreshes it in prod
   data/mortality_demographic.json  # Sex/Race breakdown; committed stub (empty dimensions) until pipeline eras run
+  data/mortality_monthly.json # D176 monthly all-cause deaths
   data/natality.json         # committed Socrata baseline 1960-2018; pipeline/ extends it
+  data/natality_monthly.json # D192 monthly births; committed stub until the era runs (Socrata fallback)
 pipeline/                    # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
                              #   own package.json (axios, mysql2, fast-xml-parser); see its README
 ```
@@ -438,15 +441,17 @@ emits `bandClick`); Death Statistics annual range tabs are 10/25/50/Max.
      population series added as a source.
    The "Fertility rate" / "Birth rate" toggles on Birth Statistics are
    empty past those years; re-check periodically.
-4. **Monthly births chart stops mid-2024** — `currentVitalEvents.js` still
-   reads Socrata `hmz2-vwda`, which CDC trimmed to a rolling window and
-   stopped refreshing past June 2024 (the same table monthly *deaths* were
-   moved off). Fix: a `natality.monthly` era = D192 grouped by Year × Month
-   (`B_1=D192.V20`, `B_2=D192.V25`, `M_002`), a `natality_monthly` table +
-   `buildNatalityMonthly()` snapshot fn, and a `monthlyBirths.js` that reads
-   it (falling back to Socrata) — a direct mirror of the `mortality_monthly`
-   / `monthlyDeaths.js` work. Needs one `--dump` to confirm the month
-   grouping, like the others.
+4. **Monthly births — D192 `natality/monthly` era BUILT, needs a run.**
+   `natality_monthly.xml` (natality_current.xml + `B_2 = D192.V25` Month),
+   era + `natality_monthly` table + `buildNatalityMonthly()` +
+   `src/api/monthlyBirths.js` (reads `natality_monthly.json`, falls back to
+   Socrata `hmz2-vwda` while the committed file is an empty stub). The
+   Birth Statistics monthly chart, stat card, and YoY now key off the
+   latest *complete* month and dash the incomplete tail. To land it:
+   `node --env-file=.env fetch.js --type=natality --era=monthly --years=2024 --out=rows.json --dump`
+   to confirm the month grouping, then run it for real + `build-snapshots.js`
+   + commit. (Socrata `hmz2-vwda` stopped refreshing past June 2024 — same
+   table monthly *deaths* were moved off.)
 5. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
    only the `provisional` / `provisional_causes` / `monthly` / `current`
    eras recur; D76 / D66 / D27 / D16 / D74 are finalized, run once.

@@ -9,10 +9,10 @@ by the Vite frontend and vice-versa.
 
 ```
 pipeline/
-  schema.sql            tables: mortality, mortality_demographic, mortality_monthly, natality  (apply once)
+  schema.sql            tables: mortality{,_demographic,_monthly}, natality{,_monthly}  (apply once)
   apply-schema.js       runs schema.sql (or just paste it into phpMyAdmin)
   fetch.js              one (type, era) chunk: WONDER -> parse -> upsert
-  build-snapshots.js    DB -> mortality{,_demographic,_monthly}.json / natality.json / meta.json
+  build-snapshots.js    DB -> mortality{,_demographic,_monthly}.json / natality{,_monthly}.json / meta.json
   app.js                placeholder HTTP listener — ONLY needed if you deploy
                         this to a Passenger/PaaS host that requires a server
   lib/                  config, dataset registry, template loader, WONDER
@@ -116,7 +116,7 @@ for chunk in \
   "mortality icd10_sex" "mortality icd10_race" \
   "mortality provisional" "mortality provisional_causes" "mortality monthly" \
   "mortality icd9" "mortality icd8" \
-  "natality mid" "natality gap" "natality current" ; do
+  "natality mid" "natality gap" "natality current" "natality monthly" ; do
   set -- $chunk
   node --env-file=.env fetch.js --type=$1 --era=$2 || exit 1
   sleep 16
@@ -178,6 +178,7 @@ line if it's a venv); `DIR` = the pipeline directory.
 20 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=provisional_causes >> logs/cron.log 2>&1
 35 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=monthly            >> logs/cron.log 2>&1
 50 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=current            >> logs/cron.log 2>&1
+52 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=monthly            >> logs/cron.log 2>&1
 40 4 1 * *  cd DIR && NODE --env-file=.env build-snapshots.js >> logs/cron.log 2>&1
 # 55 4 1 * *  ...then the snapshot-publish step from section 6
 ```
@@ -216,6 +217,10 @@ locally, point `.env` at any MySQL 8 / MariaDB 10 (`brew install mysql` or a
 - **`natality.json`** — `{ source, fetchedAt, coverage, years, byYear:
   { <year>: { births, population, birthRate, fertilityRate, suppressed } } }`
   (`fertilityRate` is null for D192 provisional years — births only)
+- **`natality_monthly.json`** — `{ source, fetchedAt, coverage:{first,last},
+  months: [ { ym, year, month, label, births, suppressed } ] }` from the
+  D192 `natality/monthly` era. Empty `months` ⇒ `src/api/monthlyBirths.js`
+  falls back to Socrata `hmz2-vwda`.
 - **`mortality_demographic.json`** — the Causes-of-Death "Breakdown" data
   (eras `icd10_sex` / `icd10_race`): `{ source, fetchedAt, coverage, years,
   dimensions: { sex: { subgroups[], byYear: { <year>: [ { cause, causeName,

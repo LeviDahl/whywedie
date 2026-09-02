@@ -309,6 +309,24 @@ export const DATASETS = {
         { kind: 'measure', field: 'birth_count', countField: true },
       ],
     },
+    // D192 grouped by Year × Month — one birth count per month, back to
+    // Jan 2023. Own table `natality_monthly`. Feeds the Birth Statistics
+    // monthly chart (Socrata hmz2-vwda was trimmed to a rolling window and
+    // stopped past mid-2024). The trailing month is partial — flagged in
+    // the UI. Recurs monthly, like the mortality `monthly` era.
+    monthly: {
+      databaseId: 'D192',
+      templateFile: 'natality_monthly.xml',
+      table: 'natality_monthly',
+      fixed: {},
+      yearMin: 2023,
+      yearMax: 2030,
+      columns: [
+        { kind: 'year' },
+        { kind: 'month', field: 'month' },
+        { kind: 'measure', field: 'birth_count', countField: true },
+      ],
+    },
     // D66 = "Natality, 2007-2022" (returns through 2024 — clipped to 2022).
     mid: {
       databaseId: 'D66',
@@ -394,6 +412,7 @@ export const TABLE_COLUMNS = {
     'suppressed',
     'status',
   ],
+  natality_monthly: ['year', 'month', 'state_code', 'birth_count', 'suppressed', 'status'],
 }
 
 /** Columns updated on duplicate-key (everything except the key + id). */
@@ -420,6 +439,7 @@ export const UPSERT_UPDATE_COLUMNS = {
   ],
   mortality_monthly: ['death_count', 'population', 'crude_rate', 'suppressed', 'status'],
   natality: ['birth_count', 'population', 'birth_rate', 'fertility_rate', 'suppressed', 'status'],
+  natality_monthly: ['birth_count', 'suppressed', 'status'],
 }
 
 /** Look up one dataset, or throw a helpful list of what's valid. */
