@@ -195,6 +195,46 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // D176 continuation of the Sex/Race breakdown for 2021+ (D76 stops at
+    // 2020). Same `mortality_demographic` table + 7-col contract as the
+    // `icd10_sex` / `icd10_race` eras, so build-snapshots just sees extra
+    // years on the same dimension. Race: D176 uses the 6 SINGLE-race groups,
+    // not D76's 4 bridged-race groups — categories differ across the
+    // 2020/2021 seam (the frontend flags it).
+    provisional_sex: {
+      databaseId: 'D176',
+      templateFile: 'mortality_provisional_sex.xml',
+      table: 'mortality_demographic',
+      fixed: { icd_version: 10, dimension: 'sex' },
+      yearMin: 2021,
+      yearMax: 2030,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'coded', code: 'subgroup', name: 'subgroup' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
+    provisional_race: {
+      databaseId: 'D176',
+      templateFile: 'mortality_provisional_race.xml',
+      table: 'mortality_demographic',
+      fixed: { icd_version: 10, dimension: 'race' },
+      yearMin: 2021,
+      yearMax: 2030,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'coded', code: 'subgroup', name: 'subgroup' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
 
     // Recent years (2021+). D176 = "Provisional Mortality Statistics, 2018
     // through Last Month", updated monthly. Group By = Year ONLY — D176's

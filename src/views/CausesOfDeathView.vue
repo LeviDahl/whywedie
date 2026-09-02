@@ -71,6 +71,11 @@ const breakdownReady = computed(
   () => bd.data.value?.available && Boolean(bd.data.value.dimensions?.[breakdown.value])
 )
 const breakdownActive = computed(() => breakdown.value !== 'none' && breakdownReady.value)
+// The Race breakdown spans a 2020/2021 vintage seam (bridged- vs single-race).
+const raceSeam = computed(() => {
+  const ys = bd.data.value?.years ?? []
+  return ys.some((y) => y <= 2020) && ys.some((y) => y >= 2021)
+})
 const breakdownChoices = computed(() => ['none', ...(bd.data.value?.dimensionKeys ?? [])])
 
 // Every subgroup the active dimension offers, in the snapshot's order.
@@ -705,6 +710,11 @@ function onAddChapterSelect(event) {
             <p v-if="breakdownActive" class="text-xs text-muted">
               Comparing one period, split by {{ BREAKDOWN_LABELS[breakdown].toLowerCase() }}. Period
               comparison is paused — switch Breakdown back to None to overlay decades again.
+            </p>
+            <p v-if="breakdownActive && breakdown === 'race' && raceSeam" class="text-xs text-muted">
+              Race categories change at 2021: 1999–2020 uses CDC's 4 bridged-race groups, 2021+ uses
+              6 single-race groups (Asian and Pacific Islander split apart). Series across that seam
+              aren't the same population.
             </p>
           </div>
 

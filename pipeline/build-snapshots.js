@@ -175,10 +175,13 @@ async function buildMortalityDemographic() {
       yearMin: years[0],
       yearMax: years[years.length - 1],
       note:
-        'National only. D76 grouped by Year x NCHS 113-cause list x ' +
-        '{Gender | Race}. WONDER suppresses subgroup cells with 1-9 deaths, ' +
-        'so rarer causes have missing subgroups. Compare races on the ' +
-        'age-adjusted rate — crude rate mostly reflects age structure.',
+        'National only. Year x NCHS 113-cause list x {Sex | Race}, from D76 ' +
+        '(1999-2020) + D176 provisional (2021+). Race categories differ ' +
+        'across that seam: D76 uses 4 bridged-race groups, D176 uses 6 ' +
+        'single-race groups (Asian and NHOPI split apart). WONDER suppresses ' +
+        'subgroup cells with 1-9 deaths, so rarer causes have missing ' +
+        'subgroups. Compare on the age-adjusted rate — crude rate mostly ' +
+        'reflects age structure.',
     },
     years,
     dimensions,
