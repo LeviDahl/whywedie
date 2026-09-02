@@ -410,17 +410,21 @@ On/Off toggle and per-cohort drill-down (a cohort button — or clicking a
 band — zooms the x-range to that generation's birth years; `TimeSeriesChart`
 emits `bandClick`); Death Statistics annual range tabs are 10/25/50/Max.
 `historicalDeaths.js` source label is derived from the actual first year.
+Causes of Death has a **"Broad Chapters, 1968–1998"** section —
+`causesOfDeath.js` `chapters` shape (ICD-8/9 chapter rows unified via the
+`CHAPTER_CANON` crosswalk, 17 canonical chapters), a 4-chapter multi-line
+chart on the page's metric toggle. Stops at 1998; extending it needs a
+chapter-grouped D76/D176 era (the 113-list snapshot has no ICD-10 chapter
+row).
 
 **Remaining:**
 
-1. **Surface the 1968–1998 ICD-chapter rows on Causes of Death** — a
-   chapter view / decade buttons. They load harmlessly today (non-`#`,
-   ignored by `causesOfDeath.js`) but nothing displays them. The real work
-   is a **cross-revision chapter-label crosswalk**: ICD-8 "Diseases of the
-   circulatory system (390-458)" ≠ ICD-9 "(390-459)" ≠ ICD-10 "(I00-I99)",
-   so a ~17-row map is needed to stitch each chapter into one continuous
-   series. `causesOfDeath.js` would gain a `byChapter` shape from the
-   non-`#` rows.
+1. **ICD-10 chapter grain for 1999+** — the "Broad Chapters" section stops
+   at 1998 because the 113-list snapshot has no chapter roll-up. A
+   `mortality_icd10_chapter` era (D76/D176 grouped by the ICD-10 chapter
+   variable — find it on the D76 request form; `D76.V4` is the 113 list, not
+   chapters) would extend that chart to 2025. `CHAPTER_CANON` already has
+   the ICD-10 → canonical slots ready to fill.
 2. **Sex / Race breakdown stops at 2020** — eras `icd10_sex` / `icd10_race`
    are D76-only (`mortality_demographic.json` 1999–2020). Extend to 2021+
    with a D176 era: Year × `D176.V4` (113 list, with `O_ucd=D176.V4`) ×

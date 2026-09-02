@@ -107,8 +107,9 @@ per cause per year. `causesOfDeath.js` exposes only the NCHS *rankable*
 and sub-detail that would double-count in a ranking, and the pre-1999
 chapter rows are non-`#` so the ranked view ignores them — and aligns each
 cause's series to the full year axis so several can be overlaid. The
-ranked/trend UI covers **1999–2025**; the 1968–1998 chapter rows are loaded
-but not yet surfaced (a chapter view is on the roadmap).
+ranked/trend UI covers **1999–2025**; a separate **"Broad Chapters"**
+section shows the 1968–1998 ICD-chapter data as a multi-line trend (ICD-8/9
+labels unified via a small crosswalk in `causesOfDeath.js`).
 
 ⚠️ **The WONDER API is national-only for vital statistics** — it refuses any
 State / County / Region grouping or filter. Every row is US-wide.
@@ -284,10 +285,9 @@ per-cause (2021–2025), D176 monthly deaths, D74/D16 chapter mortality
 D192 provisional births (annual + monthly), Sex/Race breakdown (1999–2020).
 The frontend surfaces all of it except the pre-1999 per-chapter causes.
 
-- [ ] **Chapter view on Causes of Death (1968–1998)** — the chapter rows
-      load but nothing displays them. Needs a ~17-row cross-revision
-      chapter-label crosswalk (ICD-8 `(390-458)` ≠ ICD-9 `(390-459)` ≠
-      ICD-10 `(I00-I99)`) to stitch each chapter into one series.
+- [ ] **ICD-10 chapter grain for 1999+** — the "Broad Chapters" section
+      stops at 1998; extending it needs a chapter-grouped D76/D176 pipeline
+      era (the 113-list snapshot has no ICD-10 chapter roll-up).
 - [ ] **Sex / Race breakdown → 2021+** — a D176 era (Year × 113-list ×
       Sex / single-race). Needs one `--dump` to confirm the 3-deep group-by.
 - [ ] **Fertility rate (→2020) and crude birth rate (→2018)** — WONDER's
