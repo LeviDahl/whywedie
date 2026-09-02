@@ -2,15 +2,16 @@
 <request-parameters>
 <!--
   D74 = "Compressed Mortality, 1968-1978" (ICD-8 era). NOT D15 -- on today's
-  WONDER, D15 is the Tuberculosis (OTIS) system. Built from the D74 request
-  form (help/cmf.html), the ICD-8 twin of mortality_icd9_chapter.xml:
-    B_1  = D74.V1          (Group Results By = Year)
-    B_2  = D74.V2-level1   (And By = ICD Chapter -- ~17 chapters)
-    O_aar_enable = true     (Age-Adjusted Rate; 2000 US std pop)
+  WONDER, D15 is the Tuberculosis (OTIS) system. Params matched to a captured
+  working D74 web-UI request (Year x ICD Chapter, Age-Adjusted Rate checked);
+  the ICD-8 twin of mortality_icd9_chapter.xml:
+    B_1  = D74.V1          (Year)
+    B_2  = D74.V2-level1   (ICD Chapter -- ~17 chapters)
+    O_aar = aar_std + O_aar_enable = true   (age-adjusted; 2000 US std pop)
   COARSE ON PURPOSE -- chapter grain maps to the ICD-10 chapter roll-ups with
-  no ICD-8 -> ICD-10 comparability crosswalk. D74 has no Injury Intent section
-  (unlike D16), so no V12 / V13. {{YEAR_LIST}} -> V_D74.V1.
-  National: O_location=D74.V9, V_D74.V9 = *All* (WONDER rejects a blank code).
+  no ICD-8 -> ICD-10 comparability crosswalk. D74 has no Injury-Intent section
+  (unlike D16), so no V12 / V13. Location V_ fields left BLANK (CMF reads that
+  as all of the US). {{YEAR_LIST}} -> V_D74.V1.
   Response cells: year, chapter (label, h= depth), Deaths, Population,
   Crude Rate, Age-Adjusted Rate -> the same 6-col contract as `icd9` / `icd10`.
   Test: node --env-file=.env fetch.js --type=mortality --era=icd8 --years=1968-1972 --out=rows.json --dump
@@ -37,8 +38,8 @@
 <parameter><name>O_V4_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V9_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V10_fmode</name><value>freg</value></parameter>
+<parameter><name>O_aar</name><value>aar_std</value></parameter>
 <parameter><name>O_aar_enable</name><value>true</value></parameter>
-<parameter><name>O_aar_nonstd</name><value>false</value></parameter>
 <parameter><name>O_aar_pop</name><value>0000</value></parameter>
 <parameter><name>O_age</name><value>D74.V5</value></parameter>
 <parameter><name>O_icd</name><value>D74.V2</value></parameter>
@@ -47,20 +48,18 @@
 <parameter><name>O_oc-sect1-request</name><value>close</value></parameter>
 <parameter><name>O_precision</name><value>1</value></parameter>
 <parameter><name>O_rate_per</name><value>100000</value></parameter>
-<parameter><name>O_show_suppressed</name><value>false</value></parameter>
-<parameter><name>O_show_totals</name><value>false</value></parameter>
-<parameter><name>O_show_zeros</name><value>false</value></parameter>
+<parameter><name>O_show_totals</name><value>true</value></parameter>
 <parameter><name>O_timeout</name><value>600</value></parameter>
 <parameter><name>O_title</name><value>whywedie - D74 compressed mortality by year x ICD chapter, national</value></parameter>
 <parameter><name>V_D74.V1</name>{{YEAR_LIST}}</parameter>
-<parameter><name>V_D74.V2</name><value>*All*</value></parameter>
-<parameter><name>V_D74.V4</name><value>*All*</value></parameter>
+<parameter><name>V_D74.V2</name><value></value></parameter>
+<parameter><name>V_D74.V4</name><value></value></parameter>
 <parameter><name>V_D74.V5</name><value>*All*</value></parameter>
 <parameter><name>V_D74.V6</name><value>00</value></parameter>
 <parameter><name>V_D74.V7</name><value>*All*</value></parameter>
 <parameter><name>V_D74.V8</name><value>*All*</value></parameter>
-<parameter><name>V_D74.V9</name><value>*All*</value></parameter>
-<parameter><name>V_D74.V10</name><value>*All*</value></parameter>
+<parameter><name>V_D74.V9</name><value></value></parameter>
+<parameter><name>V_D74.V10</name><value></value></parameter>
 <parameter><name>VM_D74.M6_D74.V1</name><value>*All*</value></parameter>
 <parameter><name>VM_D74.M6_D74.V7</name><value>*All*</value></parameter>
 <parameter><name>VM_D74.M6_D74.V8</name><value>*All*</value></parameter>
@@ -72,7 +71,6 @@
 <parameter><name>action-Send</name><value>Send</value></parameter>
 <parameter><name>dataset_code</name><value>D74</value></parameter>
 <parameter><name>dataset_label</name><value>Compressed Mortality, 1968-1978</value></parameter>
-<parameter><name>dataset_vintage</name><value>1978</value></parameter>
 <parameter><name>saved_id</name><value></value></parameter>
 <parameter><name>stage</name><value>request</value></parameter>
 </request-parameters>

@@ -1,25 +1,22 @@
 <?xml version='1.0' encoding='utf-8'?>
 <request-parameters>
 <!--
-  D16 = "Compressed Mortality, 1979-1998" (ICD-9 era). Built straight from
-  the D16 request form (help/cmf.html), every control left at its default
-  except:
-    B_1  = D16.V1          (Group Results By = Year)
-    B_2  = D16.V2-level1   (And By      = ICD Chapter -- the coarse ~17-
-                            chapter roll-up of the ICD-9 Codes finder)
-    O_aar_enable = true     (add Age-Adjusted Rate; 2000 US std pop)
-    O_show_totals/zeros/suppressed = false
-  COARSE ON PURPOSE. Chapter grain (Neoplasms / Diseases of the circulatory
-  system / External causes / ...) lines up with the ICD-10 chapter roll-ups
-  with no ICD-9 -> ICD-10 comparability crosswalk. A 113-list-equivalent
-  ICD-9 breakdown is a separate, larger effort (see CLAUDE.md).
-  {{YEAR_LIST}} -> V_D16.V1. National: O_location=D16.V9 with V_D16.V9 blank
-  (= *All*). Response cells: year, chapter (label, h= depth), Deaths,
-  Population, Crude Rate, Age-Adjusted Rate -> the same 6-col contract as the
-  `icd10` era, so build-snapshots picks it up as ordinary mortality rows.
-  Round 2: V_D16.V9 / V_D16.V10 blank -> *All* (D192 proved WONDER rejects an
-  empty location code), and added the VM_D16.M6_* non-standard-AAR block the
-  form always submits. First round returned a bare "Processing Error".
+  D16 = "Compressed Mortality, 1979-1998" (ICD-9 era). Params matched to a
+  captured working D16 web-UI request (Group Results By = Year, And By = ICD
+  Chapter, Age-Adjusted Rate checked):
+    B_1  = D16.V1          (Year)
+    B_2  = D16.V2-level1   (ICD Chapter -- the coarse ~17-chapter roll-up)
+    O_aar = aar_std + O_aar_enable = true   (age-adjusted; 2000 US std pop)
+  COARSE ON PURPOSE -- chapter grain maps to the ICD-10 chapter roll-ups with
+  no ICD-9 -> ICD-10 comparability crosswalk. A 113-list-equivalent breakdown
+  is a separate, larger effort (see CLAUDE.md).
+  Rounds 1-2 returned a bare "Processing Error"; the fix was the missing
+  O_aar=aar_std (the checkbox alone isn't enough) plus leaving the location
+  V_ fields BLANK -- CMF reads blank as "all of the United States"; the
+  D192-style "Code '' isn't valid" rejection does not apply here.
+  {{YEAR_LIST}} -> V_D16.V1. Response cells: year, chapter (label, h= depth),
+  Deaths, Population, Crude Rate, Age-Adjusted Rate -> the same 6-col contract
+  as the `icd10` era.
   Test: node --env-file=.env fetch.js --type=mortality --era=icd9 --years=1979-1985 --out=rows.json --dump
   On a 400: paste the <message> from pipeline/mortality_icd9_chapter.raw.xml.
 -->
@@ -44,8 +41,8 @@
 <parameter><name>O_V4_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V9_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V10_fmode</name><value>freg</value></parameter>
+<parameter><name>O_aar</name><value>aar_std</value></parameter>
 <parameter><name>O_aar_enable</name><value>true</value></parameter>
-<parameter><name>O_aar_nonstd</name><value>false</value></parameter>
 <parameter><name>O_aar_pop</name><value>0000</value></parameter>
 <parameter><name>O_age</name><value>D16.V5</value></parameter>
 <parameter><name>O_icd</name><value>D16.V2</value></parameter>
@@ -54,20 +51,18 @@
 <parameter><name>O_oc-sect1-request</name><value>close</value></parameter>
 <parameter><name>O_precision</name><value>1</value></parameter>
 <parameter><name>O_rate_per</name><value>100000</value></parameter>
-<parameter><name>O_show_suppressed</name><value>false</value></parameter>
-<parameter><name>O_show_totals</name><value>false</value></parameter>
-<parameter><name>O_show_zeros</name><value>false</value></parameter>
+<parameter><name>O_show_totals</name><value>true</value></parameter>
 <parameter><name>O_timeout</name><value>600</value></parameter>
 <parameter><name>O_title</name><value>whywedie - D16 compressed mortality by year x ICD chapter, national</value></parameter>
 <parameter><name>V_D16.V1</name>{{YEAR_LIST}}</parameter>
-<parameter><name>V_D16.V2</name><value>*All*</value></parameter>
-<parameter><name>V_D16.V4</name><value>*All*</value></parameter>
+<parameter><name>V_D16.V2</name><value></value></parameter>
+<parameter><name>V_D16.V4</name><value></value></parameter>
 <parameter><name>V_D16.V5</name><value>*All*</value></parameter>
 <parameter><name>V_D16.V6</name><value>00</value></parameter>
 <parameter><name>V_D16.V7</name><value>*All*</value></parameter>
 <parameter><name>V_D16.V8</name><value>*All*</value></parameter>
-<parameter><name>V_D16.V9</name><value>*All*</value></parameter>
-<parameter><name>V_D16.V10</name><value>*All*</value></parameter>
+<parameter><name>V_D16.V9</name><value></value></parameter>
+<parameter><name>V_D16.V10</name><value></value></parameter>
 <parameter><name>V_D16.V12</name><value>*All*</value></parameter>
 <parameter><name>V_D16.V13</name><value>*All*</value></parameter>
 <parameter><name>VM_D16.M6_D16.V1</name><value>*All*</value></parameter>
@@ -81,7 +76,6 @@
 <parameter><name>action-Send</name><value>Send</value></parameter>
 <parameter><name>dataset_code</name><value>D16</value></parameter>
 <parameter><name>dataset_label</name><value>Compressed Mortality, 1979-1998</value></parameter>
-<parameter><name>dataset_vintage</name><value>1998</value></parameter>
 <parameter><name>saved_id</name><value></value></parameter>
 <parameter><name>stage</name><value>request</value></parameter>
 </request-parameters>
