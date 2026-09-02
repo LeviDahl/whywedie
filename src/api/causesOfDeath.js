@@ -18,6 +18,79 @@
 
 const SNAPSHOT_URL = `${import.meta.env.BASE_URL}data/mortality.json`
 
+// The pre-1999 Compressed Mortality data (D74 ICD-8 1968–1978, D16 ICD-9
+// 1979–1998) is grouped by ICD *chapter*, not the 113-cause list. The two
+// revisions label a few chapters differently — this maps both onto one
+// canonical name so a chapter's line is continuous across the 1979 seam.
+// (ICD-10 has no equivalent chapter row in the 113-list snapshot, so the
+// chapter view stops at 1998 until a chapter-grouped D76/D176 era is added.)
+const CHAPTER_CANON = {
+  'Diseases of the circulatory system': 'Circulatory system',
+  Neoplasms: 'Neoplasms (cancers)',
+  'Accidents, poisonings, and violence (external cause)': 'External causes (injury, poisoning)',
+  'External causes of injury and poisoning': 'External causes (injury, poisoning)',
+  'Diseases of the respiratory system': 'Respiratory system',
+  'Diseases of the digestive system': 'Digestive system',
+  'Endocrine, nutritional, and metabolic diseases': 'Endocrine, nutritional & metabolic',
+  'Endocrine, nutritional and metabolic diseases, and immunity disorders':
+    'Endocrine, nutritional & metabolic',
+  'Certain causes of perinatal mortality': 'Perinatal conditions',
+  'Certain conditions originating in the perinatal period': 'Perinatal conditions',
+  'Diseases of the genitourinary system': 'Genitourinary system',
+  'Symptoms and ill-defined conditions': 'Symptoms & ill-defined conditions',
+  'Symptoms, signs, and ill-defined conditions': 'Symptoms & ill-defined conditions',
+  'Infective and parasitic diseases': 'Infectious & parasitic diseases',
+  'Infectious and parasitic diseases': 'Infectious & parasitic diseases',
+  'Congenital anomalies': 'Congenital anomalies',
+  'Diseases of the nervous system and sense organs': 'Nervous system & sense organs',
+  'Mental disorders': 'Mental disorders',
+  'Diseases of the blood and blood-forming organs': 'Blood & blood-forming organs',
+  'Diseases of the musculoskeletal system and connective tissue':
+    'Musculoskeletal & connective tissue',
+  'Diseases of the skin and subcutaneous tissue': 'Skin & subcutaneous tissue',
+  'Complications of pregnancy, childbirth, and the puerperium': 'Pregnancy & childbirth'
+}
+
+// Build the by-chapter time series from the non-'#' chapter rows. Returns
+// null if the snapshot carries no chapter data.
+function buildChapters(raw) {
+  const chapterYears = raw.years
+    .filter((y) => (raw.byYear[y] ?? []).some((r) => CHAPTER_CANON[r.name]))
+    .sort((a, b) => a - b)
+  if (!chapterYears.length) return null
+
+  const idx = new Map(chapterYears.map((y, i) => [Number(y), i]))
+  const byChapter = {}
+  for (const y of chapterYears) {
+    for (const r of raw.byYear[y] ?? []) {
+      const canon = CHAPTER_CANON[r.name]
+      if (!canon) continue
+      const s =
+        byChapter[canon] ??
+        (byChapter[canon] = {
+          deaths: chapterYears.map(() => null),
+          crudeRate: chapterYears.map(() => null),
+          ageAdjustedRate: chapterYears.map(() => null)
+        })
+      const i = idx.get(Number(y))
+      s.deaths[i] = r.deaths
+      s.crudeRate[i] = r.crudeRate ?? null
+      s.ageAdjustedRate[i] = r.ageAdjustedRate ?? null
+    }
+  }
+
+  // Order chapters by their most recent death count, biggest first.
+  const names = Object.keys(byChapter).sort(
+    (a, b) => (lastNonNull(byChapter[b].deaths) ?? 0) - (lastNonNull(byChapter[a].deaths) ?? 0)
+  )
+  return { years: chapterYears.map(Number), names, byChapter, seam: 1979 }
+}
+
+function lastNonNull(arr) {
+  for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return arr[i]
+  return null
+}
+
 export async function fetchCausesOfDeath() {
   let res
   try {
@@ -91,6 +164,7 @@ export async function fetchCausesOfDeath() {
     years,
     causes,
     byYear,
-    byCause
+    byCause,
+    chapters: buildChapters(raw)
   }
 }

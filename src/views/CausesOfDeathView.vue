@@ -430,6 +430,56 @@ function onAddCauseSelect(event) {
 function removeTrendCause(i) {
   trendCauses.value.splice(i, 1)
 }
+
+// --- broad ICD chapters, pre-1999 (D74/D16) -----------------------
+const MAX_CHAPTERS = 4
+const chapters = computed(() => data.value?.chapters ?? null)
+const chapterYearLabels = computed(() => (chapters.value?.years ?? []).map(String))
+const activeChapters = ref([])
+watch(
+  chapters,
+  (c) => {
+    if (c && !activeChapters.value.length) {
+      activeChapters.value = c.names.slice(0, MAX_CHAPTERS)
+    }
+  },
+  { immediate: true }
+)
+const availableChapters = computed(() =>
+  (chapters.value?.names ?? []).filter((n) => !activeChapters.value.includes(n))
+)
+const chapterSeries = computed(() => {
+  if (!chapters.value) return []
+  return activeChapters.value.map((name, i) => ({
+    label: name,
+    values: chapters.value.byChapter[name]?.[metric.value] ?? [],
+    color: SERIES[i % SERIES.length],
+    dash: SERIES_DASH[i % SERIES_DASH.length]
+  }))
+})
+const chapterTable = computed(() => {
+  if (!chapters.value) return null
+  return {
+    columns: ['Year', ...activeChapters.value],
+    rows: chapters.value.years.map((y, i) => [
+      y,
+      ...activeChapters.value.map((name) => chapters.value.byChapter[name]?.[metric.value]?.[i] ?? '')
+    ]),
+    note: `${METRICS[metric.value].label} · ${chapters.value.years[0]}–${chapters.value.years.at(-1)}`
+  }
+})
+function toggleChapter(name) {
+  const i = activeChapters.value.indexOf(name)
+  if (i >= 0) {
+    if (activeChapters.value.length > 1) activeChapters.value.splice(i, 1)
+  } else if (activeChapters.value.length < MAX_CHAPTERS) {
+    activeChapters.value.push(name)
+  }
+}
+function onAddChapterSelect(event) {
+  toggleChapter(event.target.value)
+  event.target.selectedIndex = 0
+}
 </script>
 
 <template>
@@ -748,6 +798,71 @@ function removeTrendCause(i) {
               filename="whywedie-cause-trend"
             />
           </div>
+          <p class="mt-1 text-xs text-muted">Source: {{ data.source }}.</p>
+        </section>
+
+        <!-- Broad ICD chapters, 1968–1998 (pre-113-list era) -->
+        <section v-if="chapters">
+          <h2 class="mb-1 text-base font-semibold text-ink">Broad Chapters, 1968–1998</h2>
+          <p class="mb-4 text-xs text-muted">
+            Before the NCHS 113-cause list, mortality is grouped by ICD <em>chapter</em> — ~17 broad
+            buckets. This is coarser than the ranked view above and covers only the ICD-8 (1968–1978)
+            and ICD-9 (1979–1998) eras; there's a small classification seam at
+            {{ chapters.seam }}. Uses the metric selected above.
+          </p>
+
+          <div class="mb-5 flex flex-wrap items-center gap-2">
+            <span class="text-xs font-medium uppercase tracking-wide text-muted">Chapters</span>
+            <span
+              v-for="(name, i) in activeChapters"
+              :key="name"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-paper py-1.5 pl-2.5 pr-1 text-sm text-ink"
+            >
+              <span
+                class="size-2.5 shrink-0 rounded-full"
+                :style="{ backgroundColor: SERIES[i % SERIES.length] }"
+                aria-hidden="true"
+              ></span>
+              {{ name }}
+              <button
+                v-if="activeChapters.length > 1"
+                type="button"
+                class="rounded px-2 py-1 text-muted hover:bg-paper-soft hover:text-ink"
+                aria-label="Remove chapter"
+                @click="toggleChapter(name)"
+              >
+                ×
+              </button>
+            </span>
+            <select
+              v-if="activeChapters.length < MAX_CHAPTERS && availableChapters.length"
+              class="max-w-[15rem] rounded-lg border border-line-strong bg-paper px-2.5 py-1.5 text-sm text-ink"
+              @change="onAddChapterSelect"
+            >
+              <option value="">+ Add chapter…</option>
+              <option v-for="c in availableChapters" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </div>
+
+          <div class="card">
+            <TimeSeriesChart
+              :labels="chapterYearLabels"
+              :series="chapterSeries"
+              :value-formatter="valueFormatter"
+            />
+            <ChartToolbar
+              v-if="chapterTable"
+              :columns="chapterTable.columns"
+              :rows="chapterTable.rows"
+              :note="chapterTable.note"
+              filename="whywedie-icd-chapters"
+            />
+          </div>
+          <p class="mt-3 text-xs text-muted">
+            Chapter labels are normalised across ICD-8/9 (e.g. "External causes" covers ICD-8
+            "Accidents, poisonings, and violence" and ICD-9 "External causes of injury and
+            poisoning"). Compare trends, not exact levels, across the {{ chapters.seam }} seam.
+          </p>
           <p class="mt-1 text-xs text-muted">Source: {{ data.source }}.</p>
         </section>
       </template>
