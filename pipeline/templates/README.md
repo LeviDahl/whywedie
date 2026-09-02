@@ -7,7 +7,9 @@ substitution, data-use consent), and POSTs it to
 
 ```
 mortality_icd10.xml       -> D76    Underlying Cause of Death, 1999-2020           [BUILT + TESTED]
-mortality_provisional.xml -> D176   Provisional Mortality Statistics, 2018->now    [DRAFT — one test run to confirm the cause-list var]
+mortality_icd10_sex.xml   -> D76    ... x Gender (V7)                              [DRAFT — one test run to confirm]
+mortality_icd10_race.xml  -> D76    ... x Race (V8)                               [DRAFT — one test run to confirm]
+mortality_provisional.xml -> D176   Provisional Mortality Statistics, 2018->now    [DRAFT — Year-only all-cause totals]
 mortality_icd9.xml        -> D16    Compressed Mortality, 1979-1998               [TODO — no skeleton; needs WONDER params]
 mortality_icd8.xml        -> D15    Compressed Mortality, 1968-1978               [TODO — no skeleton; needs WONDER params]
 natality_mid.xml          -> D66    Natality, 2007-2022 (returns to 2024)         [BUILT + TESTED]
@@ -15,23 +17,44 @@ natality_gap.xml          -> D27    Natality, 2003-2006                         
 natality_current.xml      -> D192   Provisional Natality, 2023 through Last Month [PLACEHOLDER — needs its param set from WONDER]
 ```
 
-### `mortality_provisional.xml` (D176) — DRAFT, needs one confirming run
+### `mortality_icd10_sex.xml` / `mortality_icd10_race.xml` (D76) — DRAFT
 
-Covers 2021+ for Causes of Death (D76 stops at 2020). Adapted from
-wonderapi's `D176_Defaults.xml` — its own accepted default envelope — plus
-the edits that make it "Year × ICD-10 113 Cause List, national, with
-rates" (same shape as `mortality_icd10.xml`). The one unverified guess is
-that D176's 113-list is variable `V4` (it is on D76). Confirm:
+The Causes-of-Death "Breakdown" data. Each is `mortality_icd10.xml` with
+one extra Group By: `B_3 = D76.V7` (Gender) or `D76.V8` (Race) — the
+standard D76 demographic variables. Response cells: year, cause, subgroup,
+then M_1..M_4. They write to the **separate `mortality_demographic`**
+table (eras `icd10_sex` / `icd10_race` in `lib/datasets.js`), so the main
+`mortality` table / `mortality.json` are untouched. Confirm the extra
+column is the subgroup and not something else:
+
+```
+node --env-file=.env fetch.js --type=mortality --era=icd10_sex  --years=2019 --out=rows.json --dump
+node --env-file=.env fetch.js --type=mortality --era=icd10_race --years=2019 --out=rows.json --dump
+```
+
+`rows.json` should have ~130 causes × {2 sexes | 4 bridged-race groups} for
+2019, `subgroup` = 'Male'/'Female' or the race label. Many subgroup cells
+come back `Suppressed` (1–9 deaths) — expected; they store as NULL.
+`build-snapshots.js` emits `/data/mortality_demographic.json`; the frontend
+(`src/api/causeBreakdown.js`, the Breakdown control on Causes of Death)
+stays hidden until that file has real `dimensions`.
+
+### `mortality_provisional.xml` (D176) — DRAFT, Year-only
+
+Covers 2021+ (D76 stops at 2020). D176's "15 Leading Causes" list (V4)
+refuses to combine with any other Group By, and its 113-list variable
+isn't confirmed — so this template groups by **Year only** and the
+`provisional` era stores national **all-cause** yearly totals (deaths /
+population / crude rate), tagged via `fixed` as a synthetic non-`#` "All
+causes" cause. Enough to carry the page past 2020 with an honest
+provisional total; per-cause provisional data is a later iteration.
 
 ```
 node --env-file=.env fetch.js --type=mortality --era=provisional --years=2021 --out=rows.json --dump
 ```
 
-~130 cause rows for 2021 with deaths/population/crude/age-adjusted → good,
-it's wired (`lib/datasets.js` era `provisional` already exists). Thousands
-of rows or empty → `V4` is wrong; paste the `<message>` from
-`mortality_provisional.raw.xml` and we re-point `B_2` / `O_ucd`. D176's
-newest year is partial — flag it in the UI like the provisional births.
+One row per year, `death_count` / `population` / `crude_rate` populated →
+good. D176's newest year is partial — flag it in the UI.
 
 Commit these files — they contain no secrets and make the pipeline
 reproducible.

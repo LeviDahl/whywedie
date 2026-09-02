@@ -39,6 +39,37 @@ CREATE TABLE IF NOT EXISTS mortality (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
+-- mortality_demographic : the Causes-of-Death "Breakdown" data. One row per
+--   (year, state, ICD revision, cause, dimension, subgroup) from D76 grouped
+--   by Year x 113-Cause-List x {Gender | Race}. Kept OUT of `mortality` so
+--   the main snapshot / frontend path is untouched; each dimension is its
+--   own fetch era (icd10_sex, icd10_race). `dimension` says which axis the
+--   row splits on ('sex' | 'race'); `subgroup` is the value on that axis
+--   ('Male', 'Black or African American', ...). National only, like the rest.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS mortality_demographic (
+  id                 INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  year               SMALLINT UNSIGNED NOT NULL,
+  state_code         VARCHAR(2)   NOT NULL DEFAULT 'US',
+  icd_version        TINYINT UNSIGNED NOT NULL,
+  cause_code         VARCHAR(255) NOT NULL,              -- 113-list label verbatim incl. leading '#'
+  cause_name         VARCHAR(255) NOT NULL,              -- '#' stripped, for display
+  cause_level        TINYINT UNSIGNED NULL,
+  dimension          VARCHAR(16)  NOT NULL,              -- 'sex' | 'race'
+  subgroup           VARCHAR(64)  NOT NULL,              -- WONDER group label on that dimension
+  death_count        INT UNSIGNED NULL,
+  population         BIGINT UNSIGNED NULL,
+  crude_rate         DECIMAL(12,4) NULL,
+  age_adjusted_rate  DECIMAL(12,4) NULL,
+  suppressed         TINYINT(1)   NOT NULL DEFAULT 0,
+  status             VARCHAR(24)  NULL,
+  updated_at         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_mortality_demo (year, state_code, icd_version, cause_code, dimension, subgroup),
+  KEY idx_mortality_demo_lookup (dimension, year, cause_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
 -- natality : one row per (year, state) from the WONDER natality databases
 --            D149 / D66 / D27.
 -- ---------------------------------------------------------------------------

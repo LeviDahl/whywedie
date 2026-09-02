@@ -106,6 +106,85 @@ async function buildMortality() {
   return { file: payload, count: rows.length }
 }
 
+async function buildMortalityDemographic() {
+  const rows = await query(
+    `SELECT year, icd_version, cause_code, cause_name, cause_level, dimension,
+            subgroup, death_count, population, crude_rate, age_adjusted_rate,
+            suppressed
+       FROM mortality_demographic
+      WHERE state_code = 'US'
+      ORDER BY dimension ASC, year ASC, death_count DESC`
+  ).catch((err) => {
+    // table not created yet — not fatal, just skip this snapshot
+    if (/doesn'?t exist|Unknown table|no such table/i.test(err.message)) return []
+    throw err
+  })
+  if (rows.length === 0) return { file: null, count: 0 }
+
+  const years = [...new Set(rows.map((r) => r.year))].sort((a, b) => a - b)
+  const dimensions = {}
+
+  for (const r of rows) {
+    const dim = (dimensions[r.dimension] ||= {
+      subgroups: [],
+      byYear: {},
+      byCause: {},
+    })
+    if (!dim.subgroups.includes(r.subgroup)) dim.subgroups.push(r.subgroup)
+
+    const leading =
+      typeof r.cause_code === 'string' && r.cause_code.startsWith('#')
+
+    ;(dim.byYear[r.year] ||= []).push({
+      cause: r.cause_code,
+      causeName: r.cause_name,
+      leading,
+      subgroup: r.subgroup,
+      deaths: r.death_count,
+      population: r.population,
+      crudeRate: r.crude_rate,
+      ageAdjustedRate: r.age_adjusted_rate,
+      suppressed: Boolean(r.suppressed),
+    })
+
+    const c = (dim.byCause[r.cause_code] ||= {
+      name: r.cause_name,
+      level: r.cause_level,
+      leading,
+      subgroups: {},
+    })
+    const s = (c.subgroups[r.subgroup] ||= {
+      years: [],
+      deaths: [],
+      crudeRate: [],
+      ageAdjustedRate: [],
+    })
+    s.years.push(r.year)
+    s.deaths.push(r.death_count)
+    s.crudeRate.push(r.crude_rate)
+    s.ageAdjustedRate.push(r.age_adjusted_rate)
+  }
+
+  for (const dim of Object.values(dimensions)) dim.subgroups.sort()
+
+  const payload = {
+    source: MORTALITY_SOURCE,
+    fetchedAt: new Date().toISOString(),
+    coverage: {
+      yearMin: years[0],
+      yearMax: years[years.length - 1],
+      note:
+        'National only. D76 grouped by Year x NCHS 113-cause list x ' +
+        '{Gender | Race}. WONDER suppresses subgroup cells with 1-9 deaths, ' +
+        'so rarer causes have missing subgroups. Compare races on the ' +
+        'age-adjusted rate — crude rate mostly reflects age structure.',
+    },
+    years,
+    dimensions,
+  }
+  return { file: payload, count: rows.length }
+}
+
 async function buildNatality(outDir) {
   const rows = await query(
     `SELECT year, birth_count, population, birth_rate, fertility_rate, suppressed
@@ -164,17 +243,28 @@ async function main() {
   log.info(`output dir: ${outDir}`)
 
   const mortality = await buildMortality()
+  const mortalityDemographic = await buildMortalityDemographic()
   const natality = await buildNatality(outDir)
 
   const sources = {}
   for (const [type, eras] of Object.entries(DATASETS)) {
     sources[type] = []
     for (const [era, ds] of Object.entries(eras)) {
-      const [{ n, ymin, ymax }] = await query(
-        `SELECT COUNT(*) n, MIN(year) ymin, MAX(year) ymax FROM \`${ds.table}\`
-          WHERE state_code = 'US'` +
-          (type === 'mortality' ? ` AND icd_version = ${Number(ds.fixed.icd_version)}` : '')
-      )
+      let n = 0
+      let ymin = null
+      let ymax = null
+      try {
+        const where =
+          `WHERE state_code = 'US'` +
+          (ds.fixed?.icd_version ? ` AND icd_version = ${Number(ds.fixed.icd_version)}` : '') +
+          (ds.fixed?.dimension ? ` AND dimension = ${JSON.stringify(ds.fixed.dimension)}` : '')
+        const [agg] = await query(
+          `SELECT COUNT(*) n, MIN(year) ymin, MAX(year) ymax FROM \`${ds.table}\` ${where}`
+        )
+        ;({ n, ymin, ymax } = agg)
+      } catch (err) {
+        if (!/doesn'?t exist|Unknown table|no such table/i.test(err.message)) throw err
+      }
       sources[type].push({
         era,
         databaseId: ds.databaseId,
@@ -201,6 +291,7 @@ async function main() {
   const writes = [
     ['meta.json', meta],
     mortality.file && ['mortality.json', mortality.file],
+    mortalityDemographic.file && ['mortality_demographic.json', mortalityDemographic.file],
     natality.file && ['natality.json', natality.file],
   ].filter(Boolean)
 

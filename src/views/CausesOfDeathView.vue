@@ -8,6 +8,7 @@ import ChartToolbar from '@/components/ChartToolbar.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { useNamePreference } from '@/composables/useNamePreference.js'
 import { fetchCausesOfDeath } from '@/api/causesOfDeath.js'
+import { fetchCauseBreakdown } from '@/api/causeBreakdown.js'
 import { displayName } from '@/data/causeNames.js'
 import { SERIES } from '@/charts/palette.js'
 import { sections } from '@/nav.js'
@@ -23,7 +24,14 @@ const { nameStyle } = useNamePreference()
 const label = (officialName) => displayName(officialName, nameStyle.value)
 
 const { data, error, loading, load } = useAsyncData(fetchCausesOfDeath)
-onMounted(load)
+// Optional demographic (Sex / Race) breakdown — its own snapshot file. If
+// the pipeline eras haven't run it comes back { available: false } and the
+// Breakdown control never renders.
+const bd = useAsyncData(fetchCauseBreakdown)
+onMounted(() => {
+  load()
+  bd.load()
+})
 
 const TOP_N = 15
 const MAX_PERIODS = 4
@@ -45,6 +53,37 @@ const metric = ref(METRICS[route.query.metric] ? route.query.metric : 'deaths')
 if (route.query.names === 'friendly' || route.query.names === 'official') {
   nameStyle.value = route.query.names
 }
+
+// --- demographic breakdown -----------------------------------------
+// 'none' | 'sex' | 'race'. When not 'none' the ranked chart splits by
+// subgroup for ONE period (period comparison is suspended), and the trend
+// chart splits the first selected cause by subgroup.
+const BREAKDOWN_LABELS = { none: 'None', sex: 'Sex', race: 'Race' }
+const breakdown = ref(
+  ['sex', 'race'].includes(route.query.breakdown) ? route.query.breakdown : 'none'
+)
+// Landing straight on a race breakdown with no explicit metric: age-adjusted
+// is the honest default (crude rate mostly tracks age structure).
+if (breakdown.value === 'race' && !METRICS[route.query.metric]) {
+  metric.value = 'ageAdjustedRate'
+}
+const breakdownReady = computed(
+  () => bd.data.value?.available && Boolean(bd.data.value.dimensions?.[breakdown.value])
+)
+const breakdownActive = computed(() => breakdown.value !== 'none' && breakdownReady.value)
+const breakdownChoices = computed(() => ['none', ...(bd.data.value?.dimensionKeys ?? [])])
+const activeSubgroups = computed(() =>
+  breakdownActive.value ? bd.data.value.dimensions[breakdown.value].subgroups : []
+)
+
+// Picking a breakdown collapses the comparison to a single period and, for
+// Race, defaults to the age-adjusted rate (crude rate mostly tracks age
+// structure). Switching back to 'none' leaves those as they are.
+watch(breakdown, (b) => {
+  if (b === 'none') return
+  if (periods.value.length > 1) periods.value = [periods.value[0]]
+  if (b === 'race' && metric.value === 'deaths') metric.value = 'ageAdjustedRate'
+})
 
 // Ranked chart: one series per "period" (a single year or a year range).
 const periods = ref([])
@@ -89,8 +128,8 @@ watch(
 
 // Reflect the current view in the URL so "Copy link" is shareable.
 watch(
-  [metric, nameStyle, periods, trendCauses],
-  ([m, n, ps, cs]) => {
+  [metric, nameStyle, periods, trendCauses, breakdown],
+  ([m, n, ps, cs, bk]) => {
     router.replace({
       query: {
         ...route.query,
@@ -98,7 +137,8 @@ watch(
         names: n === 'friendly' ? undefined : n,
         periods:
           ps.map((p) => (p.from === p.to ? `${p.from}` : `${p.from}-${p.to}`)).join(',') || undefined,
-        causes: cs.map(slug).join(',') || undefined
+        causes: cs.map(slug).join(',') || undefined,
+        breakdown: bk === 'none' ? undefined : bk
       }
     })
   },
@@ -142,9 +182,55 @@ function meansForPeriod(p) {
 
 const periodMeans = computed(() => (data.value ? periods.value.map(meansForPeriod) : []))
 
+// --- breakdown means (one period, split by subgroup) ---------------
+// cause display-name -> Map<subgroup, mean of the selected metric across
+// the first period's years>. Rankable ('#') causes only.
+function breakdownMeansMap() {
+  const dim = bd.data.value.dimensions[breakdown.value]
+  const p = periods.value[0]
+  if (!p) return new Map()
+  const lo = Math.min(p.from, p.to)
+  const hi = Math.max(p.from, p.to)
+  const acc = new Map()
+  for (const [y, rows] of Object.entries(dim.byYear)) {
+    const yr = Number(y)
+    if (yr < lo || yr > hi) continue
+    for (const r of rows) {
+      if (!r.leading) continue
+      const v = r[metric.value]
+      if (v == null) continue
+      const bySg = acc.get(r.causeName) ?? new Map()
+      const a = bySg.get(r.subgroup) ?? { sum: 0, n: 0 }
+      a.sum += v
+      a.n += 1
+      bySg.set(r.subgroup, a)
+      acc.set(r.causeName, bySg)
+    }
+  }
+  const out = new Map()
+  for (const [name, bySg] of acc) {
+    const m = new Map()
+    for (const [sg, a] of bySg) m.set(sg, a.n ? a.sum / a.n : null)
+    out.set(name, m)
+  }
+  return out
+}
+const breakdownMeans = computed(() => (breakdownActive.value ? breakdownMeansMap() : new Map()))
+
 // Causes ranked by the primary (first) period — the same set is shown for
-// every period so the comparison lines up row-for-row.
+// every period so the comparison lines up row-for-row. With a breakdown
+// active, rank by the total across subgroups instead.
 const rankedCauseNames = computed(() => {
+  if (breakdownActive.value) {
+    return [...breakdownMeans.value.entries()]
+      .map(([name, bySg]) => [
+        name,
+        [...bySg.values()].reduce((s, v) => s + (v ?? 0), 0)
+      ])
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, TOP_N)
+      .map(([name]) => name)
+  }
   const primary = periodMeans.value[0]
   if (!primary) return []
   return [...primary.entries()]
@@ -157,14 +243,21 @@ const rankedCauseNames = computed(() => {
 // official name.
 const rankedLabels = computed(() => rankedCauseNames.value.map(label))
 
-const rankedSeries = computed(() =>
-  periods.value.map((p, i) => ({
+const rankedSeries = computed(() => {
+  if (breakdownActive.value) {
+    return activeSubgroups.value.map((sg) => ({
+      label: sg,
+      values: rankedCauseNames.value.map((name) => breakdownMeans.value.get(name)?.get(sg) ?? null)
+    }))
+  }
+  return periods.value.map((p, i) => ({
     label: periodLabel(p),
     values: rankedCauseNames.value.map((name) => periodMeans.value[i]?.get(name) ?? null)
   }))
-)
+})
 
 const primaryTop = computed(() => {
+  if (breakdownActive.value) return null
   const name = rankedCauseNames.value[0]
   if (!name) return null
   return { cause: name, value: periodMeans.value[0]?.get(name) ?? null }
@@ -206,29 +299,76 @@ const availableTrendCauses = computed(() =>
     .sort((a, b) => label(a).localeCompare(label(b)))
 )
 
-const trendSeries = computed(() =>
-  trendCauses.value
+// The trend cause shown split by subgroup when a breakdown is active
+// (one cause at a time in that mode — the first selected).
+const trendBreakdownCause = computed(() =>
+  breakdownActive.value ? trendCauses.value[0] ?? null : null
+)
+
+const trendSeries = computed(() => {
+  if (breakdownActive.value) {
+    const name = trendBreakdownCause.value
+    if (!name) return []
+    const dim = bd.data.value.dimensions[breakdown.value]
+    const entry = Object.values(dim.byCause).find((c) => c.name === name)
+    if (!entry) return []
+    return activeSubgroups.value.map((sg) => ({
+      label: sg,
+      values: entry.subgroups[sg]?.[metric.value] ?? []
+    }))
+  }
+  return trendCauses.value
     .filter((name) => data.value?.byCause[name])
     .map((name) => ({ label: label(name), values: data.value.byCause[name][metric.value] }))
+})
+const trendYearLabels = computed(() =>
+  (breakdownActive.value ? bd.data.value.years : data.value?.years ?? []).map(String)
 )
-const trendYearLabels = computed(() => data.value?.years.map(String) ?? [])
 
 // --- tables behind the two charts ---
+const round2 = (v) => (v == null ? '' : Math.round(v * 100) / 100)
+
 const rankedTable = computed(() => {
   if (!rankedCauseNames.value.length) return null
+  if (breakdownActive.value) {
+    return {
+      columns: ['Cause', ...activeSubgroups.value],
+      rows: rankedCauseNames.value.map((name) => [
+        label(name),
+        ...activeSubgroups.value.map((sg) => round2(breakdownMeans.value.get(name)?.get(sg)))
+      ]),
+      note: `${METRICS[metric.value].label} · by ${BREAKDOWN_LABELS[breakdown.value].toLowerCase()} · mean/yr, ${periods.value[0] ? periodLabel(periods.value[0]) : ''}`
+    }
+  }
   return {
     columns: ['Cause', ...periods.value.map(periodLabel)],
     rows: rankedCauseNames.value.map((name) => [
       label(name),
-      ...periodMeans.value.map((m) => {
-        const v = m?.get(name)
-        return v == null ? '' : Math.round(v * 100) / 100
-      })
+      ...periodMeans.value.map((m) => round2(m?.get(name)))
     ]),
     note: `${METRICS[metric.value].label} · mean annual value per period`
   }
 })
 const trendTable = computed(() => {
+  if (breakdownActive.value) {
+    const name = trendBreakdownCause.value
+    if (!name) return null
+    const dim = bd.data.value.dimensions[breakdown.value]
+    const entry = Object.values(dim.byCause).find((c) => c.name === name)
+    if (!entry) return null
+    const years = bd.data.value.years
+    return {
+      columns: ['Year', ...activeSubgroups.value],
+      rows: years.map((y, i) => [
+        y,
+        ...activeSubgroups.value.map((sg) => {
+          const v = entry.subgroups[sg]?.[metric.value]?.[i]
+          return v == null ? '' : v
+        })
+      ]),
+      note: `${label(name)} · ${METRICS[metric.value].label} · by ${BREAKDOWN_LABELS[breakdown.value].toLowerCase()}`
+    }
+  }
   if (!data.value || !trendCauses.value.length) return null
   return {
     columns: ['Year', ...trendCauses.value.map(label)],
@@ -309,6 +449,22 @@ function removeTrendCause(i) {
               </button>
             </div>
           </div>
+
+          <div v-if="bd.data.value?.available" class="flex flex-wrap items-center gap-3">
+            <span class="text-xs font-medium uppercase tracking-wide text-muted">Breakdown</span>
+            <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="opt in breakdownChoices"
+                :key="opt"
+                type="button"
+                class="px-3.5 py-1.5 text-sm font-medium capitalize transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="breakdown === opt ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="breakdown = opt"
+              >
+                {{ BREAKDOWN_LABELS[opt] ?? opt }}
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Stat callout -->
@@ -328,7 +484,7 @@ function removeTrendCause(i) {
 
           <!-- period controls -->
           <div class="mb-5 space-y-3">
-            <div class="flex flex-wrap items-center gap-2">
+            <div v-if="!breakdownActive" class="flex flex-wrap items-center gap-2">
               <span class="text-xs font-medium uppercase tracking-wide text-muted">Add decade</span>
               <button
                 v-for="b in decadeButtons"
@@ -349,13 +505,16 @@ function removeTrendCause(i) {
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xs font-medium uppercase tracking-wide text-muted">Periods</span>
+              <span class="text-xs font-medium uppercase tracking-wide text-muted">
+                {{ breakdownActive ? 'Period' : 'Periods' }}
+              </span>
               <div
                 v-for="(p, i) in periods"
                 :key="i"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-paper py-1.5 pl-2 pr-1 text-sm"
               >
                 <span
+                  v-if="!breakdownActive"
                   class="size-2.5 shrink-0 rounded-full"
                   :style="{ backgroundColor: SERIES[i % SERIES.length] }"
                   aria-hidden="true"
@@ -376,7 +535,7 @@ function removeTrendCause(i) {
                   <option v-for="y in data.years" :key="y" :value="y">{{ y }}</option>
                 </select>
                 <button
-                  v-if="periods.length > 1"
+                  v-if="periods.length > 1 && !breakdownActive"
                   type="button"
                   class="ml-1 rounded px-2 py-1 text-muted hover:bg-paper-soft hover:text-ink"
                   aria-label="Remove period"
@@ -386,6 +545,7 @@ function removeTrendCause(i) {
                 </button>
               </div>
               <button
+                v-if="!breakdownActive"
                 type="button"
                 class="btn-secondary px-2.5 py-1 text-xs"
                 :disabled="periods.length >= MAX_PERIODS"
@@ -394,6 +554,11 @@ function removeTrendCause(i) {
                 + Add period
               </button>
             </div>
+
+            <p v-if="breakdownActive" class="text-xs text-muted">
+              Comparing one period, split by {{ BREAKDOWN_LABELS[breakdown].toLowerCase() }}. Period
+              comparison is paused — switch Breakdown back to None to overlay decades again.
+            </p>
           </div>
 
           <div class="card">
@@ -410,7 +575,16 @@ function removeTrendCause(i) {
               filename="whywedie-leading-causes"
             />
           </div>
-          <p class="mt-3 text-xs text-muted">
+          <p v-if="breakdownActive" class="mt-3 text-xs text-muted">
+            Top {{ TOP_N }} rankable ("113 Selected Causes") categories for {{ periodLabel(periods[0]) }},
+            split by {{ BREAKDOWN_LABELS[breakdown].toLowerCase() }} (mean annual value). WONDER
+            withholds any subgroup with 1–9 deaths, so some bars are missing for rarer causes.
+            <template v-if="breakdown === 'race'">
+              Race groups follow the CDC bridged-race categories used through 2020; compare them on
+              the age-adjusted rate — crude rate mostly reflects differing age structures.
+            </template>
+          </p>
+          <p v-else class="mt-3 text-xs text-muted">
             Top {{ TOP_N }} rankable ("113 Selected Causes") categories by {{ periodLabel(periods[0]) }},
             shown as the mean annual value for each period. National,
             {{ data.coverage.yearMin }}–{{ data.coverage.yearMax }} — earlier decades unlock when the
@@ -455,6 +629,12 @@ function removeTrendCause(i) {
               <option v-for="c in availableTrendCauses" :key="c" :value="c">{{ label(c) }}</option>
             </select>
           </div>
+
+          <p v-if="breakdownActive" class="mb-4 text-xs text-muted">
+            Charting <span class="text-ink">{{ label(trendBreakdownCause) }}</span> by
+            {{ BREAKDOWN_LABELS[breakdown].toLowerCase()
+            }}<template v-if="trendCauses.length > 1"> — one cause at a time in breakdown view</template>.
+          </p>
 
           <div class="card">
             <TimeSeriesChart

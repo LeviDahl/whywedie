@@ -13,8 +13,12 @@ of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
 - **Causes of Death** — ranked bar + trend line, deaths / crude-rate /
   age-adjusted-rate toggle, overlay multiple **periods** (years or decade
   ranges, as mean annual values) and multiple **causes**, friendly ↔
-  official cause-name toggle. Data: CDC WONDER national 1999–2020, from the
-  static file `/data/mortality.json` (see pipeline note below).
+  official cause-name toggle, and an optional **Breakdown** (None / Sex /
+  Race) that splits the bars/lines by subgroup for one period. Data: CDC
+  WONDER national 1999–2020, from `/data/mortality.json`; the breakdown
+  reads a separate `/data/mortality_demographic.json` (`src/api/
+  causeBreakdown.js`) and the control stays hidden until that file has
+  real `dimensions`. See pipeline note below.
 - **Birth Statistics** — annual births + fertility rate (`src/api/natality.js`
   reads `/data/natality.json`; Socrata `89yk-m38d` baseline 1960–2018,
   WONDER natality pipeline extends it) plus provisional monthly births +
@@ -176,6 +180,7 @@ src/
     currentVitalEvents.js     # current monthly deaths + births (Socrata hmz2-vwda)
     historicalDeaths.js       # historical annual death rollup (Socrata muzy-jte6)
     causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
+    causeBreakdown.js         # reads /data/mortality_demographic.json — Sex/Race breakdown (optional)
     populationChange.js       # births (e6fc-ccez) vs deaths (bi63-dtpu "All causes") + natural increase
     dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
     yearFacts.js              # per-year births/deaths/leading-cause for the Home "pick a year" panel
@@ -205,6 +210,7 @@ src/
 public/
   .htaccess                  # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/mortality.json        # committed baseline snapshot; pipeline/ refreshes it in prod
+  data/mortality_demographic.json  # Sex/Race breakdown; committed stub (empty dimensions) until pipeline eras run
   data/natality.json         # committed Socrata baseline 1960-2018; pipeline/ extends it
 pipeline/                    # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
                              #   own package.json (axios, mysql2, fast-xml-parser); see its README
@@ -310,30 +316,39 @@ old and new into one series.
 
 ## Next steps
 
-`pipeline/` code is wired for D76 (mortality) and three natality eras:
-`mid` D66 (2007–2022) and `gap` D27 (2003–2006) are **built + tested**
-(templates from the wonderapi `*_Defaults.xml` skeletons; Year × M1 Births
-+ M5 → Female Pop + Fertility Rate; `fetch.js` clips each era to its
-`[yearMin,yearMax]` since the DBs return extra years). `current` D192
-("Provisional Natality, 2023 through Last Month") is a **placeholder** —
-its expanded param names differ and must come from WONDER.
-`build-snapshots.js buildNatality()` merges pre-2003 from the committed
-Socrata `natality.json` baseline. WONDER API rate limit: ≥15 s between
-requests (429 otherwise).
+**Done:** D76 mortality (1999–2020) and natality `mid` D66 (2007–2022) +
+`gap` D27 (2003–2006) are run and committed (`mortality.json` 1999–2020,
+`natality.json` 1960–2022, pre-2003 merged from the Socrata baseline).
 
-1. **Run D76** — turns Causes of Death from the committed baseline into
-   real pipeline output. Finalized: one run + commit of
-   `public/data/mortality.json`, no schedule needed.
-2. **Run natality `mid` + `gap`** — extends the Birth-page annual series
-   past the Socrata baseline (2003–2022 from WONDER, pre-2003 merged).
-3. **`natality_current.xml` (D192)** — get its parameter set from WONDER;
-   this is what gets births to the current month. Its latest year is
-   partial/provisional — `natality.js` / `BirthStatisticsView.vue` should
-   flag it (not done yet).
+**Drafted, each needs one confirming `--dump` run then a pipeline run:**
+
+1. **Sex / Race breakdown for Causes of Death** — templates
+   `mortality_icd10_sex.xml` / `_race.xml` (D76 with `B_3` = `D76.V7`
+   Gender / `D76.V8` Race), eras `icd10_sex` / `icd10_race` writing the
+   **separate `mortality_demographic`** table → `build-snapshots.js`
+   emits `/data/mortality_demographic.json`. Frontend: `src/api/
+   causeBreakdown.js` + the "Breakdown" segmented control on
+   `CausesOfDeathView.vue` (hidden until the snapshot has real
+   `dimensions`; a breakdown collapses period-compare to one period and,
+   for Race, defaults to age-adjusted rate).
+2. **Recent-years mortality (2021+)** — `mortality_provisional.xml` /
+   D176 era `provisional`. D176's "15 Leading Causes" list won't combine
+   with any other Group By and its 113-list variable is unconfirmed, so
+   this era is **Year-only all-cause totals** (deaths / population /
+   crude rate), tagged as a synthetic non-`#` "All causes" cause.
+
+**Still needs WONDER params (no skeleton — iterate against live WONDER):**
+
+3. **`natality_current.xml` (D192)** — births to the current month. A
+   straight D149→D192 substitution 400s; needs its real param set. Its
+   latest year is partial — `BirthStatisticsView.vue` already flags
+   provisional years.
 4. **D16 + D15** — pre-1999 mortality; lights up the disabled decade
-   buttons on Causes of Death.
-5. **Recent-years mortality (2021+)** for Causes of Death — needs a
-   provisional Underlying-Cause-of-Death WONDER DB + its own era.
-6. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) once
-   the *updating* dataset (D192 natality) is in.
-7. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+   buttons. Also needs an ICD-8/9 → ICD-10 cause crosswalk (different
+   cause taxonomy), so it's the biggest lift.
+5. Schedule the pipeline (host + cron + publish, `pipeline/README.md`)
+   once the *updating* dataset (D192 natality, or D176 provisional) is in.
+6. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+
+WONDER API rate limit: ≥15 s between requests (429 otherwise); a manual
+loop needs `sleep 16` between `fetch.js` calls.

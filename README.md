@@ -9,7 +9,7 @@ sourced from CDC data.
 |---|---|---|
 | Home | — | project overview |
 | Death Statistics Over Time | Socrata | annual rollup + current monthly |
-| Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | overlay multiple periods (years or decade ranges) and multiple causes; friendly ↔ official cause names |
+| Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | overlay multiple periods (years or decade ranges) and multiple causes; friendly ↔ official cause names; optional Sex / Race breakdown (`/data/mortality_demographic.json`, hidden until the pipeline eras run) |
 | Birth Statistics | Socrata + CDC WONDER | annual births + fertility rate (1960–2018 Socrata baseline, extended to 2022 via the WONDER natality pipeline → `/data/natality.json`) + provisional monthly births (Socrata) |
 | Population Decline / Gain | Socrata | births vs. deaths + natural increase (1999–2017), century-long birth history |
 | By the Numbers | Socrata + public estimates | births/deaths as a daily average + rotating scale-comparison facts |
@@ -311,10 +311,18 @@ drawer on mobile, toggled from a top bar.
       through Last Month", updated monthly. Placeholder; needs its API
       parameter set from WONDER (its "expanded" param names differ from
       D66/D27). This is the piece that gets births to the current month.
+- [ ] **Causes of Death Sex / Race breakdown** — templates
+      `mortality_icd10_sex.xml` / `_race.xml` (D76 × V7 / V8) and eras
+      `icd10_sex` / `icd10_race` writing the `mortality_demographic` table
+      are built; needs one `--dump` confirm run each, then a pipeline run.
+      The Breakdown control on the page is wired and hidden until the
+      snapshot has real data.
+- [ ] **Recent-years mortality (2021+)** — `mortality_provisional.xml` /
+      D176 era `provisional` is built (Year-only all-cause totals; D176's
+      cause list won't combine with Year). Needs a confirm run.
 - [ ] D16 (ICD-9) + D15 (ICD-8) for pre-1999 mortality — lights up the
-      disabled decade buttons on Causes of Death.
-- [ ] Recent-years mortality (2021+) for Causes of Death — needs a
-      provisional Underlying-Cause-of-Death WONDER DB + its own era.
+      disabled decade buttons on Causes of Death. No skeleton — needs its
+      params from WONDER.
 - [ ] Stand the pipeline up on a schedule (host + cron + publish, see
       `pipeline/README.md`) once D192 natality is in — the finalized
       datasets don't need it.

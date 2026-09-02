@@ -58,6 +58,48 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // Causes-of-Death "Breakdown" data: D76 grouped by Year x 113-Cause-List
+    // x an extra demographic axis. Written to the SEPARATE
+    // `mortality_demographic` table (7-col contract: year, cause, subgroup,
+    // 4 measures) so the main mortality path is untouched. One era per axis
+    // because WONDER suppresses fewer cells per query and the UI shows one
+    // breakdown at a time. B_3 = D76.V7 (Gender) / D76.V8 (Race) — the
+    // standard D76 demographic variables.
+    icd10_sex: {
+      databaseId: 'D76',
+      templateFile: 'mortality_icd10_sex.xml',
+      table: 'mortality_demographic',
+      fixed: { icd_version: 10, dimension: 'sex' },
+      yearMin: 1999,
+      yearMax: 2020,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'coded', code: 'subgroup', name: 'subgroup' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
+    icd10_race: {
+      databaseId: 'D76',
+      templateFile: 'mortality_icd10_race.xml',
+      table: 'mortality_demographic',
+      fixed: { icd_version: 10, dimension: 'race' },
+      yearMin: 1999,
+      yearMax: 2020,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'coded', code: 'subgroup', name: 'subgroup' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
+
     // Recent years (2021+). D176 = "Provisional Mortality Statistics, 2018
     // through Last Month", updated monthly. Group By = Year ONLY — D176's
     // "15 Leading Causes" list (V4) refuses to combine with any other
@@ -188,6 +230,22 @@ export const TABLE_COLUMNS = {
     'suppressed',
     'status',
   ],
+  mortality_demographic: [
+    'year',
+    'state_code',
+    'icd_version',
+    'cause_code',
+    'cause_name',
+    'cause_level',
+    'dimension',
+    'subgroup',
+    'death_count',
+    'population',
+    'crude_rate',
+    'age_adjusted_rate',
+    'suppressed',
+    'status',
+  ],
   natality: [
     'year',
     'state_code',
@@ -203,6 +261,16 @@ export const TABLE_COLUMNS = {
 /** Columns updated on duplicate-key (everything except the key + id). */
 export const UPSERT_UPDATE_COLUMNS = {
   mortality: [
+    'cause_name',
+    'cause_level',
+    'death_count',
+    'population',
+    'crude_rate',
+    'age_adjusted_rate',
+    'suppressed',
+    'status',
+  ],
+  mortality_demographic: [
     'cause_name',
     'cause_level',
     'death_count',

@@ -9,10 +9,10 @@ by the Vite frontend and vice-versa.
 
 ```
 pipeline/
-  schema.sql            two tables: mortality, natality  (apply once)
+  schema.sql            three tables: mortality, mortality_demographic, natality  (apply once)
   apply-schema.js       runs schema.sql (or just paste it into phpMyAdmin)
   fetch.js              one (type, era) chunk: WONDER -> parse -> upsert
-  build-snapshots.js    DB -> mortality.json / natality.json / meta.json
+  build-snapshots.js    DB -> mortality.json / mortality_demographic.json / natality.json / meta.json
   app.js                placeholder HTTP listener — ONLY needed if you deploy
                         this to a Passenger/PaaS host that requires a server
   lib/                  config, dataset registry, template loader, WONDER
@@ -111,6 +111,7 @@ manual loop needs a sleep between chunks:
 ```
 for chunk in \
   "mortality icd10" \
+  "mortality icd10_sex" "mortality icd10_race" "mortality provisional" \
   "natality mid" "natality gap" "natality current" ; do
   set -- $chunk
   node --env-file=.env fetch.js --type=$1 --era=$2 || exit 1
@@ -119,9 +120,10 @@ done
 SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
 ```
 
-(`natality current` = D192; skip it until `natality_current.xml` is a real
-template — see `templates/README.md`. `mortality icd9`/`icd8` and the
-pre-2003 natality are deeper-history TODOs.)
+(`icd10_sex` / `icd10_race` / `provisional` are DRAFT — dry-run + `--dump`
+each once to confirm the response shape, see `templates/README.md`.
+`natality current` = D192; skip it until `natality_current.xml` is a real
+template. `mortality icd9`/`icd8` are deeper-history TODOs.)
 
 `ON DUPLICATE KEY UPDATE` makes every run re-runnable. If a mortality era
 errors on size/timeout, slice it (needs the `{{YEAR_LIST}}` token in that
@@ -209,6 +211,14 @@ locally, point `.env` at any MySQL 8 / MariaDB 10 (`brew install mysql` or a
   { name, icdVersion, years[], deaths[], crudeRate[], ageAdjustedRate[] } } }`
 - **`natality.json`** — `{ source, fetchedAt, coverage, years, byYear:
   { <year>: { births, population, birthRate, suppressed } } }`
+- **`mortality_demographic.json`** — the Causes-of-Death "Breakdown" data
+  (eras `icd10_sex` / `icd10_race`): `{ source, fetchedAt, coverage, years,
+  dimensions: { sex: { subgroups[], byYear: { <year>: [ { cause, causeName,
+  leading, subgroup, deaths, population, crudeRate, ageAdjustedRate,
+  suppressed } ] }, byCause: { "<cause_code>": { name, leading, subgroups:
+  { "<label>": { years[], deaths[], crudeRate[], ageAdjustedRate[] } } } } },
+  race: { ...same... } } }`. Empty `dimensions` ⇒ the frontend hides the
+  Breakdown control.
 - **`meta.json`** — generation time, per-era row counts + year spans,
   caveats.
 

@@ -1,0 +1,7 @@
+{
+  "source": "CDC WONDER (wonder.cdc.gov) — Underlying Cause of Death, national (API is national-only)",
+  "fetchedAt": null,
+  "coverage": { "yearMin": null, "yearMax": null, "note": "Baseline stub — run the pipeline eras icd10_sex / icd10_race to populate. Until then the Causes of Death page hides the Breakdown control." },
+  "years": [],
+  "dimensions": {}
+}
