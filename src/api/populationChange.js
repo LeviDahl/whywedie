@@ -13,8 +13,8 @@
 // database (2021+) are flagged so the view can render them dashed.
 
 import { socrataQuery } from './socrata.js'
+import { fetchAnnualNatality } from './natality.js'
 
-const NATALITY_URL = `${import.meta.env.BASE_URL}data/natality.json`
 const MORTALITY_URL = `${import.meta.env.BASE_URL}data/mortality.json`
 const BIRTHS_ID = 'e6fc-ccez'
 
@@ -35,6 +35,14 @@ function birthsByYear(natality) {
   return m
 }
 
+// year the births series turns provisional (rolled up from monthly, no rate)
+function firstProvisionalBirthYear(natality) {
+  const ys = Object.entries(natality?.byYear ?? {})
+    .filter(([, v]) => v?.provisional)
+    .map(([y]) => Number(y))
+  return ys.length ? Math.min(...ys) : Infinity
+}
+
 function deathsByYear(mortality) {
   const m = new Map()
   for (const [y, rows] of Object.entries(mortality?.byYear ?? {})) {
@@ -45,10 +53,11 @@ function deathsByYear(mortality) {
 }
 
 export async function fetchBirthsVsDeaths() {
-  const [natality, mortality] = await Promise.all([getJson(NATALITY_URL), getJson(MORTALITY_URL)])
+  const [natality, mortality] = await Promise.all([fetchAnnualNatality(), getJson(MORTALITY_URL)])
 
   const births = birthsByYear(natality)
   const deaths = deathsByYear(mortality)
+  const provBirthFrom = firstProvisionalBirthYear(natality)
 
   const years = [...deaths.keys()]
     .filter((y) => births.has(y))
@@ -61,7 +70,8 @@ export async function fetchBirthsVsDeaths() {
     births: years.map((y) => births.get(y)),
     deaths: years.map((y) => deaths.get(y)),
     naturalIncrease: years.map((y) => births.get(y) - deaths.get(y)),
-    provisional: years.map((y) => y > FINAL_DEATHS_THROUGH)
+    // provisional if the death figure or the birth figure is provisional
+    provisional: years.map((y) => y > FINAL_DEATHS_THROUGH || y >= provBirthFrom)
   }
 }
 
@@ -72,7 +82,7 @@ export async function fetchBirthHistory() {
       $order: 'year',
       $limit: 5000
     }).catch(() => []),
-    getJson(NATALITY_URL)
+    fetchAnnualNatality()
   ])
 
   const byYear = new Map()

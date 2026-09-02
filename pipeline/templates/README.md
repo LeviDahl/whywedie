@@ -16,7 +16,7 @@ mortality_icd9.xml        -> D16    Compressed Mortality, 1979-1998             
 mortality_icd8.xml        -> D15    Compressed Mortality, 1968-1978               [TODO — no skeleton; needs WONDER params]
 natality_mid.xml          -> D66    Natality, 2007-2022 (returns to 2024)         [BUILT + TESTED]
 natality_gap.xml          -> D27    Natality, 2003-2006                           [BUILT + TESTED]
-natality_current.xml      -> D192   Provisional Natality, 2023 through Last Month [PLACEHOLDER — needs its param set from WONDER]
+natality_current.xml      -> D192   Provisional Natality, 2023 through Last Month [DRAFT — D149 skeleton + O_PR; one test run to confirm]
 ```
 
 ### `mortality_icd10_sex.xml` / `mortality_icd10_race.xml` (D76) — DRAFT

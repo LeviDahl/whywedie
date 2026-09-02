@@ -1,18 +1,44 @@
 // Pipeline: ANNUAL NATALITY (births + fertility rate over time)
 //
-// Reads the static snapshot /data/natality.json — same pattern as
-// causesOfDeath.js. The committed baseline is CDC's NCHS "Natality Measures
-// by Race" (Socrata 89yk-m38d, All races, 1960–2018). The WONDER natality
-// pipeline (databases D149 / D66 / D27, see pipeline/) overwrites it with a
-// series that reaches the latest published year and carries the same
-// fields.
+// Reads the static snapshot /data/natality.json (WONDER pipeline: D27/D66 +
+// a committed Socrata baseline, 1960–2022). Then it rolls up CDC's
+// "AH Monthly Provisional Counts" (Socrata hmz2-vwda) to annual totals for
+// any COMPLETE calendar year past the snapshot's last year, so the annual
+// births line keeps pace with the monthly one until D192 (provisional
+// natality) is wired into the pipeline. Those rolled-up years carry a
+// births count only (no rate) and are flagged provisional.
 //
 // Shape:  { source, fetchedAt, coverage:{yearMin,yearMax,note},
 //           years:[int],
 //           byYear: { <year>: { births, birthRate, fertilityRate,
-//                               population, suppressed } } }
+//                               population, suppressed, provisional? } } }
+
+import { socrataQuery } from './socrata.js'
 
 const SNAPSHOT_URL = `${import.meta.env.BASE_URL}data/natality.json`
+
+async function monthlyBirthRollup(afterYear) {
+  try {
+    const rows = await socrataQuery('hmz2-vwda', {
+      $select: 'year, count(1) as months, sum(data_value) as births',
+      $where:
+        "state='UNITED STATES' AND period='Monthly' AND indicator='Number of Live Births'",
+      $group: 'year',
+      $order: 'year'
+    })
+    const out = new Map()
+    for (const r of rows) {
+      const y = Number(r.year)
+      // only whole years, and only past what the snapshot already covers
+      if (y > afterYear && Number(r.months) >= 12 && Number.isFinite(Number(r.births))) {
+        out.set(y, Math.round(Number(r.births)))
+      }
+    }
+    return out
+  } catch {
+    return new Map()
+  }
+}
 
 export async function fetchAnnualNatality() {
   let res
@@ -29,16 +55,34 @@ export async function fetchAnnualNatality() {
   }
 
   const raw = await res.json()
-  const years = raw.years.slice().sort((a, b) => a - b)
+  const snapshotMax = raw.years.length ? Math.max(...raw.years) : 0
+  const rolled = await monthlyBirthRollup(snapshotMax)
+
+  const byYear = { ...raw.byYear }
+  for (const [y, births] of rolled) {
+    byYear[y] = {
+      births,
+      birthRate: null,
+      fertilityRate: null,
+      population: null,
+      suppressed: false,
+      provisional: true
+    }
+  }
+
+  const years = [...new Set([...raw.years, ...rolled.keys()])].sort((a, b) => a - b)
+  const source = rolled.size
+    ? `${raw.source}; ${[...rolled.keys()].join(', ')} rolled up from CDC AH Monthly Provisional Counts (Socrata hmz2-vwda)`
+    : raw.source
 
   return {
-    source: raw.source,
+    source,
     fetchedAt: raw.fetchedAt,
-    coverage: raw.coverage,
+    coverage: { ...raw.coverage, yearMax: years.at(-1) ?? raw.coverage?.yearMax },
     years,
-    births: years.map((y) => raw.byYear[y]?.births ?? null),
-    birthRate: years.map((y) => raw.byYear[y]?.birthRate ?? null),
-    fertilityRate: years.map((y) => raw.byYear[y]?.fertilityRate ?? null),
-    byYear: raw.byYear
+    births: years.map((y) => byYear[y]?.births ?? null),
+    birthRate: years.map((y) => byYear[y]?.birthRate ?? null),
+    fertilityRate: years.map((y) => byYear[y]?.fertilityRate ?? null),
+    byYear
   }
 }

@@ -214,19 +214,21 @@ export const DATASETS = {
     // Rate). Response columns: year, births, population, fertility_rate.
     //
     // D192 = "Provisional Natality, 2023 through Last Month" — updated
-    // monthly. Its newest year is PARTIAL/provisional; the frontend flags it.
+    // monthly. Template built from the D149 expanded skeleton + O_PR; it
+    // requests M_002 (Births) only, so the response is [year, births].
+    // Its newest year is partial/provisional; the frontend flags it. Until
+    // this is confirmed against live WONDER, src/api/natality.js rolls up
+    // Socrata monthly births for the latest complete year as a stopgap.
     current: {
       databaseId: 'D192',
       templateFile: 'natality_current.xml',
       table: 'natality',
       fixed: {},
       yearMin: 2023,
-      yearMax: 2027,
+      yearMax: 2030,
       columns: [
         { kind: 'year' },
         { kind: 'measure', field: 'birth_count', countField: true },
-        { kind: 'measure', field: 'population' },
-        { kind: 'measure', field: 'fertility_rate' },
       ],
     },
     // D66 = "Natality, 2007-2022" (returns through 2024 — clipped to 2022).
