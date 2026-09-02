@@ -257,6 +257,7 @@ const monthlyTable = computed(() => {
               :labels="monthlyView.labels"
               :values="monthlyView.values"
               :muted-points="monthlyView.muted"
+              muted-label="incomplete"
               series-label="Deaths"
               :value-formatter="integerFormatter"
             />

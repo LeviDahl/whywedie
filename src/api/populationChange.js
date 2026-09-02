@@ -1,72 +1,94 @@
 // Pipeline: POPULATION CHANGE (births vs. deaths, natural increase)
 //
-// Two data.cdc.gov Socrata datasets, browser-direct (no pipeline):
-//   - e6fc-ccez  "NCHS - Births and General Fertility Rates: United States"
-//                annual US birth counts + crude birth rate, 1909–2018.
-//                Note: `year` is stored as a STRING here.
-//   - bi63-dtpu  "NCHS - Leading Causes of Death: United States" — its
-//                `cause_name = 'All causes'` rows are the national annual
-//                death total, 1999–2017. (`state = 'United States'`, not
-//                all-caps.)
+// Reads the WONDER pipeline snapshots, with a Socrata call only for the
+// deep pre-1960 birth history:
+//   - /data/natality.json   annual US births (1960–2022, WONDER D27/D66 +
+//                            Socrata baseline)
+//   - /data/mortality.json   annual all-cause deaths ("All causes" rows:
+//                            D76 1999–2020 + D176 provisional 2021+)
+//   - e6fc-ccez (Socrata)    US births 1909–1959, for the long-view chart
 //
-// Natural increase = births − deaths. The two series only overlap 1999–2017,
-// which is what fetchBirthsVsDeaths() returns. The WONDER pipeline (natality
-// D149/D66/D27 + a no-cause D76 total) would extend this and reach 2021 —
-// the first year US deaths exceeded births.
+// births − deaths = natural increase. The overlap is 1999→2022 (bounded by
+// the natality series). Years whose death figure comes from the provisional
+// database (2021+) are flagged so the view can render them dashed.
 
 import { socrataQuery } from './socrata.js'
 
+const NATALITY_URL = `${import.meta.env.BASE_URL}data/natality.json`
+const MORTALITY_URL = `${import.meta.env.BASE_URL}data/mortality.json`
 const BIRTHS_ID = 'e6fc-ccez'
-const DEATHS_ID = 'bi63-dtpu'
 
-const BIRTHS_SOURCE =
-  'CDC (data.cdc.gov, Socrata) — NCHS Births and General Fertility Rates: United States (e6fc-ccez)'
-const COMBINED_SOURCE =
-  `${BIRTHS_SOURCE}; deaths from NCHS Leading Causes of Death, "All causes" (bi63-dtpu)`
+const SOURCE =
+  'CDC WONDER pipeline snapshots — natality.json (births) + mortality.json all-cause (deaths)'
+const HISTORY_SOURCE = `${SOURCE}; pre-1960 births from CDC Socrata NCHS Births (e6fc-ccez)`
+
+const FINAL_DEATHS_THROUGH = 2020
+
+const getJson = (url) =>
+  fetch(url, { headers: { accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null))
+
+function birthsByYear(natality) {
+  const m = new Map()
+  for (const [y, v] of Object.entries(natality?.byYear ?? {})) {
+    if (v?.births != null) m.set(Number(y), v.births)
+  }
+  return m
+}
+
+function deathsByYear(mortality) {
+  const m = new Map()
+  for (const [y, rows] of Object.entries(mortality?.byYear ?? {})) {
+    const all = (rows ?? []).find((c) => c.code === 'All causes' || c.name === 'All causes')
+    if (all?.deaths != null) m.set(Number(y), all.deaths)
+  }
+  return m
+}
 
 export async function fetchBirthsVsDeaths() {
-  const [birthRows, deathRows] = await Promise.all([
-    socrataQuery(BIRTHS_ID, { $select: 'year, birth_number', $order: 'year', $limit: 5000 }),
-    socrataQuery(DEATHS_ID, {
-      $select: 'year, deaths',
-      $where: "state='United States' AND cause_name='All causes'",
-      $order: 'year',
-      $limit: 5000
-    })
-  ])
+  const [natality, mortality] = await Promise.all([getJson(NATALITY_URL), getJson(MORTALITY_URL)])
 
-  const births = new Map(birthRows.map((r) => [Number(r.year), Number(r.birth_number)]))
-  const deaths = new Map(deathRows.map((r) => [Number(r.year), Number(r.deaths)]))
+  const births = birthsByYear(natality)
+  const deaths = deathsByYear(mortality)
 
   const years = [...deaths.keys()]
-    .filter((y) => Number.isFinite(births.get(y)) && Number.isFinite(deaths.get(y)))
+    .filter((y) => births.has(y))
     .sort((a, b) => a - b)
 
   return {
-    source: COMBINED_SOURCE,
+    source: SOURCE,
     fetchedAt: new Date().toISOString(),
     years,
     births: years.map((y) => births.get(y)),
     deaths: years.map((y) => deaths.get(y)),
-    naturalIncrease: years.map((y) => births.get(y) - deaths.get(y))
+    naturalIncrease: years.map((y) => births.get(y) - deaths.get(y)),
+    provisional: years.map((y) => y > FINAL_DEATHS_THROUGH)
   }
 }
 
 export async function fetchBirthHistory() {
-  const rows = await socrataQuery(BIRTHS_ID, {
-    $select: 'year, birth_number',
-    $order: 'year',
-    $limit: 5000
-  })
-  const points = rows
-    .map((r) => ({ year: Number(r.year), births: Number(r.birth_number) }))
-    .filter((p) => Number.isFinite(p.year) && Number.isFinite(p.births))
-    .sort((a, b) => a.year - b.year)
+  const [deepRows, natality] = await Promise.all([
+    socrataQuery(BIRTHS_ID, {
+      $select: 'year, birth_number',
+      $order: 'year',
+      $limit: 5000
+    }).catch(() => []),
+    getJson(NATALITY_URL)
+  ])
 
+  const byYear = new Map()
+  for (const r of deepRows) {
+    const y = Number(r.year)
+    const b = Number(r.birth_number)
+    if (Number.isFinite(y) && Number.isFinite(b)) byYear.set(y, b)
+  }
+  // pipeline natality wins where it has data (1960–2022)
+  for (const [y, b] of birthsByYear(natality)) byYear.set(y, b)
+
+  const years = [...byYear.keys()].sort((a, b) => a - b)
   return {
-    source: BIRTHS_SOURCE,
+    source: HISTORY_SOURCE,
     fetchedAt: new Date().toISOString(),
-    years: points.map((p) => p.year),
-    births: points.map((p) => p.births)
+    years,
+    births: years.map((y) => byYear.get(y))
   }
 }

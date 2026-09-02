@@ -3,6 +3,7 @@ import { computed, ref, onMounted } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
+import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchCurrentMonthlyBirths } from '@/api/currentVitalEvents.js'
 import { fetchAnnualNatality } from '@/api/natality.js'
@@ -22,6 +23,8 @@ onMounted(() => {
 
 const integerFormatter = (v) => (v == null ? '—' : v.toLocaleString())
 const rateFormatter = (v) => (v == null ? '—' : v.toFixed(1))
+const tail = (arr, n) =>
+  n === Infinity ? (arr ?? []).slice() : (arr ?? []).slice(Math.max(0, (arr ?? []).length - n))
 
 // --- monthly ---
 const latestIndex = computed(() =>
@@ -49,6 +52,17 @@ const monthlyTable = computed(() => {
     rows: d.labels.map((m, i) => [m, d.values[i]]),
     note: `Data through ${d.labels.at(-1)}`
   }
+})
+const MONTHLY_RANGES = [
+  { key: '1y', label: '1 yr', n: 12 },
+  { key: 'max', label: 'Max', n: Infinity }
+]
+const monthlyRange = ref('max')
+const monthlyView = computed(() => {
+  const d = monthly.data.value
+  if (!d?.labels?.length) return null
+  const n = MONTHLY_RANGES.find((r) => r.key === monthlyRange.value)?.n ?? Infinity
+  return { labels: tail(d.labels, n), values: tail(d.values, n) }
 })
 
 // --- annual ---
@@ -84,6 +98,24 @@ const annualMuted = computed(() => {
   )
 })
 const hasProvisional = computed(() => annualMuted.value.some(Boolean))
+
+const ANNUAL_RANGES = [
+  { key: '10y', label: '10 yr', n: 10 },
+  { key: '25y', label: '25 yr', n: 25 },
+  { key: 'max', label: 'Max', n: Infinity }
+]
+const annualRange = ref('25y')
+const annualView = computed(() => {
+  const d = annual.data.value
+  if (!d?.years?.length) return null
+  const n = ANNUAL_RANGES.find((r) => r.key === annualRange.value)?.n ?? Infinity
+  return {
+    labels: tail(d.years, n),
+    values: tail(annualValues.value, n),
+    muted: tail(annualMuted.value, n)
+  }
+})
+
 const annualTable = computed(() => {
   const d = annual.data.value
   if (!d) return null
@@ -124,9 +156,17 @@ const annualTable = computed(() => {
       <section>
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-base font-semibold text-ink">Annual Births &amp; Fertility Rate</h2>
-          <p v-if="annual.data.value?.years?.length" class="text-sm text-muted">
-            {{ annual.data.value.years[0] }}–{{ annual.data.value.years.at(-1) }}
-          </p>
+          <div class="flex items-center gap-3">
+            <p v-if="annualView" class="text-sm text-muted">
+              {{ annualView.labels[0] }}–{{ annualView.labels.at(-1) }}
+            </p>
+            <RangeTabs
+              v-if="annual.data.value?.years?.length"
+              v-model="annualRange"
+              :options="ANNUAL_RANGES"
+              aria-label="Annual births range"
+            />
+          </div>
         </div>
 
         <div v-if="annual.loading.value" class="card flex items-center justify-center py-20 text-sm text-muted">
@@ -156,9 +196,9 @@ const annualTable = computed(() => {
 
           <div class="card">
             <TimeSeriesChart
-              :labels="annual.data.value.years"
-              :values="annualValues"
-              :muted-points="annualMuted"
+              :labels="annualView.labels"
+              :values="annualView.values"
+              :muted-points="annualView.muted"
               :series-label="ANNUAL_METRICS[annualMetric].axis"
               :value-formatter="annualFmt"
             />
@@ -181,11 +221,19 @@ const annualTable = computed(() => {
 
       <!-- Current monthly section -->
       <section>
-        <div class="mb-4 flex items-baseline justify-between gap-4">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-base font-semibold text-ink">Monthly Births (Current)</h2>
-          <p v-if="monthly.data.value?.labels?.length" class="text-sm text-muted">
-            {{ monthly.data.value.labels[0] }}–{{ monthly.data.value.labels.at(-1) }}
-          </p>
+          <div class="flex items-center gap-3">
+            <p v-if="monthlyView" class="text-sm text-muted">
+              {{ monthlyView.labels[0] }}–{{ monthlyView.labels.at(-1) }}
+            </p>
+            <RangeTabs
+              v-if="monthly.data.value?.labels?.length"
+              v-model="monthlyRange"
+              :options="MONTHLY_RANGES"
+              aria-label="Monthly births range"
+            />
+          </div>
         </div>
 
         <div
@@ -204,11 +252,11 @@ const annualTable = computed(() => {
           <button type="button" class="btn-secondary mt-4" @click="monthly.load">Try again</button>
         </div>
 
-        <template v-else-if="monthly.data.value?.labels?.length">
+        <template v-else-if="monthlyView">
           <div class="card">
             <TimeSeriesChart
-              :labels="monthly.data.value.labels"
-              :values="monthly.data.value.values"
+              :labels="monthlyView.labels"
+              :values="monthlyView.values"
               series-label="Births"
               :value-formatter="integerFormatter"
             />

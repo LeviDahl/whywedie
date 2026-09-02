@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
+import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchBirthsVsDeaths, fetchBirthHistory } from '@/api/populationChange.js'
 import { sections } from '@/nav.js'
@@ -32,18 +33,45 @@ const full = (v) => (v == null ? '—' : v.toLocaleString())
 const signed = (v) => (v == null ? '—' : (v >= 0 ? '+' : '−') + compact(Math.abs(v)))
 
 // --- births vs deaths ---
-const bvdSeries = computed(() => {
+const tail = (arr, n) => (n === Infinity ? (arr ?? []).slice() : (arr ?? []).slice(Math.max(0, arr.length - n)))
+
+const BVD_RANGES = [
+  { key: '10y', label: '10 yr', n: 10 },
+  { key: '20y', label: '20 yr', n: 20 },
+  { key: 'max', label: 'Max', n: Infinity }
+]
+const bvdRange = ref('max')
+const bvdCut = computed(() => BVD_RANGES.find((r) => r.key === bvdRange.value)?.n ?? Infinity)
+
+// Sliced-to-range view of the births/deaths/natural-increase series.
+const bvdWindow = computed(() => {
   const d = bvd.data.value
-  if (!d) return []
+  if (!d?.years?.length) return null
+  const n = bvdCut.value
+  return {
+    years: tail(d.years, n),
+    births: tail(d.births, n),
+    deaths: tail(d.deaths, n),
+    naturalIncrease: tail(d.naturalIncrease, n),
+    provisional: tail(d.provisional, n)
+  }
+})
+
+// Deaths (and therefore natural increase) are provisional from 2021 on;
+// births in those years are already final — only dash the affected lines.
+const bvdSeries = computed(() => {
+  const w = bvdWindow.value
+  if (!w) return []
   return [
-    { label: 'Births', values: d.births },
-    { label: 'Deaths', values: d.deaths }
+    { label: 'Births', values: w.births },
+    { label: 'Deaths', values: w.deaths, muted: w.provisional }
   ]
 })
 const niSeries = computed(() => {
-  const d = bvd.data.value
-  return d ? [{ label: 'Natural increase', values: d.naturalIncrease }] : []
+  const w = bvdWindow.value
+  return w ? [{ label: 'Natural increase', values: w.naturalIncrease, muted: w.provisional }] : []
 })
+const hasProvisional = computed(() => bvd.data.value?.provisional?.some(Boolean))
 const first = computed(() => {
   const d = bvd.data.value
   if (!d?.years.length) return null
@@ -54,6 +82,16 @@ const last = computed(() => {
   if (!d?.years.length) return null
   const i = d.years.length - 1
   return { year: d.years[i], ni: d.naturalIncrease[i], births: d.births[i], deaths: d.deaths[i] }
+})
+// Low point of natural increase (the year the gap came closest to closing).
+const trough = computed(() => {
+  const d = bvd.data.value
+  if (!d?.years.length) return null
+  let i = 0
+  for (let k = 1; k < d.naturalIncrease.length; k++) {
+    if (d.naturalIncrease[k] < d.naturalIncrease[i]) i = k
+  }
+  return { year: d.years[i], ni: d.naturalIncrease[i] }
 })
 const dropPct = computed(() => {
   if (!first.value || !last.value || !first.value.ni) return null
@@ -99,6 +137,21 @@ const historyByYear = computed(() => {
   const d = history.data.value
   if (!d) return new Map()
   return new Map(d.years.map((y, i) => [y, d.births[i]]))
+})
+
+// Long-view range (only applies when no era overlay is active — the
+// overlay re-indexes to "year N" and ignores the calendar).
+const HISTORY_RANGES = [
+  { key: '40y', label: '40 yr', n: 40 },
+  { key: '80y', label: '80 yr', n: 80 },
+  { key: 'max', label: 'Max', n: Infinity }
+]
+const historyRange = ref('max')
+const historyWindow = computed(() => {
+  const d = history.data.value
+  if (!d?.years?.length) return null
+  const n = HISTORY_RANGES.find((r) => r.key === historyRange.value)?.n ?? Infinity
+  return { years: tail(d.years, n), births: tail(d.births, n) }
 })
 
 // When eras are chosen, re-plot each span aligned to "year 1" so their
@@ -181,11 +234,19 @@ const historyTable = computed(() => {
 
       <!-- Births vs deaths -->
       <section>
-        <div class="mb-4 flex items-baseline justify-between gap-4">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-base font-semibold text-ink">Births vs. Deaths</h2>
-          <p v-if="bvd.data.value?.years?.length" class="text-sm text-muted">
-            {{ bvd.data.value.years[0] }}–{{ bvd.data.value.years.at(-1) }}
-          </p>
+          <div class="flex items-center gap-3">
+            <p v-if="bvdWindow" class="text-sm text-muted">
+              {{ bvdWindow.years[0] }}–{{ bvdWindow.years.at(-1) }}
+            </p>
+            <RangeTabs
+              v-if="bvd.data.value?.years?.length"
+              v-model="bvdRange"
+              :options="BVD_RANGES"
+              aria-label="Births vs deaths range"
+            />
+          </div>
         </div>
 
         <div v-if="bvd.loading.value" class="card flex items-center justify-center py-20 text-sm text-muted">
@@ -199,10 +260,10 @@ const historyTable = computed(() => {
           </details>
           <button type="button" class="btn-secondary mt-4" @click="bvd.load">Try again</button>
         </div>
-        <template v-else-if="bvd.data.value?.years?.length">
+        <template v-else-if="bvdWindow">
           <div class="card">
             <TimeSeriesChart
-              :labels="bvd.data.value.years"
+              :labels="bvdWindow.years"
               :series="bvdSeries"
               series-label="People"
               :value-formatter="compact"
@@ -217,18 +278,29 @@ const historyTable = computed(() => {
           </div>
           <p class="mt-3 text-xs text-muted">
             The gap between the lines is <strong>natural increase</strong> — how much the population
-            grows before any immigration. It has narrowed every decade shown.
+            grows before any immigration. It has narrowed almost every year since 1999.
+          </p>
+          <p v-if="hasProvisional" class="mt-1 text-xs text-muted">
+            The greyed deaths tail (2021+) is CDC provisional data.
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ bvd.data.value.source }}.</p>
         </template>
       </section>
 
       <!-- Natural increase alone -->
-      <section v-if="bvd.data.value?.years?.length">
-        <h2 class="mb-4 text-base font-semibold text-ink">Natural Increase (Births − Deaths)</h2>
+      <section v-if="bvdWindow">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-base font-semibold text-ink">Natural Increase (Births − Deaths)</h2>
+          <RangeTabs
+            v-if="bvd.data.value?.years?.length"
+            v-model="bvdRange"
+            :options="BVD_RANGES"
+            aria-label="Natural increase range"
+          />
+        </div>
         <div class="card">
           <TimeSeriesChart
-            :labels="bvd.data.value.years"
+            :labels="bvdWindow.years"
             :series="niSeries"
             series-label="Natural increase"
             :value-formatter="compact"
@@ -242,20 +314,29 @@ const historyTable = computed(() => {
             filename="whywedie-natural-increase"
           />
         </div>
-        <p class="mt-3 text-xs text-muted">
-          These datasets stop in 2017. Deaths first outnumbered births nationally in 2021 (COVID, an
-          aging population, and falling fertility together) — extending this line needs the WONDER
-          pipeline (a no-cause death total plus the natality databases).
+        <p v-if="trough" class="mt-3 text-xs text-muted">
+          The margin came closest to closing in <strong>{{ trough.year }}</strong> ({{ signed(trough.ni) }}) —
+          COVID deaths, an aging population, and falling fertility all at once — then widened again as
+          the pandemic receded.
         </p>
       </section>
 
       <!-- Long birth history -->
       <section>
-        <div class="mb-4 flex items-baseline justify-between gap-4">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-base font-semibold text-ink">US Births per Year, the Long View</h2>
-          <p v-if="history.data.value?.years?.length" class="text-sm text-muted">
-            {{ history.data.value.years[0] }}–{{ history.data.value.years.at(-1) }}
-          </p>
+          <div class="flex items-center gap-3">
+            <p v-if="history.data.value?.years?.length" class="text-sm text-muted">
+              <template v-if="eraOverlay">aligned to year 1</template>
+              <template v-else>{{ historyWindow?.years[0] }}–{{ historyWindow?.years.at(-1) }}</template>
+            </p>
+            <RangeTabs
+              v-if="history.data.value?.years?.length && !eraOverlay"
+              v-model="historyRange"
+              :options="HISTORY_RANGES"
+              aria-label="Birth history range"
+            />
+          </div>
         </div>
 
         <div v-if="history.loading.value" class="card flex items-center justify-center py-20 text-sm text-muted">
@@ -296,9 +377,9 @@ const historyTable = computed(() => {
               :value-formatter="compact"
             />
             <TimeSeriesChart
-              v-else
-              :labels="history.data.value.years"
-              :values="history.data.value.births"
+              v-else-if="historyWindow"
+              :labels="historyWindow.years"
+              :values="historyWindow.births"
               series-label="Births"
               :value-formatter="compact"
             />

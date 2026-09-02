@@ -32,9 +32,11 @@ const props = defineProps({
   // `values`/`seriesLabel` are ignored and a legend is shown.
   series: { type: Array, default: null },
   valueFormatter: { type: Function, default: (v) => v?.toLocaleString() ?? '—' },
-  // Single-series only: booleans same length as `values` — points flagged
-  // true (e.g. a partial period) render muted gray as a "don't over-read" cue.
-  mutedPoints: { type: Array, default: () => [] }
+  // Booleans same length as `values` — points flagged true (a provisional
+  // or incomplete period) render muted grey as a "don't over-read" cue.
+  mutedPoints: { type: Array, default: () => [] },
+  // Word shown after a muted point's value in the tooltip.
+  mutedLabel: { type: String, default: 'provisional' }
 })
 
 const normalized = computed(() => {
@@ -64,11 +66,14 @@ const normalized = computed(() => {
 const multi = computed(() => normalized.value.length > 1)
 
 // A line segment counts as "provisional" if the point it draws *into* is
-// flagged — so the run of provisional years at the end renders dashed and
-// dimmed, with the last final→first provisional transition dashed too.
+// flagged — so the run of provisional years at the end renders dimmed.
+// Single-series lines are solid, so provisional segments go dashed+grey.
+// Multi-series lines already carry a dash for identity, so provisional
+// segments there go SOLID grey instead — a clear break against the pattern.
 const PROVISIONAL_DASH = [5, 4]
-const segmentStyle = (s) => ({
-  borderDash: (ctx) => (s.mutedPoints[ctx.p1DataIndex] ? PROVISIONAL_DASH : undefined),
+const segmentStyle = (s, multi) => ({
+  borderDash: (ctx) =>
+    s.mutedPoints[ctx.p1DataIndex] ? (multi ? [] : PROVISIONAL_DASH) : undefined,
   borderColor: (ctx) => (s.mutedPoints[ctx.p1DataIndex] ? MUTED_MARK : undefined)
 })
 
@@ -81,7 +86,7 @@ const chartData = computed(() => ({
       data: s.values,
       borderColor: s.color,
       borderDash: s.dash,
-      segment: hasMuted ? segmentStyle(s) : undefined,
+      segment: hasMuted ? segmentStyle(s, multi.value) : undefined,
       backgroundColor: multi.value ? 'transparent' : fillFor(s.color, 0.1),
       pointBackgroundColor: s.values.map((_, i) => (s.mutedPoints[i] ? MUTED_MARK : s.color)),
       pointBorderColor: '#ffffff',
@@ -124,7 +129,7 @@ const chartOptions = computed(() => ({
         title: (items) => items[0]?.label,
         label: (item) => {
           const s = normalized.value[item.datasetIndex]
-          const suffix = s?.mutedPoints[item.dataIndex] ? ' (partial)' : ''
+          const suffix = s?.mutedPoints[item.dataIndex] ? ` (${props.mutedLabel})` : ''
           const name = multi.value ? `${item.dataset.label}: ` : `${props.seriesLabel}: `
           return `${name}${props.valueFormatter(item.parsed.y)}${suffix}`
         }
