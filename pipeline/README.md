@@ -17,7 +17,7 @@ pipeline/
                         this to a Passenger/PaaS host that requires a server
   lib/                  config, dataset registry, template loader, WONDER
                         client, XML table parser, row mapper, DB
-  templates/            six hand-exported WONDER request XMLs (see its README)
+  templates/            WONDER request XMLs, one+ per era (see its README)
   .env.example          copy to .env, fill in, never commit
 ```
 
@@ -44,8 +44,10 @@ transit is a concern).
 ## What it can and can't get
 
 - **Can:** national deaths by cause 1968→present across three ICD eras, with
-  population + crude rate + age-adjusted rate; national births 1995→present
-  (2003–2006 excepted — no database for it in the configured set).
+  population + crude rate + age-adjusted rate (1968-1998 at ICD-chapter
+  grain, 1999+ at the full 113-cause list); national births 1960→present
+  (pre-2003 from the committed Socrata baseline; D192 provisional births are
+  a count only — no fertility rate past 2022).
 - **Can't:** anything sub-national. The WONDER API refuses
   State/County/Region/Division/Urbanization grouping or filtering for vital
   statistics. `state_code` is always `'US'`. If state data is wanted later,
@@ -89,7 +91,7 @@ cp .env.example .env       # DB_HOST = cPanel shared IP / server hostname
 
 Or skip the file and set those keys in the host's secrets/env panel.
 
-### 4. Export the six WONDER templates
+### 4. The WONDER templates
 
 See [`templates/README.md`](templates/README.md). Verify each before trusting
 it:
@@ -110,8 +112,10 @@ manual loop needs a sleep between chunks:
 
 ```
 for chunk in \
-  "mortality icd10" \
-  "mortality icd10_sex" "mortality icd10_race" "mortality provisional" \
+  "mortality icd10" "mortality icd10_total" \
+  "mortality icd10_sex" "mortality icd10_race" \
+  "mortality provisional" "mortality provisional_causes" "mortality monthly" \
+  "mortality icd9" "mortality icd8" \
   "natality mid" "natality gap" "natality current" ; do
   set -- $chunk
   node --env-file=.env fetch.js --type=$1 --era=$2 || exit 1
@@ -120,10 +124,8 @@ done
 SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
 ```
 
-(`icd10_sex` / `icd10_race` / `provisional` are DRAFT — dry-run + `--dump`
-each once to confirm the response shape, see `templates/README.md`.
-`natality current` = D192; skip it until `natality_current.xml` is a real
-template. `mortality icd9`/`icd8` are deeper-history TODOs.)
+(`icd9` = D16 1979-1998, `icd8` = D74 1968-1978 — both ICD-chapter grain;
+pass `--years=` to slice them. `natality current` = D192 births-only.)
 
 `ON DUPLICATE KEY UPDATE` makes every run re-runnable. If a mortality era
 errors on size/timeout, slice it (needs the `{{YEAR_LIST}}` token in that
@@ -168,14 +170,16 @@ On a VPS/box, a `crontab` — monthly is plenty (the data is annual), stagger
 so no two overlap. `NODE` = absolute path to node (or a `source …/activate`
 line if it's a venv); `DIR` = the pipeline directory.
 
+# Only the "provisional / current" eras change month to month. D76 / D66 /
+# D27 / D16 (D16.icd9) / D74 (D16.icd8) are finalized — run those once by
+# hand, not on a schedule.
 ```
-5  3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=icd10   >> logs/cron.log 2>&1
-20 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=mid     >> logs/cron.log 2>&1
-35 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=gap     >> logs/cron.log 2>&1
-50 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=current >> logs/cron.log 2>&1
+5  3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=provisional        >> logs/cron.log 2>&1
+20 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=provisional_causes >> logs/cron.log 2>&1
+35 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=monthly            >> logs/cron.log 2>&1
+50 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=current            >> logs/cron.log 2>&1
 40 4 1 * *  cd DIR && NODE --env-file=.env build-snapshots.js >> logs/cron.log 2>&1
 # 55 4 1 * *  ...then the snapshot-publish step from section 6
-# add --era=icd9 / --era=icd8 lines when those templates exist
 ```
 
 On GitHub Actions, one workflow with `on: schedule: - cron: '0 3 1 * *'`
@@ -210,7 +214,8 @@ locally, point `.env` at any MySQL 8 / MariaDB 10 (`brew install mysql` or a
   crudeRate, ageAdjustedRate, suppressed } ] }, byCause: { "<icd>:<code>":
   { name, icdVersion, years[], deaths[], crudeRate[], ageAdjustedRate[] } } }`
 - **`natality.json`** — `{ source, fetchedAt, coverage, years, byYear:
-  { <year>: { births, population, birthRate, suppressed } } }`
+  { <year>: { births, population, birthRate, fertilityRate, suppressed } } }`
+  (`fertilityRate` is null for D192 provisional years — births only)
 - **`mortality_demographic.json`** — the Causes-of-Death "Breakdown" data
   (eras `icd10_sex` / `icd10_race`): `{ source, fetchedAt, coverage, years,
   dimensions: { sex: { subgroups[], byYear: { <year>: [ { cause, causeName,

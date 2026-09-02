@@ -1,10 +1,12 @@
 // Pipeline: CAUSES OF DEATH (ranked breakdown + trend over time)
 //
 // Source: the static snapshot the WONDER data pipeline writes to
-// /data/mortality.json (see pipeline/). That snapshot is CDC WONDER's
-// "Underlying Cause of Death, 1999–2020" (database D76), national, grouped by
-// year × the NCHS 113 Selected Causes list, with deaths, population, crude
-// rate and age-adjusted rate.
+// /data/mortality.json (see pipeline/). Per-cause rows are CDC WONDER's
+// "Underlying Cause of Death" D76 (1999–2020) + "Provisional Mortality" D176
+// (2021+), national, grouped by year × the NCHS 113 Selected Causes list,
+// with deaths, population, crude rate and age-adjusted rate. Coarser ICD
+// chapter rows for 1968–1998 (D74/D16) may also be present but are non-'#'
+// and so ignored by the rankable-cause views below.
 //
 // The snapshot is served same-origin as a plain file — no API call, no
 // CORS, no key.
