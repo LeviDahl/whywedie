@@ -6,13 +6,32 @@ substitution, data-use consent), and POSTs it to
 `https://wonder.cdc.gov/controller/datarequest/<DB>`.
 
 ```
-mortality_icd10.xml   -> D76    Underlying Cause of Death, 1999-2020            [BUILT + TESTED]
-mortality_icd9.xml    -> D16    Compressed Mortality, 1979-1998                [TODO]
-mortality_icd8.xml    -> D15    Compressed Mortality, 1968-1978                [TODO]
-natality_mid.xml      -> D66    Natality, 2007-2022 (returns to 2024)          [BUILT + TESTED]
-natality_gap.xml      -> D27    Natality, 2003-2006                            [BUILT + TESTED]
-natality_current.xml  -> D192   Provisional Natality, 2023 through Last Month  [PLACEHOLDER — needs its param set from WONDER]
+mortality_icd10.xml       -> D76    Underlying Cause of Death, 1999-2020           [BUILT + TESTED]
+mortality_provisional.xml -> D176   Provisional Mortality Statistics, 2018->now    [DRAFT — one test run to confirm the cause-list var]
+mortality_icd9.xml        -> D16    Compressed Mortality, 1979-1998               [TODO — no skeleton; needs WONDER params]
+mortality_icd8.xml        -> D15    Compressed Mortality, 1968-1978               [TODO — no skeleton; needs WONDER params]
+natality_mid.xml          -> D66    Natality, 2007-2022 (returns to 2024)         [BUILT + TESTED]
+natality_gap.xml          -> D27    Natality, 2003-2006                           [BUILT + TESTED]
+natality_current.xml      -> D192   Provisional Natality, 2023 through Last Month [PLACEHOLDER — needs its param set from WONDER]
 ```
+
+### `mortality_provisional.xml` (D176) — DRAFT, needs one confirming run
+
+Covers 2021+ for Causes of Death (D76 stops at 2020). Adapted from
+wonderapi's `D176_Defaults.xml` — its own accepted default envelope — plus
+the edits that make it "Year × ICD-10 113 Cause List, national, with
+rates" (same shape as `mortality_icd10.xml`). The one unverified guess is
+that D176's 113-list is variable `V4` (it is on D76). Confirm:
+
+```
+node --env-file=.env fetch.js --type=mortality --era=provisional --years=2021 --out=rows.json --dump
+```
+
+~130 cause rows for 2021 with deaths/population/crude/age-adjusted → good,
+it's wired (`lib/datasets.js` era `provisional` already exists). Thousands
+of rows or empty → `V4` is wrong; paste the `<message>` from
+`mortality_provisional.raw.xml` and we re-point `B_2` / `O_ucd`. D176's
+newest year is partial — flag it in the UI like the provisional births.
 
 Commit these files — they contain no secrets and make the pipeline
 reproducible.
@@ -47,9 +66,9 @@ The API rejects requests less than **15 seconds** apart (HTTP 429). Cron
 staggers the eras, but a manual loop needs `sleep 16` between `fetch.js`
 calls.
 
-Recent-years *mortality* for Causes of Death (2021+) is still unwired — it
-needs a provisional "Underlying Cause of Death" WONDER database plus its own
-`mortality_*.xml` and a `datasets.js` era. D76 alone covers 1999-2020.
+Recent-years *mortality* for Causes of Death (2021+) now has a draft
+template + `datasets.js` era (`mortality_provisional.xml` / D176) — see
+above; it needs one confirming `--dump` run. D76 alone covers 1999-2020.
 
 ---
 

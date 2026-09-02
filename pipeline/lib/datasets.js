@@ -58,10 +58,30 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
-    // Recent years (2021+) for Causes of Death would come from a provisional
-    // "Underlying Cause of Death" WONDER database — add that era here once
-    // the right database id / template are settled. D76 alone covers
-    // 1999-2020.
+    // Recent years (2021+) for Causes of Death. D176 = "Provisional
+    // Mortality Statistics, 2018 through Last Month", updated monthly. Same
+    // 6-column contract as icd10 (Year x ICD-10 113 Cause List + 4
+    // measures). Template drafted from wonderapi's D176_Defaults.xml — run
+    // `fetch.js --type=mortality --era=provisional --years=2021 --dump` to
+    // confirm the cause-list variable before trusting it. yearMax is a
+    // rolling edge; its newest year is partial/provisional (the frontend
+    // should flag it the way BirthStatisticsView does).
+    provisional: {
+      databaseId: 'D176',
+      templateFile: 'mortality_provisional.xml',
+      table: 'mortality',
+      fixed: { icd_version: 10 },
+      yearMin: 2021,
+      yearMax: 2025,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
     icd8: {
       databaseId: 'D15',
       templateFile: 'mortality_icd8.xml',

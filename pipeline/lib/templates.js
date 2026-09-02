@@ -15,6 +15,10 @@
 //        adds that). Missing consent is the single most common reason a
 //        hand-built template 400s.
 //
+//   3. Strips XML comments (<!-- ... -->). The templates carry build notes
+//        inline; WONDER's request parser is picky and there's no reason to
+//        send them.
+//
 // Nothing else is rewritten — the template is otherwise sent verbatim.
 
 import { readFile } from 'node:fs/promises'
@@ -48,6 +52,8 @@ export async function loadTemplate(templateFile, { years } = {}) {
         `(no <request-parameters> element).`
     )
   }
+
+  xml = xml.replace(/<!--[\s\S]*?-->/g, '')
 
   const yearTokenPresent = xml.includes(YEAR_TOKEN)
   const yearsApplied = Boolean(years) && yearTokenPresent
