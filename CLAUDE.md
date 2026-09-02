@@ -352,11 +352,19 @@ decades onto one bar chart.
    (NOT `V4` = "15 Leading Causes"). `V25` (label "All Causes of Death",
    codeset finder) is the likely candidate — one `--dump` to confirm,
    then add `B_2` and widen the era's column contract back to 6.
-2. **`natality_current.xml` (D192)** — births to the current month. A
-   straight D149→D192 substitution 400s; needs its real param set (its
-   sibling D176 needed an extra `O_PR` param — expect similar). Latest
-   year is partial; `BirthStatisticsView.vue` already flags provisional
-   years.
+2. **`natality_current.xml` (D192)** — births past 2022 with a fertility
+   rate. **Five attempts have 400'd** (D149 skeleton sub, D66 skeleton sub,
+   bare-bones, `stage=about`, D149 skeleton + `O_PR`). The last returns a
+   *bare* "Processing Error" with no `<message>` — WONDER can't parse the
+   request for D192 at all, i.e. its variable numbering differs from D149's
+   and isn't in any skeleton. Dead end without the real param set captured
+   from the D192 form on wonder.cdc.gov. **Interim (working):**
+   `src/api/natality.js` rolls up Socrata `hmz2-vwda` monthly births into
+   an annual total for the latest *complete* calendar year (2023 now),
+   flagged provisional — self-extends as CDC updates that table. D192 only
+   adds the rate for those years. The committed `natality_current.xml` is
+   the D149+O_PR draft, left as a starting point; the `current` era's
+   column contract is trimmed to `[year, birth_count]` to match it.
 3. **D16 + D15** — pre-1999 mortality; lights up the disabled decade
    buttons. Also needs an ICD-8/9 → ICD-10 cause crosswalk (different
    cause taxonomy), so it's the biggest lift.
