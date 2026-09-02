@@ -3,9 +3,11 @@
 // Source: the static snapshot the WONDER pipeline writes to
 // /data/mortality.json (see pipeline/). It carries one synthetic
 // "All causes" row per year:
-//   - 1999–2020 from D76 "Underlying Cause of Death" (era icd10_total,
-//     D76 grouped by Year only) — finalized NCHS figures, with crude and
-//     age-adjusted rate.
+//   - 1968–1978 from D74 + 1979–1998 from D16 "Compressed Mortality" (eras
+//     icd8_total / icd9_total, grouped by Year only) — finalized, with
+//     crude and age-adjusted rate. Present only once those eras are run.
+//   - 1999–2020 from D76 "Underlying Cause of Death" (era icd10_total) —
+//     finalized NCHS figures.
 //   - 2021–present from D176 "Provisional Mortality Statistics" (era
 //     provisional) — CDC provisional counts; close to final but subject to
 //     small revision, and the most recent year may be a month or two short.
@@ -14,9 +16,15 @@
 // in 2020 and had counts but no rate.
 
 const SNAPSHOT_URL = `${import.meta.env.BASE_URL}data/mortality.json`
-const SOURCE_LABEL =
-  'CDC WONDER (wonder.cdc.gov) — Underlying Cause of Death (D76, 1999–2020) + ' +
-  'Provisional Mortality Statistics (D176, 2021–present), national'
+
+// Named by which WONDER databases actually contributed years to the series.
+function sourceLabel(firstYear) {
+  const parts = []
+  if (firstYear <= 1998) parts.push('Compressed Mortality (D74/D16, 1968–1998)')
+  parts.push('Underlying Cause of Death (D76, 1999–2020)')
+  parts.push('Provisional Mortality Statistics (D176, 2021–present)')
+  return `CDC WONDER (wonder.cdc.gov) — ${parts.join(' + ')}, national`
+}
 
 // D76's finalized range. Later years come from the provisional database.
 const FINAL_THROUGH = 2020
@@ -52,7 +60,7 @@ export async function fetchHistoricalAnnualDeaths() {
   rows.sort((a, b) => a.year - b.year)
 
   return {
-    source: SOURCE_LABEL,
+    source: sourceLabel(rows[0]?.year ?? 1999),
     fetchedAt: raw.fetchedAt,
     years: rows.map((r) => r.year),
     totalDeaths: rows.map((r) => r.deaths),

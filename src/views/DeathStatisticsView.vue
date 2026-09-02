@@ -60,7 +60,8 @@ const monthlyHasPartial = computed(() => monthly.data.value?.partial?.some(Boole
 // --- time-range windows -------------------------------------------------
 const ANNUAL_RANGES = [
   { key: '10y', label: '10 yr', n: 10 },
-  { key: '20y', label: '20 yr', n: 20 },
+  { key: '25y', label: '25 yr', n: 25 },
+  { key: '50y', label: '50 yr', n: 50 },
   { key: 'max', label: 'Max', n: Infinity }
 ]
 const MONTHLY_RANGES = [

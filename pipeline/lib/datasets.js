@@ -109,6 +109,51 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // D16 / D74 grouped by Year only — one all-cause total per year, like
+    // `icd10_total`. `fixed` tags each row as the synthetic non-`#` "All
+    // causes" cause; `historicalDeaths.js` reads those, so the Death
+    // Statistics annual chart runs continuously 1968 → present. No key
+    // collision with the `icd9` / `icd8` chapter rows (different cause_code).
+    icd9_total: {
+      databaseId: 'D16',
+      templateFile: 'mortality_icd9_total.xml',
+      table: 'mortality',
+      fixed: {
+        icd_version: 9,
+        cause_code: 'All causes',
+        cause_name: 'All causes',
+        cause_level: 0,
+      },
+      yearMin: 1979,
+      yearMax: 1998,
+      columns: [
+        { kind: 'year' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
+    icd8_total: {
+      databaseId: 'D74',
+      templateFile: 'mortality_icd8_total.xml',
+      table: 'mortality',
+      fixed: {
+        icd_version: 8,
+        cause_code: 'All causes',
+        cause_name: 'All causes',
+        cause_level: 0,
+      },
+      yearMin: 1968,
+      yearMax: 1978,
+      columns: [
+        { kind: 'year' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
     // Causes-of-Death "Breakdown" data: D76 grouped by Year x 113-Cause-List
     // x an extra demographic axis. Written to the SEPARATE
     // `mortality_demographic` table (7-col contract: year, cause, subgroup,

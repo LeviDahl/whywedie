@@ -83,18 +83,30 @@ const ANNUAL_METRICS = {
 }
 const annualMetric = ref('births')
 const annualFmt = computed(() => ANNUAL_METRICS[annualMetric.value].fmt)
-const annualValues = computed(() => annual.data.value?.[annualMetric.value] ?? [])
 
-// Flag the most recent year(s) as provisional/partial: within a year of
-// "now", or where the fertility rate hasn't landed yet. Renders muted on
-// the chart. (Ready for the D192 provisional feed; today it just catches
-// years whose rate/population came back empty.)
-const thisYear = new Date().getFullYear()
+// Metric explainer popover — "fertility rate" vs "birth rate" isn't common
+// knowledge. Mirrors the same control on Causes of Death.
+const showMetricHelp = ref(false)
+
+// A partial trailing year (D192's mid-year total, e.g. "2026 through June")
+// is dropped from the plotted line — half a year next to full ones reads as
+// a crash — and shown as a caption instead. Complete-but-provisional years
+// (rate/population not final yet) stay on the chart, rendered muted/dashed.
+const plottedYears = computed(() => {
+  const d = annual.data.value
+  if (!d) return []
+  return d.years.filter((y, i) => !d.partial[i])
+})
+const partialYears = computed(() => {
+  const d = annual.data.value
+  if (!d) return []
+  return d.years.filter((y, i) => d.partial[i]).map((y) => ({ year: y, births: d.byYear[y]?.births }))
+})
 const annualMuted = computed(() => {
   const d = annual.data.value
   if (!d) return []
-  return d.years.map(
-    (y) => y >= thisYear - 1 || (d.byYear[y]?.births != null && d.byYear[y]?.fertilityRate == null)
+  return plottedYears.value.map(
+    (y) => d.byYear[y]?.births != null && d.byYear[y]?.fertilityRate == null
   )
 })
 const hasProvisional = computed(() => annualMuted.value.some(Boolean))
@@ -107,11 +119,12 @@ const ANNUAL_RANGES = [
 const annualRange = ref('25y')
 const annualView = computed(() => {
   const d = annual.data.value
-  if (!d?.years?.length) return null
+  if (!plottedYears.value.length) return null
   const n = ANNUAL_RANGES.find((r) => r.key === annualRange.value)?.n ?? Infinity
+  const vals = plottedYears.value.map((y) => d.byYear[y]?.[annualMetric.value] ?? null)
   return {
-    labels: tail(d.years, n),
-    values: tail(annualValues.value, n),
+    labels: tail(plottedYears.value, n),
+    values: tail(vals, n),
     muted: tail(annualMuted.value, n)
   }
 })
@@ -181,18 +194,54 @@ const annualTable = computed(() => {
           <button type="button" class="btn-secondary mt-4" @click="annual.load">Try again</button>
         </div>
         <template v-else-if="annual.data.value?.years?.length">
-          <div class="mb-4 inline-flex overflow-hidden rounded-lg border border-line-strong">
+          <div class="mb-4 flex flex-wrap items-center gap-3">
+            <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="(m, key) in ANNUAL_METRICS"
+                :key="key"
+                type="button"
+                class="px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="annualMetric === key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="annualMetric = key"
+              >
+                {{ m.label }}
+              </button>
+            </div>
             <button
-              v-for="(m, key) in ANNUAL_METRICS"
-              :key="key"
               type="button"
-              class="px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
-              :class="annualMetric === key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
-              @click="annualMetric = key"
+              class="grid size-4 place-items-center rounded-full border border-line-strong text-[10px] font-semibold leading-none text-muted transition-colors hover:border-ink hover:text-ink"
+              :class="{ 'border-ink text-ink': showMetricHelp }"
+              :aria-expanded="showMetricHelp"
+              aria-label="What do these figures mean?"
+              @click="showMetricHelp = !showMetricHelp"
             >
-              {{ m.label }}
+              i
             </button>
           </div>
+
+          <dl v-if="showMetricHelp" class="card mb-4 space-y-2 text-xs text-muted">
+            <div>
+              <dt class="inline font-semibold text-ink">Births</dt>
+              — the raw count of live births in the year. Moves with the size of
+              the population of childbearing age, not just with how many children
+              people are having.
+            </div>
+            <div>
+              <dt class="inline font-semibold text-ink">Fertility rate</dt>
+              — live births per 1,000 women aged 15–44 (the "general fertility
+              rate"). Divides out the size of that group, so it shows the
+              underlying tendency to have children. It is <em>not</em> the "total
+              fertility rate" (the ~2.1 "replacement" number), which estimates
+              lifetime births per woman.
+            </div>
+            <div>
+              <dt class="inline font-semibold text-ink">Birth rate</dt>
+              — live births per 1,000 people of <em>all</em> ages (the "crude
+              birth rate"). Useful for comparing against the crude death rate on
+              the Population Change page, but sensitive to a country's overall
+              age mix.
+            </div>
+          </dl>
 
           <div class="card">
             <TimeSeriesChart
@@ -210,9 +259,14 @@ const annualTable = computed(() => {
               filename="whywedie-annual-births"
             />
           </div>
+          <p v-for="p in partialYears" :key="p.year" class="mt-3 text-xs text-muted">
+            <strong class="font-semibold text-ink">{{ p.year }} is a partial year</strong> and is left
+            off the chart — CDC has only published part of it so far
+            ({{ integerFormatter(p.births) }} births to date).
+          </p>
           <p v-if="hasProvisional" class="mt-3 text-xs text-muted">
-            The dashed, greyed tail is provisional — the most recent year's rate and population figures
-            aren't final yet.
+            The dashed, greyed tail is provisional: the count is close to final but the fertility and
+            birth rates aren't published for those years yet (they need finalized population figures).
           </p>
           <p class="mt-3 text-xs text-muted">{{ annual.data.value.coverage.note }}</p>
           <p class="mt-1 text-xs text-muted">Source: {{ annual.data.value.source }}.</p>

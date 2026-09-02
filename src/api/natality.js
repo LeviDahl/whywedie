@@ -1,21 +1,30 @@
 // Pipeline: ANNUAL NATALITY (births + fertility rate over time)
 //
 // Reads the static snapshot /data/natality.json (WONDER pipeline: D27/D66 +
-// a committed Socrata baseline, 1960–2022). Then it rolls up CDC's
-// "AH Monthly Provisional Counts" (Socrata hmz2-vwda) to annual totals for
-// any COMPLETE calendar year past the snapshot's last year, so the annual
-// births line keeps pace with the monthly one until D192 (provisional
-// natality) is wired into the pipeline. Those rolled-up years carry a
-// births count only (no rate) and are flagged provisional.
+// D192 provisional + a committed Socrata baseline, 1960–present). Then, only
+// for whole calendar years PAST the snapshot's newest year, it rolls up CDC's
+// "AH Monthly Provisional Counts" (Socrata hmz2-vwda) to an annual total, so
+// the births line can still inch ahead of the pipeline between refreshes.
+// Rolled-up years carry a count only (no rate) and are flagged provisional.
+//
+// D192's newest year is a PARTIAL calendar year ("2026 through June 30"), so
+// its total is roughly half a real year. `partial` flags any trailing year
+// whose births fall well below the year before it; the view drops those from
+// the plotted line and shows the running total as a caption instead.
 //
 // Shape:  { source, fetchedAt, coverage:{yearMin,yearMax,note},
-//           years:[int],
+//           years:[int], partial:[bool],
 //           byYear: { <year>: { births, birthRate, fertilityRate,
-//                               population, suppressed, provisional? } } }
+//                               population, suppressed, provisional?, partial? } } }
 
 import { socrataQuery } from './socrata.js'
 
 const SNAPSHOT_URL = `${import.meta.env.BASE_URL}data/natality.json`
+
+// A real annual total is never much below the prior year outside catastrophe;
+// a mid-year D192 total sits near half. Anything under this fraction of the
+// preceding year is treated as an incomplete year.
+const PARTIAL_YEAR_RATIO = 0.7
 
 async function monthlyBirthRollup(afterYear) {
   try {
@@ -71,6 +80,21 @@ export async function fetchAnnualNatality() {
   }
 
   const years = [...new Set([...raw.years, ...rolled.keys()])].sort((a, b) => a - b)
+
+  // Flag a trailing run of incomplete years (walk back from the newest while
+  // each is well under its predecessor). Only the tail can be partial.
+  const partialSet = new Set()
+  for (let i = years.length - 1; i > 0; i--) {
+    const cur = byYear[years[i]]?.births
+    const prev = byYear[years[i - 1]]?.births
+    if (cur != null && prev > 0 && cur < prev * PARTIAL_YEAR_RATIO) {
+      partialSet.add(years[i])
+      byYear[years[i]] = { ...byYear[years[i]], partial: true }
+    } else {
+      break
+    }
+  }
+
   const source = rolled.size
     ? `${raw.source}; ${[...rolled.keys()].join(', ')} rolled up from CDC AH Monthly Provisional Counts (Socrata hmz2-vwda)`
     : raw.source
@@ -80,6 +104,7 @@ export async function fetchAnnualNatality() {
     fetchedAt: raw.fetchedAt,
     coverage: { ...raw.coverage, yearMax: years.at(-1) ?? raw.coverage?.yearMax },
     years,
+    partial: years.map((y) => partialSet.has(y)),
     births: years.map((y) => byYear[y]?.births ?? null),
     birthRate: years.map((y) => byYear[y]?.birthRate ?? null),
     fertilityRate: years.map((y) => byYear[y]?.fertilityRate ?? null),
