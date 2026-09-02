@@ -1,23 +1,29 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchCurrentMonthlyBirths } from '@/api/currentVitalEvents.js'
+import { fetchAnnualNatality } from '@/api/natality.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'birth-statistics')
 
-// Live now: CDC's provisional monthly national birth counts (Socrata,
-// browser-direct). Annual history + fertility rate will come from the CDC
-// WONDER natality pipeline (databases D149 / D66 / D27) once its templates
-// are built — same shape as /data/mortality.json.
+// Two sources: provisional monthly counts (Socrata, browser-direct), and
+// the annual births + fertility-rate series (/data/natality.json — Socrata
+// baseline now, WONDER natality pipeline later).
 const monthly = useAsyncData(fetchCurrentMonthlyBirths)
-onMounted(monthly.load)
+const annual = useAsyncData(fetchAnnualNatality)
+onMounted(() => {
+  monthly.load()
+  annual.load()
+})
 
 const integerFormatter = (v) => (v == null ? '—' : v.toLocaleString())
+const rateFormatter = (v) => (v == null ? '—' : v.toFixed(1))
 
+// --- monthly ---
 const latestIndex = computed(() =>
   monthly.data.value?.labels?.length ? monthly.data.value.labels.length - 1 : -1
 )
@@ -27,8 +33,6 @@ const latestLabel = computed(() =>
 const latestBirths = computed(() =>
   latestIndex.value >= 0 ? monthly.data.value.values[latestIndex.value] : null
 )
-
-// Rough YoY: same month a year earlier, if present.
 const yoy = computed(() => {
   const d = monthly.data.value
   if (!d || latestIndex.value < 12) return null
@@ -37,7 +41,6 @@ const yoy = computed(() => {
   if (!now || !prior) return null
   return ((now - prior) / prior) * 100
 })
-
 const monthlyTable = computed(() => {
   const d = monthly.data.value
   if (!d) return null
@@ -45,6 +48,35 @@ const monthlyTable = computed(() => {
     columns: ['Month', 'Births'],
     rows: d.labels.map((m, i) => [m, d.values[i]]),
     note: `Data through ${d.labels.at(-1)}`
+  }
+})
+
+// --- annual ---
+const ANNUAL_METRICS = {
+  births: { key: 'births', label: 'Births', fmt: integerFormatter, axis: 'Births' },
+  fertilityRate: {
+    key: 'fertilityRate',
+    label: 'Fertility rate',
+    fmt: rateFormatter,
+    axis: 'Births per 1,000 women 15–44'
+  },
+  birthRate: {
+    key: 'birthRate',
+    label: 'Birth rate',
+    fmt: rateFormatter,
+    axis: 'Births per 1,000 people'
+  }
+}
+const annualMetric = ref('births')
+const annualFmt = computed(() => ANNUAL_METRICS[annualMetric.value].fmt)
+const annualValues = computed(() => annual.data.value?.[annualMetric.value] ?? [])
+const annualTable = computed(() => {
+  const d = annual.data.value
+  if (!d) return null
+  return {
+    columns: ['Year', 'Births', 'Fertility rate', 'Birth rate'],
+    rows: d.years.map((y) => [y, d.byYear[y]?.births ?? '', d.byYear[y]?.fertilityRate ?? '', d.byYear[y]?.birthRate ?? '']),
+    note: `${d.years[0]}–${d.years.at(-1)}`
   }
 })
 </script>
@@ -73,6 +105,60 @@ const monthlyTable = computed(() => {
           </dd>
         </div>
       </div>
+
+      <!-- Annual births + fertility rate -->
+      <section>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-base font-semibold text-ink">Annual Births &amp; Fertility Rate</h2>
+          <p v-if="annual.data.value?.years?.length" class="text-sm text-muted">
+            {{ annual.data.value.years[0] }}–{{ annual.data.value.years.at(-1) }}
+          </p>
+        </div>
+
+        <div v-if="annual.loading.value" class="card flex items-center justify-center py-20 text-sm text-muted">
+          Loading…
+        </div>
+        <div v-else-if="annual.error.value" class="card border-line-strong">
+          <p class="text-sm font-semibold text-ink">Couldn't load this chart</p>
+          <details class="mt-3 rounded-lg bg-paper-soft p-3 text-xs text-muted">
+            <summary class="cursor-pointer font-medium text-ink">Technical detail</summary>
+            <p class="mt-2 whitespace-pre-wrap break-words">{{ annual.error.value }}</p>
+          </details>
+          <button type="button" class="btn-secondary mt-4" @click="annual.load">Try again</button>
+        </div>
+        <template v-else-if="annual.data.value?.years?.length">
+          <div class="mb-4 inline-flex overflow-hidden rounded-lg border border-line-strong">
+            <button
+              v-for="(m, key) in ANNUAL_METRICS"
+              :key="key"
+              type="button"
+              class="px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+              :class="annualMetric === key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+              @click="annualMetric = key"
+            >
+              {{ m.label }}
+            </button>
+          </div>
+
+          <div class="card">
+            <TimeSeriesChart
+              :labels="annual.data.value.years"
+              :values="annualValues"
+              :series-label="ANNUAL_METRICS[annualMetric].axis"
+              :value-formatter="annualFmt"
+            />
+            <ChartToolbar
+              v-if="annualTable"
+              :columns="annualTable.columns"
+              :rows="annualTable.rows"
+              :note="annualTable.note"
+              filename="whywedie-annual-births"
+            />
+          </div>
+          <p class="mt-3 text-xs text-muted">{{ annual.data.value.coverage.note }}</p>
+          <p class="mt-1 text-xs text-muted">Source: {{ annual.data.value.source }}.</p>
+        </template>
+      </section>
 
       <!-- Current monthly section -->
       <section>
@@ -124,8 +210,8 @@ const monthlyTable = computed(() => {
         </template>
       </section>
 
-      <!-- Population-trend hook + roadmap note -->
-      <section class="space-y-4">
+      <!-- Population-trend cross-link -->
+      <section>
         <div class="card">
           <h2 class="text-base font-semibold text-ink">Births vs. deaths</h2>
           <p class="mt-2 text-sm text-muted">
@@ -133,16 +219,6 @@ const monthlyTable = computed(() => {
             has shrunk by roughly a third since 1999, and in 2021 deaths briefly won. The
             <RouterLink to="/population-change" class="link-underline">Population Decline / Gain</RouterLink>
             page tracks that gap.
-          </p>
-        </div>
-
-        <div class="card bg-paper-soft">
-          <h2 class="text-base font-semibold text-ink">Annual Births &amp; Fertility Rate</h2>
-          <p class="mt-2 text-sm text-muted">
-            Calendar-year births back to 1995, plus the general fertility rate, will be added here
-            from the CDC WONDER natality databases (D149 / D66 / D27) — the same
-            <code class="text-ink">pipeline/</code> that feeds Causes of Death. Not wired up yet;
-            it needs its query templates built.
           </p>
         </div>
       </section>

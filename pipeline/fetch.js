@@ -10,7 +10,7 @@
 //
 // Options:
 //   --type=<mortality|natality>     required
-//   --era=<icd10|icd9|icd8|modern|mid|old>   required
+//   --era=<icd10|icd9|icd8|current|modern|mid|old>   required
 //   --years=YYYY-YYYY               slice one era into a smaller request;
 //                                   only works if the template has a
 //                                   {{YEAR_LIST}} token
@@ -37,8 +37,8 @@ whywedie pipeline — fetch one dataset chunk from CDC WONDER.
 
   node --env-file=.env fetch.js --type=<mortality|natality> --era=<era> [options]
 
-eras:  mortality -> icd10 (D176), icd9 (D16), icd8 (D15)
-       natality  -> modern (D149), mid (D66), old (D27)
+eras:  mortality -> icd10 (D76), icd9 (D16), icd8 (D15)
+       natality  -> current (D192), modern (D149), mid (D66), old (D27)
 
 options:
   --years=YYYY-YYYY   sub-slice (needs {{YEAR_LIST}} in the template;

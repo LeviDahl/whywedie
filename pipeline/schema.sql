@@ -15,7 +15,7 @@
 
 -- ---------------------------------------------------------------------------
 -- mortality : one row per (year, state, ICD revision, cause) from the WONDER
---             "underlying cause of death" databases D176 / D16 / D15.
+--             "underlying cause of death" databases D76 / D16 / D15.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS mortality (
   id                 INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -46,10 +46,11 @@ CREATE TABLE IF NOT EXISTS natality (
   id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
   year         SMALLINT UNSIGNED NOT NULL,
   state_code   VARCHAR(2)   NOT NULL DEFAULT 'US',
-  birth_count  INT UNSIGNED NULL,
-  population   BIGINT UNSIGNED NULL,                     -- female population 15-44 where WONDER supplies it, else total
-  birth_rate   DECIMAL(12,4) NULL,                       -- births per 1,000 (crude), as returned by WONDER
-  suppressed   TINYINT(1)   NOT NULL DEFAULT 0,
+  birth_count    INT UNSIGNED NULL,
+  population     BIGINT UNSIGNED NULL,                   -- female population 15-44 where WONDER supplies it, else total
+  birth_rate     DECIMAL(12,4) NULL,                     -- births per 1,000 total population (crude)
+  fertility_rate DECIMAL(12,4) NULL,                     -- births per 1,000 women aged 15-44 (general fertility rate)
+  suppressed     TINYINT(1)   NOT NULL DEFAULT 0,
   status       VARCHAR(24)  NULL,
   updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),

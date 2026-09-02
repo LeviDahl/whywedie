@@ -15,9 +15,12 @@ const sortDir = ref(1)
 function cell(row, i) {
   return Array.isArray(row) ? row[i] : row[props.columns[i]]
 }
-function fmt(v) {
+function fmt(v, i) {
   if (v == null || v === '') return '—'
-  return typeof v === 'number' ? v.toLocaleString() : v
+  if (typeof v !== 'number') return v
+  // don't put thousands separators on a year in the first column
+  if (i === 0 && Number.isInteger(v) && v >= 1000 && v <= 9999) return String(v)
+  return v.toLocaleString()
 }
 function toggleSort(i) {
   if (sortCol.value === i) sortDir.value *= -1
@@ -71,7 +74,7 @@ const hidden = computed(() => Math.max(0, props.rows.length - props.maxRows))
             class="px-3 py-1.5 text-ink-soft"
             :class="i === 0 ? 'text-left' : 'text-right tabular-nums'"
           >
-            {{ fmt(cell(row, i)) }}
+            {{ fmt(cell(row, i), i) }}
           </td>
         </tr>
       </tbody>

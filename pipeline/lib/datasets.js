@@ -58,6 +58,10 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // Recent years (2021+) for Causes of Death would come from a provisional
+    // "Underlying Cause of Death" WONDER database — add that era here once
+    // the right database id / template are settled. D76 alone covers
+    // 1999-2020.
     icd8: {
       databaseId: 'D15',
       templateFile: 'mortality_icd8.xml',
@@ -80,18 +84,44 @@ export const DATASETS = {
   },
 
   natality: {
+    // Four non-overlapping eras (natality's UNIQUE key is just year+state,
+    // so eras must not share a year). build-snapshots.js concatenates them
+    // into one continuous series.
+    //
+    // D192 = "Provisional Natality, 2023 through Last Month" — updated
+    // monthly (latest set ~July 2026). Grouped by Year it gives 2023, 2024,
+    // 2025 (final-ish) plus a PARTIAL current year. Provisional; the
+    // frontend should flag the partial latest year.
+    current: {
+      databaseId: 'D192',
+      templateFile: 'natality_current.xml',
+      table: 'natality',
+      fixed: {},
+      yearMin: 2023,
+      yearMax: 2027,
+      columns: [
+        { kind: 'year' },
+        { kind: 'measure', field: 'birth_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'birth_rate' },
+        { kind: 'measure', field: 'fertility_rate' },
+      ],
+    },
+    // D149 = "Natality, 2016-2024" (finalized). Pull 2016-2022 only so it
+    // never overlaps D192's 2023+.
     modern: {
       databaseId: 'D149',
       templateFile: 'natality_modern.xml',
       table: 'natality',
       fixed: {},
       yearMin: 2016,
-      yearMax: 2024,
+      yearMax: 2022,
       columns: [
         { kind: 'year' },
         { kind: 'measure', field: 'birth_count', countField: true },
         { kind: 'measure', field: 'population' },
         { kind: 'measure', field: 'birth_rate' },
+        { kind: 'measure', field: 'fertility_rate' },
       ],
     },
     mid: {
@@ -106,6 +136,7 @@ export const DATASETS = {
         { kind: 'measure', field: 'birth_count', countField: true },
         { kind: 'measure', field: 'population' },
         { kind: 'measure', field: 'birth_rate' },
+        { kind: 'measure', field: 'fertility_rate' },
       ],
     },
     old: {
@@ -120,6 +151,7 @@ export const DATASETS = {
         { kind: 'measure', field: 'birth_count', countField: true },
         { kind: 'measure', field: 'population' },
         { kind: 'measure', field: 'birth_rate' },
+        { kind: 'measure', field: 'fertility_rate' },
       ],
     },
   },
@@ -147,6 +179,7 @@ export const TABLE_COLUMNS = {
     'birth_count',
     'population',
     'birth_rate',
+    'fertility_rate',
     'suppressed',
     'status',
   ],
@@ -164,7 +197,7 @@ export const UPSERT_UPDATE_COLUMNS = {
     'suppressed',
     'status',
   ],
-  natality: ['birth_count', 'population', 'birth_rate', 'suppressed', 'status'],
+  natality: ['birth_count', 'population', 'birth_rate', 'fertility_rate', 'suppressed', 'status'],
 }
 
 /** Look up one dataset, or throw a helpful list of what's valid. */

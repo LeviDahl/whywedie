@@ -108,7 +108,7 @@ async function buildMortality() {
 
 async function buildNatality() {
   const rows = await query(
-    `SELECT year, birth_count, population, birth_rate, suppressed
+    `SELECT year, birth_count, population, birth_rate, fertility_rate, suppressed
        FROM natality
       WHERE state_code = 'US'
       ORDER BY year ASC`
@@ -122,6 +122,7 @@ async function buildNatality() {
       births: r.birth_count,
       population: r.population,
       birthRate: r.birth_rate,
+      fertilityRate: r.fertility_rate,
       suppressed: Boolean(r.suppressed),
     }
   }
@@ -135,7 +136,8 @@ async function buildNatality() {
       note:
         'National totals only. Built from WONDER natality databases D149 ' +
         '(2016+), D66 (2007-2015) and D27 (1995-2002); years 2003-2006 are ' +
-        'not covered by that set of databases.',
+        'not covered by that set of databases. Fertility rate = births per ' +
+        '1,000 women aged 15-44.',
     },
     years,
     byYear,

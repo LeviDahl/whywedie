@@ -15,9 +15,10 @@ of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
   ranges, as mean annual values) and multiple **causes**, friendly ↔
   official cause-name toggle. Data: CDC WONDER national 1999–2020, from the
   static file `/data/mortality.json` (see pipeline note below).
-- **Birth Statistics** — provisional monthly births + rough YoY (Socrata
-  `hmz2-vwda`). Annual history + fertility rate still pending the WONDER
-  natality pipeline.
+- **Birth Statistics** — annual births + fertility rate (`src/api/natality.js`
+  reads `/data/natality.json`; Socrata `89yk-m38d` baseline 1960–2018,
+  WONDER natality pipeline extends it) plus provisional monthly births +
+  rough YoY (Socrata `hmz2-vwda`).
 - **Population Decline/Gain** — births (`e6fc-ccez`, 1909–2018) vs deaths
   (`bi63-dtpu` "All causes", 1999–2017), natural increase, century birth
   history. All browser-direct Socrata.
@@ -178,6 +179,7 @@ src/
     populationChange.js       # births (e6fc-ccez) vs deaths (bi63-dtpu "All causes") + natural increase
     dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
     yearFacts.js              # per-year births/deaths/leading-cause for the Home "pick a year" panel
+    natality.js               # annual births + fertility rate from /data/natality.json
   lib/
     csv.js                    # toCsv / downloadCsv helpers
   composables/
@@ -203,6 +205,7 @@ src/
 public/
   .htaccess                  # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/mortality.json        # committed baseline snapshot; pipeline/ refreshes it in prod
+  data/natality.json         # committed Socrata baseline 1960-2018; pipeline/ extends it
 pipeline/                    # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
                              #   own package.json (axios, mysql2, fast-xml-parser); see its README
 ```
@@ -307,15 +310,26 @@ old and new into one series.
 
 ## Next steps
 
-1. Extend `pipeline/` beyond D76: `D16` (ICD-9, 1979–98), `D15` (ICD-8,
-   1968–78), `D176` (2021+). The Causes of Death comparison UI already has
-   disabled decade buttons waiting on this data.
-2. Stand `pipeline/` up for real — D76 import into MySQL, the snapshot
-   publish step, the cron schedule (all in `pipeline/README.md`). Right now
-   `/data/mortality.json` is only the committed baseline.
-3. Birth Statistics — add annual calendar-year births + the fertility rate
-   from the WONDER natality databases (D149 / D66 / D27).
-4. Population Decline/Gain — extend past 2017 (and reach the 2021 crossover
-   where US deaths first exceeded births) via the WONDER pipeline (a
-   no-cause D76 total + the natality databases).
-5. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+`pipeline/` code is wired for D76 (mortality) and four natality eras —
+`current` D192 ("Provisional Natality, 2023 through Last Month", 2023+),
+`modern` D149 (2016–2022), `mid` D66, `old` D27. `build-snapshots.js`
+output matches the frontend. What's left is exporting the WONDER templates
+and running:
+
+1. **Run D76** — turns Causes of Death from the committed baseline into
+   real pipeline output. D76 is finalized: a one-time run + commit of
+   `public/data/mortality.json` is enough, no schedule needed.
+2. **Natality templates** (`natality_current.xml` D192, `natality_modern.xml`
+   D149, `natality_mid.xml` D66, `natality_old.xml` D27) — replace the
+   Socrata natality baseline (`public/data/natality.json`, ends 2018) with
+   a series reaching the current month; adds a `fertility_rate` column.
+   Non-overlapping year ranges (D192 = 2023+, D149 = 2016–2022, …).
+   D192's latest year is partial/provisional — `natality.js` /
+   `BirthStatisticsView.vue` should flag it.
+3. **D16 + D15** — pre-1999 mortality; lights up the disabled decade
+   buttons on Causes of Death.
+4. **Recent-years mortality (2021+)** for Causes of Death — needs a
+   provisional Underlying-Cause-of-Death WONDER DB + its own era.
+5. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) once
+   the *updating* dataset (D192 natality) is in.
+6. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).

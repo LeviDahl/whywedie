@@ -10,7 +10,7 @@ sourced from CDC data.
 | Home | — | project overview |
 | Death Statistics Over Time | Socrata | annual rollup + current monthly |
 | Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | overlay multiple periods (years or decade ranges) and multiple causes; friendly ↔ official cause names |
-| Birth Statistics | Socrata | provisional monthly births; annual history pending the WONDER natality pipeline |
+| Birth Statistics | Socrata | annual births + fertility rate (1960–2018 baseline, → latest via the WONDER natality pipeline) and provisional monthly births |
 | Population Decline / Gain | Socrata | births vs. deaths + natural increase (1999–2017), century-long birth history |
 | By the Numbers | Socrata + public estimates | births/deaths as a daily average + rotating scale-comparison facts |
 
@@ -136,11 +136,16 @@ cause's series to the full year axis so several can be overlaid.
 
 ### 4. Birth statistics
 
-`fetchCurrentMonthlyBirths()` in `src/api/currentVitalEvents.js` — same
-dataset as #1 (`hmz2-vwda`), `indicator='Number of Live Births'`. Powers
-`BirthStatisticsView.vue`: provisional monthly national births + a rough
-year-over-year. Annual calendar-year history + fertility rate are noted as
-pending the WONDER natality pipeline (D149 / D66 / D27).
+`BirthStatisticsView.vue` has two series:
+- **Annual births + fertility rate** — `src/api/natality.js` reads
+  `/data/natality.json`. Baseline committed from Socrata `89yk-m38d` (NCHS
+  Natality Measures by Race, "All races", 1960–2018: births, crude birth
+  rate, general fertility rate). The WONDER natality pipeline (D149 / D66 /
+  D27, see `pipeline/`) overwrites it with a series reaching the latest
+  published year. Shape mirrors `mortality.json` (`years` + `byYear`).
+- **Provisional monthly births** — `fetchCurrentMonthlyBirths()` in
+  `src/api/currentVitalEvents.js` (`hmz2-vwda`, `indicator='Number of Live
+  Births'`), plus a rough year-over-year.
 
 ### 5. Population change (births vs. deaths)
 
@@ -226,6 +231,7 @@ src/
     populationChange.js       # births (e6fc-ccez) vs deaths (bi63-dtpu) + natural increase
     dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
     yearFacts.js              # per-year births/deaths/leading-cause for the Home "pick a year" panel
+    natality.js               # annual births + fertility rate from /data/natality.json
   lib/
     csv.js                    # toCsv / downloadCsv helpers
   composables/
@@ -252,6 +258,7 @@ public/
   .htaccess                   # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/
     mortality.json            # committed baseline snapshot; pipeline/ refreshes it in prod
+    natality.json             # committed Socrata baseline 1960-2018; pipeline/ extends it
 pipeline/                     # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
                               #   (own package.json; see pipeline/README.md)
 ```
@@ -289,14 +296,23 @@ drawer on mobile, toggled from a top bar.
 
 ## What's next
 
-- [ ] Extend the Causes of Death pipeline: WONDER `D16` (ICD-9, 1979–1998)
-      and `D15` (ICD-8, 1968–1978) for deep history, `D176` for 2021+. The
-      comparison UI's disabled decade buttons light up once the data lands.
-- [ ] Stand the pipeline up for real — run the D76 import into MySQL, wire
-      the snapshot publish step, schedule it (see `pipeline/README.md`).
-- [ ] Birth Statistics: add annual calendar-year births + fertility rate
-      from the WONDER natality databases (D149 / D66 / D27).
-- [ ] Population Decline / Gain: extend past 2017 (and reach the 2021
-      crossover where deaths first exceeded births) via the WONDER pipeline.
+The pipeline code is complete for two more things — they just need their
+WONDER templates exported and a run:
+
+- [ ] **Run D76** — makes Causes of Death live instead of a static
+      baseline. D76 is finalized, so a one-time run + commit is enough.
+- [ ] **Natality templates** — `natality_current.xml` (D192, "Provisional
+      Natality, 2023 through Last Month", 2023+), `natality_modern.xml`
+      (D149, 2016–2022), `natality_mid.xml` (D66), `natality_old.xml`
+      (D27). Replaces the committed Socrata natality baseline (ends 2018)
+      with a series that reaches the current month; adds fertility rate.
+      D192's latest year is partial/provisional — flag it in the UI.
+- [ ] Then D16 (ICD-9) + D15 (ICD-8) for pre-1999 — lights up the disabled
+      decade buttons on Causes of Death.
+- [ ] Recent-years mortality (2021+) for Causes of Death — needs a
+      provisional Underlying-Cause-of-Death WONDER DB + its own era.
+- [ ] Stand the pipeline up on a schedule (host + cron + publish, see
+      `pipeline/README.md`) once the updating datasets (D192 natality) are
+      in — D76 alone doesn't need it.
 - [ ] Periodically re-check whether `hmz2-vwda` has resumed updating past
       June 2024, or whether CDC has published a replacement dataset.
