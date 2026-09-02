@@ -9,7 +9,9 @@ authentication.
 All six sidebar sections are live (Home, Death Statistics Over Time, Causes
 of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
 
-- **Death Statistics** — annual + current-monthly death charts (Socrata).
+- **Death Statistics** — annual all-cause deaths **1968–present** (WONDER
+  snapshot: D74/D16 → D76 → D176) + current-monthly deaths (D176 snapshot),
+  each with 10/25/50/Max range tabs.
 - **Causes of Death** — ranked bar + trend line, deaths / crude-rate /
   age-adjusted-rate toggle, overlay multiple **periods** (years or decade
   ranges, as mean annual values) and multiple **causes**, friendly ↔
@@ -21,10 +23,12 @@ of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
   reads a separate `/data/mortality_demographic.json` (`src/api/
   causeBreakdown.js`) and the control stays hidden until that file has
   real `dimensions`. See pipeline note below.
-- **Birth Statistics** — annual births + fertility rate (`src/api/natality.js`
-  reads `/data/natality.json`; Socrata `89yk-m38d` baseline 1960–2018,
-  WONDER natality pipeline extends it) plus provisional monthly births +
-  rough YoY (Socrata `hmz2-vwda`).
+- **Birth Statistics** — annual births 1960–present + fertility/birth-rate
+  toggle (`src/api/natality.js` reads `/data/natality.json`: Socrata
+  baseline 1960–2018, then WONDER D27/D66 + D192 provisional; rate series
+  stop earlier — see Next steps), Pew generation bands on the births view,
+  an `(i)` explainer for the three figures, plus provisional monthly births
+  + rough YoY (Socrata `hmz2-vwda`).
 - **Population Decline/Gain** — births vs deaths and the shrinking natural
   increase, plus the century birth history. Births from `/data/natality.json`
   (+ Socrata `e6fc-ccez` for pre-1960), deaths from `/data/mortality.json`
@@ -387,8 +391,12 @@ decades onto one bar chart.
   accompany the `O_aar_enable=true` checkbox; location `V_` fields go
   **blank** (CMF reads blank as all-US).
 
-**Done since:** D192 births + D16/D74 chapter data run to MySQL and
-committed in `mortality.json` (1968–2025) / `natality.json` (1960–2026).
+**Done since:** D192 births + D16/D74 chapter data + `icd9_total` /
+`icd8_total` all-cause totals run to MySQL and committed —
+`mortality.json` carries a continuous "All causes" row **1968–2025**
+(1930082 deaths / AAR 1303.6 in 1968 → 3096850 in 2025), so the Death
+Statistics annual chart runs 1968→present and its source label names all
+three databases. `natality.json` is 1960–2026.
 Frontend: `natality.js` flags the partial trailing calendar year
 (< 70% of the prior year → dropped from the plotted line, shown as a
 caption); Birth Statistics has an `(i)` popover explaining Births /
@@ -400,16 +408,7 @@ source label is derived from the actual first year.
 
 **Remaining:**
 
-1. **Run `icd9_total` / `icd8_total`** (built — `mortality_icd9_total.xml` /
-   `_icd8_total.xml`, Year-only all-cause, `B_2=*None*`). **Until this runs,
-   the Death Statistics annual all-cause line starts at 1999** — the
-   1968–1998 rows in `mortality.json` are chapter-level only, no "All
-   causes" row for `historicalDeaths.js` to read. Then `build-snapshots.js`
-   + commit `public/data/*.json` and the annual chart runs continuously
-   1968→present with no frontend change (the source label re-derives).
-   `fetch.js --type=mortality --era=icd9_total --years=1979-1998`
-   `fetch.js --type=mortality --era=icd8_total --years=1968-1978`
-2. **Surface the 1968–1998 ICD-chapter rows on Causes of Death** — a
+1. **Surface the 1968–1998 ICD-chapter rows on Causes of Death** — a
    chapter view / decade buttons. They load harmlessly today (non-`#`,
    ignored by `causesOfDeath.js`) but nothing displays them. The real work
    is a **cross-revision chapter-label crosswalk**: ICD-8 "Diseases of the
@@ -417,7 +416,7 @@ source label is derived from the actual first year.
    so a ~17-row map is needed to stitch each chapter into one continuous
    series. `causesOfDeath.js` would gain a `byChapter` shape from the
    non-`#` rows.
-3. **Sex / Race breakdown stops at 2020** — eras `icd10_sex` / `icd10_race`
+2. **Sex / Race breakdown stops at 2020** — eras `icd10_sex` / `icd10_race`
    are D76-only (`mortality_demographic.json` 1999–2020). Extend to 2021+
    with a D176 era: Year × `D176.V4` (113 list, with `O_ucd=D176.V4`) ×
    `D176.V7` (Sex) or D176's single-race var (`V42`/`V43`/`V44`), writing
@@ -426,7 +425,7 @@ source label is derived from the actual first year.
    confirm the 3-deep grouping holds. Race groups will be single-race
    (not the D76 bridged-race 4), so the frontend legend/labels need a note
    that the pre/post-2020 race categories differ.
-4. **Rate series that stop early — need a non-WONDER denominator:**
+3. **Rate series that stop early — need a non-WONDER denominator:**
    - **Fertility rate → 2020.** `natality.json` has births 2021–2026 but no
      fertility rate past 2020 (D66's `mid` era returned no rate for
      2021–22; D192 has no rate measure). Try D149 ("Natality, 2016–2022
@@ -437,10 +436,10 @@ source label is derived from the actual first year.
      population series added as a source.
    The "Fertility rate" / "Birth rate" toggles on Birth Statistics are
    empty past those years; re-check periodically.
-5. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
+4. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
    only the `provisional` / `provisional_causes` / `monthly` / `current`
    eras recur; D76 / D66 / D27 / D16 / D74 are finalized, run once.
-6. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+5. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
 
 **Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
 ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).
