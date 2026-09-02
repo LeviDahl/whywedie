@@ -434,17 +434,14 @@ row).
    confirm the 3-deep grouping holds. Race groups will be single-race
    (not the D76 bridged-race 4), so the frontend legend/labels need a note
    that the pre/post-2020 race categories differ.
-3. **Rate series that stop early — need a non-WONDER denominator:**
-   - **Fertility rate → 2020.** `natality.json` has births 2021–2026 but no
-     fertility rate past 2020 (D66's `mid` era returned no rate for
-     2021–22; D192 has no rate measure). Try D149 ("Natality, 2016–2022
-     expanded"), or compute births ÷ Census female-population-15-44.
-   - **Birth rate (crude, per 1,000 people) → 2018.** Only ever came from
-     the committed Socrata baseline; no WONDER natality DB exposes it. For
-     2019+ it's births ÷ Census total population — needs a Census/ACS
-     population series added as a source.
-   The "Fertility rate" / "Birth rate" toggles on Birth Statistics are
-   empty past those years; re-check periodically.
+3. **General fertility rate stops at 2020.** `natality.json` has births
+   2021–2026 but no fertility rate past 2020 (D66's `mid` era returned no
+   rate for 2021–22; D192 has none). The **crude birth rate** gap is
+   closed — `natality.js` backfills it from births ÷ the
+   resident-population figure in `mortality.json` (`birthRateDerived`),
+   matching NCHS to ~0.1 for 2010–2018 overlap; the toggle runs to 2024.
+   The fertility rate needs a women-15–44 population (Census PEP) or D149
+   ("Natality, 2016–2022 expanded"). Re-check periodically.
 4. **Monthly births — D192 `natality/monthly` era BUILT, needs a run.**
    `natality_monthly.xml` (natality_current.xml + `B_2 = D192.V25` Month),
    era + `natality_monthly` table + `buildNatalityMonthly()` +

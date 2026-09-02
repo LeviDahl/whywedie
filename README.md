@@ -125,11 +125,13 @@ fresh deploy; the pipeline's publish step overwrites it in production.
   birth rate, general fertility rate); 2003–2022 comes from the WONDER
   natality pipeline (D27 for 2003–2006, D66 for 2007–2022) and 2023–present
   from D192 ("Provisional Natality") — `build-snapshots.js` merges them over
-  the baseline. D192 has **no rate measure**, so the fertility rate stops at
-  2020 and the crude birth rate at 2018 (baseline only); `natality.js`
-  drops a partial trailing calendar year from the plotted line and shows it
-  as a caption. The Births view carries the Pew Research generation cohorts
-  as clickable bands.
+  the baseline. D192 has **no rate measure**; `natality.js` backfills the
+  crude birth rate for 2019+ from births ÷ the resident-population figure in
+  `mortality.json` (flagged `birthRateDerived`), so that toggle runs to
+  2024. The general fertility rate still stops at 2020 (needs a women-15–44
+  population). A partial trailing calendar year is dropped from the plotted
+  line and shown as a caption. The Births view carries the Pew Research
+  generation cohorts as clickable, drill-downable bands.
 - **Monthly births** — `src/api/monthlyBirths.js` (see §1), plus a rough
   year-over-year off the latest complete month.
 
@@ -290,9 +292,10 @@ The frontend surfaces all of it except the pre-1999 per-chapter causes.
       era (the 113-list snapshot has no ICD-10 chapter roll-up).
 - [ ] **Sex / Race breakdown → 2021+** — a D176 era (Year × 113-list ×
       Sex / single-race). Needs one `--dump` to confirm the 3-deep group-by.
-- [ ] **Fertility rate (→2020) and crude birth rate (→2018)** — WONDER's
-      natality databases stopped supplying rates; extending them needs a
-      Census population denominator (births ÷ population).
+- [ ] **General fertility rate stops at 2020** — the crude birth rate is
+      now reconstructed from births ÷ resident population, but the fertility
+      rate needs a women-aged-15–44 population series (Census PEP) that
+      isn't wired in.
 - [ ] Stand the pipeline up on a schedule (host + cron + publish, see
       `pipeline/README.md`) — only the D176/D192 provisional eras recur;
       the finalized databases run once.
