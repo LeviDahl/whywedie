@@ -380,12 +380,13 @@ decades onto one bar chart.
    ranked view ignores them. Frontend (decade buttons / a chapter view) is
    still to wire once the dump confirms the shape. Test:
    `node --env-file=.env fetch.js --type=mortality --era=icd9 --years=1979-1985 --out=rows.json --dump`
-3. **D15 (1968–1978, ICD-8) — BLOCKED.** On today's WONDER `D15` is the
-   Tuberculosis (OTIS) database, not pre-1979 mortality. "Compressed
-   Mortality, 1968–1978" needs its current database id captured from the
-   WONDER database list on wonder.cdc.gov; then a chapter-level template
-   like `mortality_icd9_chapter.xml`. The `mortality.icd8` era in
-   `datasets.js` is a stub pointing at the wrong id.
+3. **`mortality_icd8_chapter.xml` (D74, 1968–1978)** — the ICD-8 twin of
+   the D16 template, built from the **D74** request form. (On today's
+   WONDER, `D15` is the Tuberculosis / OTIS system, *not* pre-1979
+   mortality — "Compressed Mortality, 1968–1978" is `D74`.) Year × ICD
+   Chapter, same 6-col contract. `mortality.icd8` era now points at `D74`.
+   D74 has no Injury-Intent section (unlike D16), so no `V12`/`V13`. Test:
+   `node --env-file=.env fetch.js --type=mortality --era=icd8 --years=1968-1972 --out=rows.json --dump`
 
 **Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
 ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).

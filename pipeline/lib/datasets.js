@@ -208,21 +208,18 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
-    // BLOCKED. On today's WONDER, database id D15 is the Tuberculosis (OTIS)
-    // system, NOT pre-1979 mortality — the D15 request form pulled for this
-    // is TB case counts (help/tb.html), so `databaseId: 'D15'` here is
-    // wrong. "Compressed Mortality, 1968-1978" (ICD-8) needs its current
-    // database id captured from the WONDER database list on wonder.cdc.gov,
-    // then a chapter-level template like mortality_icd9_chapter.xml.
+    // D74 = "Compressed Mortality, 1968-1978" (ICD-8 era). NOT D15 — on
+    // today's WONDER, id D15 is the Tuberculosis (OTIS) system. Coarse
+    // (chapter) cause detail, like `icd9`: Year x ICD Chapter
+    // (D74.V2-level1) — no ICD-8 -> ICD-10 crosswalk at chapter grain.
+    // Column shape identical to `icd9` / `icd10`.
     icd8: {
-      databaseId: 'D15',
-      templateFile: 'mortality_icd8.xml',
+      databaseId: 'D74',
+      templateFile: 'mortality_icd8_chapter.xml',
       table: 'mortality',
       fixed: { icd_version: 8 },
       yearMin: 1968,
       yearMax: 1978,
-      // Coarse (chapter) cause detail, like `icd9` — no ICD-8 -> ICD-10
-      // crosswalk at chapter grain. Column shape identical to `icd9`.
       columns: [
         { kind: 'year' },
         { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },

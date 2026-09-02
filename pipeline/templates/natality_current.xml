@@ -17,6 +17,8 @@
   Year is left *All* (D192 only holds 2023+); fetch.js clips to [2023, ...].
   National: O_location=D192.V21 with V_D192.V21 blank (= *All*).
   Response cells: year, Births -> 2-col contract.
+  Round 2: V_D192.V21 / V22 / V37 blank -> *All* (round 1 got "Code '' isn't a
+  valid code value for variable (D192.V21) State of Residence").
   Test: node --env-file=.env fetch.js --type=natality --era=current --years=2023 --out=rows.json --dump
   On a 400: paste the <message> from pipeline/natality_current.raw.xml.
   If it says "Missing parameter O_PR", add
@@ -129,8 +131,8 @@
 <parameter><name>V_D192.V17</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V18</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V20</name><value>*All*</value></parameter>
-<parameter><name>V_D192.V21</name><value></value></parameter>
-<parameter><name>V_D192.V22</name><value></value></parameter>
+<parameter><name>V_D192.V21</name><value>*All*</value></parameter>
+<parameter><name>V_D192.V22</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V23</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V24</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V25</name><value>*All*</value></parameter>
@@ -145,7 +147,7 @@
 <parameter><name>V_D192.V33</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V34</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V35</name><value>*All*</value></parameter>
-<parameter><name>V_D192.V37</name><value></value></parameter>
+<parameter><name>V_D192.V37</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V38</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V39</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V4</name><value>*All*</value></parameter>
