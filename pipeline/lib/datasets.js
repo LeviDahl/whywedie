@@ -167,8 +167,12 @@ export const DATASETS = {
         cause_level: 0,
         age_adjusted_rate: null,
       },
+      // Run `--years=2021-<last COMPLETE year>`. D176 is "through Last
+      // Month", so the current calendar year is partial — including it
+      // plots a fake cliff. yearMax is generous so a wider --years isn't
+      // clipped; keep the run range at the last full year.
       yearMin: 2021,
-      yearMax: 2025,
+      yearMax: 2030,
       columns: [
         { kind: 'year' },
         { kind: 'measure', field: 'death_count', countField: true },
