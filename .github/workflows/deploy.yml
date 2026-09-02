@@ -34,7 +34,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - run: npm ci
@@ -48,7 +48,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           local-dir: ./dist/
-          server-dir: ./public_html/
+          server-dir: ./
           # keeps a small .ftp-deploy-sync-state.json on the server so later
           # runs only upload changed files. Set to true once to force a full
           # re-upload, then set back to false.

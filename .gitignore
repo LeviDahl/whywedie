@@ -20,3 +20,7 @@ pnpm-debug.log*
 
 # transient deploy bundle (built + sent, not source)
 whywedie-dist.zip
+
+# local deploy credentials (see .env.deploy.example)
+.env.deploy
+.secrets
