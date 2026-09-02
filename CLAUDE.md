@@ -18,10 +18,10 @@ of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
   official cause-name toggle, and an optional **Breakdown** (None / Sex /
   Race) that splits the bars/lines by subgroup for one period. Data: CDC
   WONDER national, from `/data/mortality.json` — 113-cause list 1999–2025
-  (D76 + D176), ICD-chapter grain 1968–1998 (D74/D16, loaded but not yet
-  surfaced in the UI); the breakdown reads a separate
-  `/data/mortality_demographic.json` (`src/api/causeBreakdown.js`) and the
-  control stays hidden until that file has real `dimensions`.
+  (D76 + D176); a separate **"Broad Chapters, 1968–1998"** section shows the
+  D74/D16 ICD-chapter data as a multi-line trend. The breakdown reads
+  `/data/mortality_demographic.json` (`src/api/causeBreakdown.js`, 1999–2025)
+  and the control stays hidden until that file has real `dimensions`.
 - **Birth Statistics** — annual births 1960–present + fertility/birth-rate
   toggle (`src/api/natality.js` reads `/data/natality.json`: Socrata
   baseline 1960–2018, then WONDER D27/D66 + D192 provisional; rate series
@@ -30,12 +30,15 @@ of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
   births (`src/api/monthlyBirths.js` → `/data/natality_monthly.json`, D192;
   Socrata `hmz2-vwda` fallback) + a YoY off the latest complete month.
 - **Population Decline/Gain** — births vs deaths and the shrinking natural
-  increase, plus the century birth history. Births from `/data/natality.json`
+  increase (1968–2025), plus the century birth history (1909–present) with
+  Pew generation bands + drill-down. Births from `/data/natality.json`
   (+ Socrata `e6fc-ccez` for pre-1960), deaths from `/data/mortality.json`
-  "All causes"; overlap 1999–2022. Time-range tabs on each chart.
-- **By the Numbers** — births/deaths as a per-day average (`hmz2-vwda`
-  12-month-ending ÷ 365) next to rotating hand-curated "N per day" scale
-  facts (`src/data/dailyFacts.js`, clearly labelled as rough estimates).
+  "All causes". Time-range tabs on each chart.
+- **By the Numbers** — births/deaths as a per-day average: the last 12
+  months of `mortality_monthly.json` + `natality_monthly.json` ÷ 365
+  (`src/api/dailyStats.js`, Socrata `hmz2-vwda` fallback) next to rotating
+  hand-curated "N per day" scale facts (`src/data/dailyFacts.js`, labelled
+  as rough estimates).
 
 **The site itself is static — no server, no build-time data fetch.** It
 either calls Socrata directly from the browser, or reads a committed JSON
@@ -394,57 +397,65 @@ decades onto one bar chart.
   accompany the `O_aar_enable=true` checkbox; location `V_` fields go
   **blank** (CMF reads blank as all-US).
 
-**Done since:** D192 births + D16/D74 chapter data + `icd9_total` /
-`icd8_total` all-cause totals run to MySQL and committed —
-`mortality.json` carries a continuous "All causes" row **1968–2025**
-(1930082 deaths / AAR 1303.6 in 1968 → 3096850 in 2025), so the Death
-Statistics annual chart runs 1968→present and its source label names all
-three databases. `natality.json` is 1960–2026.
-Frontend: `natality.js` flags the partial trailing calendar year
-(< 70% of the prior year → dropped from the plotted line, shown as a
-caption); Birth Statistics has an `(i)` popover explaining Births /
-Fertility rate (general, not total) / Birth rate, and **Pew generation
-bands** on the annual-births chart (`TimeSeriesChart` `bands` prop —
-faint fill + divider + label per cohort, Births metric only) with an
-On/Off toggle and per-cohort drill-down (a cohort button — or clicking a
-band — zooms the x-range to that generation's birth years; `TimeSeriesChart`
-emits `bandClick`); Death Statistics annual range tabs are 10/25/50/Max.
-`historicalDeaths.js` source label is derived from the actual first year.
-Causes of Death has a **"Broad Chapters, 1968–1998"** section —
-`causesOfDeath.js` `chapters` shape (ICD-8/9 chapter rows unified via the
-`CHAPTER_CANON` crosswalk, 17 canonical chapters), a 4-chapter multi-line
-chart on the page's metric toggle. Stops at 1998; extending it needs a
-chapter-grouped D76/D176 era (the 113-list snapshot has no ICD-10 chapter
-row).
+**Recently shipped (all deployed):** deaths 1968–2025 (D74/D16/D76/D176),
+births 1960–present + D192 provisional (annual + monthly), Sex/Race
+breakdown 1999–2025, "Broad Chapters, 1968–1998" on Causes of Death, Pew
+generation bands + drill-down on both births-over-time charts, crude birth
+rate backfilled to 2024 (births ÷ `mortality.json` population), Trend chart
+range tabs, By-the-Numbers daily pace now off the monthly WONDER snapshots
+(12 months ending ~mid-2026, not the stale Socrata table), Population
+Change long view uses generations on a real calendar axis (was an "Year
+1..N" era overlay), `.htaccess` cache headers (revalidate `/data/*.json`),
+local `./deploy.sh` (build + lftp FTPS mirror).
 
-**Done since:** Sex/Race breakdown 2021+ (`provisional_sex` / `provisional_race`
-D176 eras run + deployed — `mortality_demographic.json` now 1999–2025, race
-seam caption live). Monthly births D192 (`natality/monthly` era +
-`natality_monthly.json`, 42 months Jan 2023–Jun 2026, run + deployed). Crude
-birth rate backfilled from births ÷ `mortality.json` population
-(`birthRateDerived`, runs to 2024). Local `./deploy.sh` (build + lftp FTPS
-mirror) is the working deploy path; the GitHub Action is manual-only (GoDaddy
-throttles FTP from CI IPs).
+## Coverage by page (as of the last review)
+
+| page / chart | span | notes |
+|---|---|---|
+| Home "pick a year" | births 1909–, deaths 1968–, **leading cause 1999–** | leading-cause field only exists for the 113-list era |
+| Death Statistics — annual | 1968–2025 | monthly 2018–present |
+| Causes of Death — ranked + trend | **1999–2025** | 113 list; pre-1999 is chapter grain only (see below) |
+| Causes of Death — Sex/Race breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race) |
+| Causes of Death — Broad Chapters | **1968–1998** | ICD-8/9 chapters; stops at 1998 — no ICD-10 chapter roll-up in the snapshot |
+| Birth Statistics — annual births | 1960–2025 | + generation bands |
+| Birth Statistics — fertility rate | **1960–2020** | gap 2021+ — see Remaining #2 |
+| Birth Statistics — crude birth rate | 1960–2025 | 2019+ derived from births ÷ resident population |
+| Birth Statistics — monthly births | 2023–2026 | D192 |
+| Population Change — births vs deaths / natural increase | 1968–2025 | |
+| Population Change — long view | 1909–2025 | |
+| By the Numbers | 12 months ending ~mid-2026 | rolling annual ÷ 365 |
 
 **Remaining:**
 
-1. **ICD-10 chapter grain for 1999+** — the "Broad Chapters, 1968–1998"
-   section on Causes of Death stops at 1998 because the 113-list snapshot
-   has no chapter roll-up. A `mortality_icd10_chapter` era (D76/D176 grouped
-   by the ICD-10 chapter variable — find it on the D76 request form; `D76.V4`
-   is the 113 list, not chapters) would extend that chart to 2025.
-   `CHAPTER_CANON` in `src/api/causesOfDeath.js` already has ICD-10 →
-   canonical slots ready to fill.
-2. **General fertility rate stops at 2020.** Births run to 2026 but no
-   fertility rate past 2020 (D66 returned none for 2021–22; D192 has no rate
-   measure). Needs a women-15–44 population series (Census PEP) to compute
-   births ÷ population like `natality.js` already does for the crude birth
-   rate, or try D149 ("Natality, 2016–2022 expanded").
+1. **ICD-10 chapter grain for 1999+ — the "map broad chapters to the
+   leading-cause view" gap.** "Broad Chapters" stops at 1998 because the
+   113-list snapshot has no ICD-10 chapter roll-up. Extend it with a
+   `mortality_icd10_chapter` era (D76/D176 grouped by the ICD-10 *chapter*
+   variable — find it on the D76 request form; `D76.V4` is the 113 list,
+   not chapters). `CHAPTER_CANON` in `src/api/causesOfDeath.js` already has
+   the ICD-10 → canonical slots ready. A true 113-list-equivalent for the
+   pre-1999 decades (so the *ranked* view works back to 1968) is the bigger
+   "Future effort" below.
+2. **General fertility rate stops at 2020.** No rate past 2020 (D66 returned
+   none for 2021–22; D192 has no rate measure). Needs a women-15–44
+   population series (Census PEP) to compute births ÷ population — the same
+   move `natality.js` already makes for the crude birth rate — or try D149
+   ("Natality, 2016–2022 expanded").
 3. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
    only the `provisional*` / `monthly` / `current` eras recur; D76 / D66 /
-   D27 / D16 / D74 are finalized, run once. `./deploy.sh` or a commit-then-
-   pull is the publish step.
-4. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+   D27 / D16 / D74 are finalized, run once. `./deploy.sh` (or commit + a
+   later pull) is the publish step.
+4. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above) — only
+   still used for the pre-1960 birth history and as the By-the-Numbers /
+   monthly-births fallback.
+
+**Enhancements noted in review:**
+
+- Consider Pew generation bands on the Home "pick a year" context, for
+  consistency with the two births charts.
+- The Population Change stat cards / captions still frame the natural-
+  increase narrative around 1999 ("narrowed since 1999") though the series
+  now starts at 1968 — reword when convenient.
 
 **Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
 ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).
