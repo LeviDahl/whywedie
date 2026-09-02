@@ -17,9 +17,12 @@ name: Deploy to GoDaddy
 # make a dedicated FTP account whose directory IS public_html, change it to
 # "./".
 
+# Manual only. GoDaddy shared hosting throttles / brute-force-bans FTP from
+# datacenter IPs (all GitHub runners), so a push-triggered deploy fails
+# intermittently with control-socket timeouts. The reliable path is the
+# local ./deploy.sh from a residential IP; run this from the Actions tab
+# when you want to try it from CI. Re-enable `push:` if it starts working.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -47,6 +50,8 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
+          port: 21
+          timeout: 120000            # GoDaddy FTP is slow to respond from CI
           local-dir: ./dist/
           server-dir: ./
           # keeps a small .ftp-deploy-sync-state.json on the server so later
