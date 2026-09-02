@@ -17,12 +17,13 @@
   Year is left *All* (D192 only holds 2023+); fetch.js clips to [2023, ...].
   National: O_location=D192.V21 with V_D192.V21 blank (= *All*).
   Response cells: year, Births -> 2-col contract.
-  Round 2: V_D192.V21 / V22 / V37 blank -> *All* (round 1 got "Code '' isn't a
-  valid code value for variable (D192.V21) State of Residence").
+  Round 2: only V_D192.V21 blank -> *All* (round 1: "Code '' isn't a valid
+  code value for variable (D192.V21) State of Residence"). V22/V37 stay
+  blank -- a captured web-UI request sends them empty.
+  Round 3: + O_PR=false + dataset_id=D192, both from that captured request
+  (round 2: "Missing parameter O_PR, needed for stored procedure").
   Test: node --env-file=.env fetch.js --type=natality --era=current --years=2023 --out=rows.json --dump
   On a 400: paste the <message> from pipeline/natality_current.raw.xml.
-  If it says "Missing parameter O_PR", add
-  <parameter><name>O_PR</name><value>false</value></parameter> (D176 needed it).
 -->
 <parameter><name>accept_datause_restrictions</name><value>true</value></parameter>
 <parameter><name>B_1</name><value>D192.V20</value></parameter>
@@ -37,6 +38,8 @@
 <parameter><name>I_D192.V22</name><value>*All* (The United States)</value></parameter>
 <parameter><name>I_D192.V37</name><value>*All* (The United States)</value></parameter>
 <parameter><name>M_002</name><value>D192.M002</value></parameter>
+<parameter><name>O_PR</name><value>false</value></parameter>
+<parameter><name>dataset_id</name><value>D192</value></parameter>
 <parameter><name>O_V21_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V22_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V37_fmode</name><value>freg</value></parameter>
@@ -132,7 +135,7 @@
 <parameter><name>V_D192.V18</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V20</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V21</name><value>*All*</value></parameter>
-<parameter><name>V_D192.V22</name><value>*All*</value></parameter>
+<parameter><name>V_D192.V22</name><value></value></parameter>
 <parameter><name>V_D192.V23</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V24</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V25</name><value>*All*</value></parameter>
@@ -147,7 +150,7 @@
 <parameter><name>V_D192.V33</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V34</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V35</name><value>*All*</value></parameter>
-<parameter><name>V_D192.V37</name><value>*All*</value></parameter>
+<parameter><name>V_D192.V37</name><value></value></parameter>
 <parameter><name>V_D192.V38</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V39</name><value>*All*</value></parameter>
 <parameter><name>V_D192.V4</name><value>*All*</value></parameter>
@@ -214,7 +217,7 @@
 <parameter><name>action-Send</name><value>Send</value></parameter>
 <parameter><name>dataset_code</name><value>D192</value></parameter>
 <parameter><name>dataset_label</name><value>Provisional Natality, 2023 through Last Month</value></parameter>
-<parameter><name>dataset_vintage</name><value>2024</value></parameter>
+<parameter><name>dataset_vintage</name><value>2026 through June 30, 2026 as of July 27, 2026</value></parameter>
 <parameter><name>finder-stage-D192.V21</name><value>codeset</value></parameter>
 <parameter><name>finder-stage-D192.V22</name><value>codeset</value></parameter>
 <parameter><name>finder-stage-D192.V37</name><value>codeset</value></parameter>
