@@ -51,11 +51,19 @@ export async function fetchCausesOfDeath() {
       }))
   }
 
+  // The snapshot can carry years that only have an all-cause provisional
+  // total (D176, 2021+) and no per-cause breakdown. The ranked/trend UI is
+  // cause-level, so restrict `years` (and coverage) to years that actually
+  // have rankable-cause rows — otherwise the year picker offers 2021-24
+  // and the default period lands on an empty chart.
+  const years = raw.years.filter((y) => byYear[y]?.length)
+  const yearMax = years.at(-1) ?? raw.coverage?.yearMax
+
   // Per-cause time series, keyed by display name and ALIGNED to the full
   // `years` axis (missing years -> null) so the view can overlay several
   // causes on one chart without re-indexing. A cause that only appears
   // partway through the range (e.g. COVID-19) simply has leading nulls.
-  const allYears = raw.years
+  const allYears = years
   const byCause = {}
   for (const c of leading) {
     const s = raw.byCause[`${c.icdVersion}:${c.code}`]
@@ -78,8 +86,8 @@ export async function fetchCausesOfDeath() {
   return {
     source: raw.source,
     fetchedAt: raw.fetchedAt,
-    coverage: raw.coverage,
-    years: raw.years,
+    coverage: { ...raw.coverage, yearMax },
+    years,
     causes,
     byYear,
     byCause
