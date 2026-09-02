@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
@@ -94,7 +94,34 @@ const PEW_GENERATIONS = [
   { from: 1981, to: 1996, label: 'Millennials' },
   { from: 1997, to: 2100, label: 'Gen Z' }
 ]
-const annualBands = computed(() => (annualMetric.value === 'births' ? PEW_GENERATIONS : []))
+// Ones that overlap the births data (starts 1960) — offered as drill-downs.
+const GEN_CHOICES = PEW_GENERATIONS.filter((g) => g.to >= 1960 && g.from <= 2025)
+
+// Generations overlay: on/off, plus an optional drilled-into cohort. Both
+// apply only to the Births metric.
+const showGenerations = ref(true)
+const genActive = computed(() => annualMetric.value === 'births' && showGenerations.value)
+
+// One selector drives the annual window: a numeric range key OR a cohort
+// label. Numeric keys live in ANNUAL_RANGES (below); cohort keys are the
+// generation labels.
+const annualWindow = ref('25y')
+const selectedGen = computed(() =>
+  PEW_GENERATIONS.find((g) => g.label === annualWindow.value) ?? null
+)
+function pickWindow(key) {
+  annualWindow.value = key
+}
+// Clicking a band drills to that cohort (toggles back to Max if re-clicked).
+function onBandClick(band) {
+  if (!genActive.value) return
+  annualWindow.value = annualWindow.value === band.label ? 'max' : band.label
+}
+const annualBands = computed(() =>
+  genActive.value
+    ? PEW_GENERATIONS.map((g) => ({ ...g, active: g.label === annualWindow.value }))
+    : []
+)
 
 // Metric explainer popover — "fertility rate" vs "birth rate" isn't common
 // knowledge. Mirrors the same control on Causes of Death.
@@ -128,16 +155,29 @@ const ANNUAL_RANGES = [
   { key: '25y', label: '25 yr', n: 25 },
   { key: 'max', label: 'Max', n: Infinity }
 ]
-const annualRange = ref('25y')
+// If generations are switched off (or the metric changes away from Births)
+// while drilled into a cohort, fall back to the widest view.
+watch(genActive, (on) => {
+  if (!on && selectedGen.value) annualWindow.value = 'max'
+})
+
 const annualView = computed(() => {
   const d = annual.data.value
   if (!plottedYears.value.length) return null
-  const n = ANNUAL_RANGES.find((r) => r.key === annualRange.value)?.n ?? Infinity
-  const vals = plottedYears.value.map((y) => d.byYear[y]?.[annualMetric.value] ?? null)
+  const all = plottedYears.value
+  const vals = all.map((y) => d.byYear[y]?.[annualMetric.value] ?? null)
+  const g = genActive.value ? selectedGen.value : null
+  let keep
+  if (g) {
+    keep = all.map((y) => y >= g.from && y <= g.to)
+  } else {
+    const n = ANNUAL_RANGES.find((r) => r.key === annualWindow.value)?.n ?? Infinity
+    keep = all.map((_, i) => i >= all.length - n)
+  }
   return {
-    labels: tail(plottedYears.value, n),
-    values: tail(vals, n),
-    muted: tail(annualMuted.value, n)
+    labels: all.filter((_, i) => keep[i]),
+    values: vals.filter((_, i) => keep[i]),
+    muted: annualMuted.value.filter((_, i) => keep[i])
   }
 })
 
@@ -181,17 +221,9 @@ const annualTable = computed(() => {
       <section>
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-base font-semibold text-ink">Annual Births &amp; Fertility Rate</h2>
-          <div class="flex items-center gap-3">
-            <p v-if="annualView" class="text-sm text-muted">
-              {{ annualView.labels[0] }}–{{ annualView.labels.at(-1) }}
-            </p>
-            <RangeTabs
-              v-if="annual.data.value?.years?.length"
-              v-model="annualRange"
-              :options="ANNUAL_RANGES"
-              aria-label="Annual births range"
-            />
-          </div>
+          <p v-if="annualView" class="text-sm text-muted">
+            {{ annualView.labels[0] }}–{{ annualView.labels.at(-1) }}
+          </p>
         </div>
 
         <div v-if="annual.loading.value" class="card flex items-center justify-center py-20 text-sm text-muted">
@@ -229,6 +261,55 @@ const annualTable = computed(() => {
             >
               i
             </button>
+
+            <div
+              v-if="annualMetric === 'births'"
+              class="flex items-center gap-2 sm:ml-auto"
+            >
+              <span class="text-xs font-medium uppercase tracking-wide text-muted">Generations</span>
+              <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+                <button
+                  v-for="opt in [{ v: true, l: 'On' }, { v: false, l: 'Off' }]"
+                  :key="opt.l"
+                  type="button"
+                  class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                  :class="showGenerations === opt.v ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                  @click="showGenerations = opt.v"
+                >
+                  {{ opt.l }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Window: numeric ranges, plus per-cohort drill-downs when the
+               generations overlay is on. -->
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <span class="text-xs font-medium uppercase tracking-wide text-muted">Show</span>
+            <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="r in ANNUAL_RANGES"
+                :key="r.key"
+                type="button"
+                class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="annualWindow === r.key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="pickWindow(r.key)"
+              >
+                {{ r.label }}
+              </button>
+            </div>
+            <div v-if="genActive" class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="g in GEN_CHOICES"
+                :key="g.label"
+                type="button"
+                class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="annualWindow === g.label ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="pickWindow(g.label)"
+              >
+                {{ g.label }}
+              </button>
+            </div>
           </div>
 
           <dl v-if="showMetricHelp" class="card mb-4 space-y-2 text-xs text-muted">
@@ -263,6 +344,7 @@ const annualTable = computed(() => {
               :bands="annualBands"
               :series-label="ANNUAL_METRICS[annualMetric].axis"
               :value-formatter="annualFmt"
+              @band-click="onBandClick"
             />
             <ChartToolbar
               v-if="annualTable"
@@ -272,9 +354,10 @@ const annualTable = computed(() => {
               filename="whywedie-annual-births"
             />
           </div>
-          <p v-if="annualMetric === 'births'" class="mt-3 text-xs text-muted">
-            Shaded bands mark the <a class="link-underline" href="https://www.pewresearch.org/short-reads/2019/01/17/where-millennials-end-and-generation-z-begins/" target="_blank" rel="noopener">Pew Research Center</a>
+          <p v-if="genActive" class="mt-3 text-xs text-muted">
+            Shaded bands are the <a class="link-underline" href="https://www.pewresearch.org/short-reads/2019/01/17/where-millennials-end-and-generation-z-begins/" target="_blank" rel="noopener">Pew Research Center</a>
             generation cutoffs by birth year (Gen X 1965–1980, Millennials 1981–1996, Gen Z 1997 on).
+            Click a band — or a cohort button above — to zoom to just those years; <em>Generations: Off</em> hides them.
           </p>
           <p v-for="p in partialYears" :key="p.year" class="mt-3 text-xs text-muted">
             <strong class="font-semibold text-ink">{{ p.year }} is a partial year</strong> and is left

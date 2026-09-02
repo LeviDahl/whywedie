@@ -40,9 +40,13 @@ const props = defineProps({
   // Optional context bands drawn behind the line, keyed to the x (year)
   // axis: [{ from, to, label }]. Faint alternating fill + a divider and a
   // small label per span. Used for the Pew generation cohorts on the
-  // annual-births chart.
+  // annual-births chart. A band with `active: true` is emphasised.
   bands: { type: Array, default: () => [] }
 })
+
+// Emitted when a band is clicked (the whole band object). Lets a parent
+// "drill down" into a cohort. Only wired when `bands` is non-empty.
+const emit = defineEmits(['bandClick'])
 
 const normalized = computed(() => {
   if (props.series && props.series.length) {
@@ -92,13 +96,21 @@ const bandsPlugin = computed(() => ({
       const px = x.getPixelForValue(year - first) - step / 2
       return Math.min(Math.max(px, area.left), area.right)
     }
+    const anyActive = bands.some((b) => b.active)
     ctx.save()
     bands.forEach((b, i) => {
       const left = edge(b.from, 'l')
       const right = edge(b.to + 1, 'r')
       if (right - left < 1) return
-      if (i % 2 === 1) {
-        ctx.fillStyle = 'rgba(23,23,23,0.04)'
+      const fill = b.active
+        ? 'rgba(23,23,23,0.08)'
+        : anyActive
+          ? null
+          : i % 2 === 1
+            ? 'rgba(23,23,23,0.04)'
+            : null
+      if (fill) {
+        ctx.fillStyle = fill
         ctx.fillRect(left, area.top, right - left, area.height)
       }
       if (b.from > first) {
@@ -110,8 +122,8 @@ const bandsPlugin = computed(() => ({
         ctx.stroke()
       }
       if (right - left > 46 && b.label) {
-        ctx.fillStyle = AXIS_TEXT
-        ctx.font = '600 10px system-ui, sans-serif'
+        ctx.fillStyle = b.active ? '#171717' : AXIS_TEXT
+        ctx.font = `${b.active ? 700 : 600} 10px system-ui, sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
         ctx.fillText(b.label.toUpperCase(), (left + right) / 2, area.top + 4)
@@ -157,10 +169,32 @@ const chartData = computed(() => ({
   })
 }))
 
+// Categorical x scale — map an event's pixel to the year under it, then to
+// the band that contains that year (or null).
+function bandAtEvent(evt, chart) {
+  const idx = chart.scales.x?.getValueForPixel?.(evt.x)
+  if (idx == null) return null
+  const year = Number(props.labels[Math.round(idx)])
+  return props.bands.find((b) => year >= b.from && year <= b.to) ?? null
+}
+
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   interaction: { mode: 'index', intersect: false },
+  // Click inside a band → emit it (drill-down); pointer cursor while over one.
+  onClick: props.bands.length
+    ? (evt, _els, chart) => {
+        const b = bandAtEvent(evt, chart)
+        if (b) emit('bandClick', b)
+      }
+    : undefined,
+  onHover: props.bands.length
+    ? (evt, els, chart) => {
+        const t = evt.native?.target
+        if (t) t.style.cursor = bandAtEvent(evt, chart) ? 'pointer' : 'default'
+      }
+    : undefined,
   plugins: {
     legend: {
       display: multi.value,
