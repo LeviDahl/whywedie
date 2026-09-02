@@ -58,28 +58,36 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
-    // Recent years (2021+) for Causes of Death. D176 = "Provisional
-    // Mortality Statistics, 2018 through Last Month", updated monthly. Same
-    // 6-column contract as icd10 (Year x ICD-10 113 Cause List + 4
-    // measures). Template drafted from wonderapi's D176_Defaults.xml — run
-    // `fetch.js --type=mortality --era=provisional --years=2021 --dump` to
-    // confirm the cause-list variable before trusting it. yearMax is a
-    // rolling edge; its newest year is partial/provisional (the frontend
-    // should flag it the way BirthStatisticsView does).
+    // Recent years (2021+). D176 = "Provisional Mortality Statistics, 2018
+    // through Last Month", updated monthly. Group By = Year ONLY — D176's
+    // "15 Leading Causes" list (V4) refuses to combine with any other
+    // group-by, and its 113-cause-list variable isn't confirmed, so this
+    // era stores national ALL-CAUSE yearly totals (deaths / population /
+    // crude rate), not a per-cause breakdown. It exists to carry the
+    // Causes-of-Death / Death-Statistics pages past D76's 2020 edge with an
+    // honest provisional total. `fixed` tags every row as the synthetic
+    // "All causes" cause so it slots into the mortality table without a
+    // NULL in the unique key; it is NOT '#'-prefixed, so the ranked view
+    // (which filters to '#' rankable causes) ignores it. yearMax is a
+    // rolling edge; the newest year is partial (flag it in the UI).
     provisional: {
       databaseId: 'D176',
       templateFile: 'mortality_provisional.xml',
       table: 'mortality',
-      fixed: { icd_version: 10 },
+      fixed: {
+        icd_version: 10,
+        cause_code: 'All causes',
+        cause_name: 'All causes',
+        cause_level: 0,
+        age_adjusted_rate: null,
+      },
       yearMin: 2021,
       yearMax: 2025,
       columns: [
         { kind: 'year' },
-        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
         { kind: 'measure', field: 'death_count', countField: true },
         { kind: 'measure', field: 'population' },
         { kind: 'measure', field: 'crude_rate' },
-        { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
     icd8: {
