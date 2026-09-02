@@ -94,11 +94,11 @@ const dataSections = sections.filter((s) => s.path !== '/')
         <dl class="mt-6 grid gap-6 sm:grid-cols-3">
           <div>
             <dt class="text-xs font-medium uppercase tracking-wide text-muted">Source</dt>
-            <dd class="mt-1.5 text-sm text-ink">data.cdc.gov open data (Socrata API)</dd>
+            <dd class="mt-1.5 text-sm text-ink">CDC WONDER + data.cdc.gov open data</dd>
           </div>
           <div>
             <dt class="text-xs font-medium uppercase tracking-wide text-muted">Coverage</dt>
-            <dd class="mt-1.5 text-sm text-ink">National (US); 1909–2020 depending on the series</dd>
+            <dd class="mt-1.5 text-sm text-ink">National (US); 1909–present depending on the series</dd>
           </div>
           <div>
             <dt class="text-xs font-medium uppercase tracking-wide text-muted">Access</dt>

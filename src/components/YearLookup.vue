@@ -105,7 +105,8 @@ const signed = (v) => (v == null ? null : (v >= 0 ? '+' : '−') + Math.abs(v).t
       <p v-else class="mt-4 text-sm text-muted">No data for {{ year }} in these sources.</p>
 
       <p class="mt-5 text-xs text-muted">
-        Births 1909–2018 · deaths &amp; population change 1999–2017 · leading cause 1999–2020.
+        Births {{ data.minYear }}–2022 · deaths &amp; population change 1999–{{ data.maxYear }} ·
+        leading cause 1999–2020 (2021+ is an all-cause total only).
         Source: {{ data.source }}.
       </p>
 

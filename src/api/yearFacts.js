@@ -1,9 +1,12 @@
-// One-shot loader for the "pick a year" panel on Home. Pulls the three
-// series that have per-year US figures and returns a year → facts map.
+// One-shot loader for the "pick a year" panel on Home. Pulls the series
+// that have per-year US figures and returns a year → facts map.
 //
-//   births + crude birth rate : e6fc-ccez         1909–2018
-//   total deaths              : bi63-dtpu "All causes"   1999–2017
-//   leading cause of death    : /data/mortality.json (pipeline)  1999–2020
+//   births + birth rate  : /data/natality.json (WONDER pipeline, 1960–2022),
+//                          with Socrata e6fc-ccez (1909–2018) filling the
+//                          pre-1960 tail for deep history
+//   total deaths         : /data/mortality.json "All causes" row
+//                          (D76 1999–2020 + D176 provisional 2021–present)
+//   leading cause        : /data/mortality.json per-cause rows (1999–2020)
 //
 // Any given year fills in whatever the sources cover — the panel hides the
 // rest.
@@ -11,23 +14,20 @@
 import { socrataQuery } from './socrata.js'
 
 const MORTALITY_URL = `${import.meta.env.BASE_URL}data/mortality.json`
+const NATALITY_URL = `${import.meta.env.BASE_URL}data/natality.json`
+
+const getJson = (url) =>
+  fetch(url, { headers: { accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null))
 
 export async function fetchYearFacts() {
-  const [birthRows, deathRows, mortality] = await Promise.all([
+  const [birthHistory, natality, mortality] = await Promise.all([
     socrataQuery('e6fc-ccez', {
       $select: 'year, birth_number, crude_birth_rate',
       $order: 'year',
       $limit: 5000
-    }),
-    socrataQuery('bi63-dtpu', {
-      $select: 'year, deaths',
-      $where: "state='United States' AND cause_name='All causes'",
-      $order: 'year',
-      $limit: 5000
-    }),
-    fetch(MORTALITY_URL, { headers: { accept: 'application/json' } }).then((r) =>
-      r.ok ? r.json() : null
-    )
+    }).catch(() => []),
+    getJson(NATALITY_URL),
+    getJson(MORTALITY_URL)
   ])
 
   const byYear = new Map()
@@ -36,25 +36,33 @@ export async function fetchYearFacts() {
     return byYear.get(y)
   }
 
-  for (const r of birthRows) {
+  // Births: deep Socrata history first…
+  for (const r of birthHistory) {
     const y = Number(r.year)
     if (!Number.isFinite(y)) continue
     const rec = ensure(y)
     rec.births = Number(r.birth_number) || null
     rec.birthRate = Number(r.crude_birth_rate) || null
   }
-  for (const r of deathRows) {
-    const y = Number(r.year)
-    if (!Number.isFinite(y)) continue
-    ensure(y).deaths = Number(r.deaths) || null
+  // …then the pipeline natality snapshot wins wherever it has a value.
+  if (natality?.byYear) {
+    for (const [y, v] of Object.entries(natality.byYear)) {
+      const rec = ensure(Number(y))
+      if (v.births != null) rec.births = v.births
+      if (v.birthRate != null) rec.birthRate = v.birthRate
+    }
   }
+
+  // Deaths + leading cause from the mortality snapshot.
   if (mortality?.byYear) {
     for (const [y, rows] of Object.entries(mortality.byYear)) {
+      const rec = ensure(Number(y))
+      const all = rows.find((c) => c.code === 'All causes' || c.name === 'All causes')
+      if (all?.deaths != null) rec.deaths = all.deaths
       const lead = rows
         .filter((c) => c.leading && c.deaths != null)
         .sort((a, b) => b.deaths - a.deaths)[0]
       if (lead) {
-        const rec = ensure(Number(y))
         rec.leadingCause = lead.name // official name; view maps to friendly
         rec.leadingCauseDeaths = lead.deaths
       }
@@ -74,6 +82,7 @@ export async function fetchYearFacts() {
     years,
     byYear,
     source:
-      'CDC (data.cdc.gov, Socrata) — NCHS Births and General Fertility Rates (e6fc-ccez), Leading Causes of Death "All causes" (bi63-dtpu); leading cause from the WONDER pipeline snapshot'
+      'CDC WONDER pipeline snapshots (mortality.json, natality.json) + ' +
+      'CDC Socrata NCHS Births and General Fertility Rates (e6fc-ccez) for pre-1960 births'
   }
 }
