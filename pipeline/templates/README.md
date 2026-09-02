@@ -12,6 +12,8 @@ mortality_icd10_sex.xml        -> D76    ... x Gender (V7)  -> mortality_demogra
 mortality_icd10_race.xml       -> D76    ... x Race (V8)    -> mortality_demographic
 mortality_provisional.xml      -> D176   Provisional Mortality 2018->now, Year only = all-cause
 mortality_provisional_causes.xml -> D176 ... Year x 113 list (B_2=D176.V4 WITH O_ucd=D176.V4)
+mortality_provisional_sex.xml    -> D176   ... x Sex (V7)   -> mortality_demographic, 2021+
+mortality_provisional_race.xml   -> D176   ... x Race (V42)  -> mortality_demographic, 2021+
 mortality_monthly.xml          -> D176   ... Year x Month = monthly all-cause
 mortality_icd9_chapter.xml     -> D16    Compressed Mortality, 1979-1998  (Year x ICD Chapter)
 mortality_icd8_chapter.xml     -> D74    Compressed Mortality, 1968-1978  (Year x ICD Chapter)
@@ -22,8 +24,9 @@ natality_monthly.xml           -> D192   ... Year x Month = monthly births  -> n
 ```
 
 All of the above have been run against live WONDER and return
-correctly-shaped data. Commit them — they contain no secrets and make the
-pipeline reproducible.
+correctly-shaped data, except `mortality_provisional_sex.xml` /
+`_race.xml`, which are built but still need one confirming `--dump` each.
+Commit them — they contain no secrets and make the pipeline reproducible.
 
 ---
 

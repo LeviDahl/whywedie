@@ -114,7 +114,7 @@ manual loop needs a sleep between chunks:
 for chunk in \
   "mortality icd10" "mortality icd10_total" \
   "mortality icd10_sex" "mortality icd10_race" \
-  "mortality provisional" "mortality provisional_causes" "mortality monthly" \
+  "mortality provisional" "mortality provisional_causes" "mortality provisional_sex" "mortality provisional_race" "mortality monthly" \
   "mortality icd9" "mortality icd8" \
   "natality mid" "natality gap" "natality current" "natality monthly" ; do
   set -- $chunk
@@ -176,6 +176,8 @@ line if it's a venv); `DIR` = the pipeline directory.
 ```
 5  3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=provisional        >> logs/cron.log 2>&1
 20 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=provisional_causes >> logs/cron.log 2>&1
+22 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=provisional_sex   >> logs/cron.log 2>&1
+24 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=provisional_race  >> logs/cron.log 2>&1
 35 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=monthly            >> logs/cron.log 2>&1
 50 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=current            >> logs/cron.log 2>&1
 52 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=monthly            >> logs/cron.log 2>&1

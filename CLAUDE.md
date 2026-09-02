@@ -425,15 +425,19 @@ row).
    variable — find it on the D76 request form; `D76.V4` is the 113 list, not
    chapters) would extend that chart to 2025. `CHAPTER_CANON` already has
    the ICD-10 → canonical slots ready to fill.
-2. **Sex / Race breakdown stops at 2020** — eras `icd10_sex` / `icd10_race`
-   are D76-only (`mortality_demographic.json` 1999–2020). Extend to 2021+
-   with a D176 era: Year × `D176.V4` (113 list, with `O_ucd=D176.V4`) ×
-   `D176.V7` (Sex) or D176's single-race var (`V42`/`V43`/`V44`), writing
-   to `mortality_demographic`. `V4` combines with other Group Bys (unlike
-   `V28` "15 Leading Causes"), so this is a template + era + one `--dump` to
-   confirm the 3-deep grouping holds. Race groups will be single-race
-   (not the D76 bridged-race 4), so the frontend legend/labels need a note
-   that the pre/post-2020 race categories differ.
+2. **Sex / Race breakdown 2021+ — eras BUILT, need a `--dump`.**
+   `provisional_sex` (`mortality_provisional_sex.xml`, B_3 = `D176.V7`) and
+   `provisional_race` (`_race.xml`, B_3 = `D176.V42` "Single Race 6") —
+   `mortality_provisional_causes.xml` + one Group By, writing to
+   `mortality_demographic` on the same `sex`/`race` dimension as the D76
+   `icd10_*` eras. `build-snapshots.js` + `causeBreakdown.js` are
+   year-agnostic, so no code change once the rows land; the Causes of Death
+   breakdown shows a **2020/2021 seam caption** for race (D176 = 6
+   single-race groups, not D76's 4 bridged). Run:
+   `fetch.js --type=mortality --era=provisional_sex --years=2021 --out=rows.json --dump`
+   `fetch.js --type=mortality --era=provisional_race --years=2021 --out=rows.json --dump`
+   then the real `--years=2021-2025` runs + `build-snapshots.js` + commit.
+   Expect heavy CDC suppression (1–9 death cells → NULL) at 3-deep grouping.
 3. **General fertility rate stops at 2020.** `natality.json` has births
    2021–2026 but no fertility rate past 2020 (D66's `mid` era returned no
    rate for 2021–22; D192 has none). The **crude birth rate** gap is

@@ -290,8 +290,10 @@ The frontend surfaces all of it except the pre-1999 per-chapter causes.
 - [ ] **ICD-10 chapter grain for 1999+** — the "Broad Chapters" section
       stops at 1998; extending it needs a chapter-grouped D76/D176 pipeline
       era (the 113-list snapshot has no ICD-10 chapter roll-up).
-- [ ] **Sex / Race breakdown → 2021+** — a D176 era (Year × 113-list ×
-      Sex / single-race). Needs one `--dump` to confirm the 3-deep group-by.
+- [ ] **Sex / Race breakdown → 2021+** — the D176 eras `provisional_sex` /
+      `provisional_race` are built; need one `--dump` each, then a run +
+      snapshot rebuild. (Race categories change at the 2020/2021 seam:
+      bridged-race → single-race.)
 - [ ] **General fertility rate stops at 2020** — the crude birth rate is
       now reconstructed from births ÷ resident population, but the fertility
       rate needs a women-aged-15–44 population series (Census PEP) that
