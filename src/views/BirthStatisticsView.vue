@@ -84,6 +84,18 @@ const ANNUAL_METRICS = {
 const annualMetric = ref('births')
 const annualFmt = computed(() => ANNUAL_METRICS[annualMetric.value].fmt)
 
+// Pew Research Center generation cutoffs (by birth year). Pew defines
+// Boomer→Gen Z; "Gen Z" has no published end year, so it runs to the chart
+// edge. Shown only under the Births metric — they're birth cohorts.
+const PEW_GENERATIONS = [
+  { from: 1928, to: 1945, label: 'Silent' },
+  { from: 1946, to: 1964, label: 'Boomers' },
+  { from: 1965, to: 1980, label: 'Gen X' },
+  { from: 1981, to: 1996, label: 'Millennials' },
+  { from: 1997, to: 2100, label: 'Gen Z' }
+]
+const annualBands = computed(() => (annualMetric.value === 'births' ? PEW_GENERATIONS : []))
+
 // Metric explainer popover — "fertility rate" vs "birth rate" isn't common
 // knowledge. Mirrors the same control on Causes of Death.
 const showMetricHelp = ref(false)
@@ -248,6 +260,7 @@ const annualTable = computed(() => {
               :labels="annualView.labels"
               :values="annualView.values"
               :muted-points="annualView.muted"
+              :bands="annualBands"
               :series-label="ANNUAL_METRICS[annualMetric].axis"
               :value-formatter="annualFmt"
             />
@@ -259,6 +272,10 @@ const annualTable = computed(() => {
               filename="whywedie-annual-births"
             />
           </div>
+          <p v-if="annualMetric === 'births'" class="mt-3 text-xs text-muted">
+            Shaded bands mark the <a class="link-underline" href="https://www.pewresearch.org/short-reads/2019/01/17/where-millennials-end-and-generation-z-begins/" target="_blank" rel="noopener">Pew Research Center</a>
+            generation cutoffs by birth year (Gen X 1965–1980, Millennials 1981–1996, Gen Z 1997 on).
+          </p>
           <p v-for="p in partialYears" :key="p.year" class="mt-3 text-xs text-muted">
             <strong class="font-semibold text-ink">{{ p.year }} is a partial year</strong> and is left
             off the chart — CDC has only published part of it so far

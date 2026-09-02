@@ -36,7 +36,12 @@ const props = defineProps({
   // or incomplete period) render muted grey as a "don't over-read" cue.
   mutedPoints: { type: Array, default: () => [] },
   // Word shown after a muted point's value in the tooltip.
-  mutedLabel: { type: String, default: 'provisional' }
+  mutedLabel: { type: String, default: 'provisional' },
+  // Optional context bands drawn behind the line, keyed to the x (year)
+  // axis: [{ from, to, label }]. Faint alternating fill + a divider and a
+  // small label per span. Used for the Pew generation cohorts on the
+  // annual-births chart.
+  bands: { type: Array, default: () => [] }
 })
 
 const normalized = computed(() => {
@@ -64,6 +69,57 @@ const normalized = computed(() => {
 })
 
 const multi = computed(() => normalized.value.length > 1)
+
+// Draws `props.bands` as faint spans behind the datasets. `from`/`to` are
+// years; the x scale is categorical (year strings), so a boundary maps to
+// the edge between two year categories, clamped to the visible chart area.
+const bandsPlugin = computed(() => ({
+  id: 'contextBands',
+  beforeDatasetsDraw(chart) {
+    const bands = props.bands
+    if (!bands?.length) return
+    const { ctx, chartArea: area, scales } = chart
+    const x = scales.x
+    if (!x) return
+    const years = props.labels.map((l) => Number(l))
+    const first = years[0]
+    const last = years[years.length - 1]
+    const step = years.length > 1 ? (x.getPixelForValue(1) - x.getPixelForValue(0)) : area.width
+    const edge = (year, side) => {
+      if (year <= first) return area.left
+      if (year > last) return area.right
+      // left edge of `year`'s category = halfway between it and the prior one
+      const px = x.getPixelForValue(year - first) - step / 2
+      return Math.min(Math.max(px, area.left), area.right)
+    }
+    ctx.save()
+    bands.forEach((b, i) => {
+      const left = edge(b.from, 'l')
+      const right = edge(b.to + 1, 'r')
+      if (right - left < 1) return
+      if (i % 2 === 1) {
+        ctx.fillStyle = 'rgba(23,23,23,0.04)'
+        ctx.fillRect(left, area.top, right - left, area.height)
+      }
+      if (b.from > first) {
+        ctx.strokeStyle = GRID_LINE
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(left, area.top)
+        ctx.lineTo(left, area.bottom)
+        ctx.stroke()
+      }
+      if (right - left > 46 && b.label) {
+        ctx.fillStyle = AXIS_TEXT
+        ctx.font = '600 10px system-ui, sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'top'
+        ctx.fillText(b.label.toUpperCase(), (left + right) / 2, area.top + 4)
+      }
+    })
+    ctx.restore()
+  }
+}))
 
 // A line segment counts as "provisional" if the point it draws *into* is
 // flagged — so the run of provisional years at the end renders dimmed.
@@ -155,6 +211,6 @@ const chartOptions = computed(() => ({
 
 <template>
   <div class="h-72 sm:h-96">
-    <Line :data="chartData" :options="chartOptions" />
+    <Line :data="chartData" :options="chartOptions" :plugins="[bandsPlugin]" />
   </div>
 </template>
