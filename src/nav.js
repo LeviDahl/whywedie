@@ -9,7 +9,6 @@ export const sections = [
     name: 'home',
     label: 'Home',
     shortLabel: 'Home',
-    status: 'available',
     description: 'About this project and how the data is sourced.'
   },
   {
@@ -17,54 +16,39 @@ export const sections = [
     name: 'death-statistics',
     label: 'Death Statistics Over Time',
     shortLabel: 'Death Statistics',
-    status: 'available',
     description:
-      'Annual US death totals (1999–present) plus the most current monthly figures CDC has published.',
-    source:
-      'CDC WONDER — Underlying Cause of Death + Provisional Mortality (annual) · CDC Socrata (current monthly)'
+      'Annual US death totals (1999–present) plus the most current monthly figures CDC has published.'
   },
   {
     path: '/causes-of-death',
     name: 'causes-of-death',
     label: 'Causes of Death',
     shortLabel: 'Causes of Death',
-    status: 'available',
     description:
-      'Leading causes of death, ranked by year (1999–2020), plus how each cause has trended over time — with deaths, crude rate, and age-adjusted rate.',
-    source:
-      'CDC WONDER — Underlying Cause of Death, 1999–2020 (database D76), national, via the whywedie data pipeline (/data/mortality.json)'
+      'Leading causes of death, ranked by year (1999–2020), plus how each cause has trended over time — with deaths, crude rate, and age-adjusted rate.'
   },
   {
     path: '/birth-statistics',
     name: 'birth-statistics',
     label: 'Birth Statistics',
     shortLabel: 'Birth Statistics',
-    status: 'available',
     description:
-      "CDC's most current provisional monthly US birth counts. Calendar-year history and the fertility rate are coming from the WONDER natality pipeline.",
-    source:
-      "CDC (data.cdc.gov, Socrata) — AH Monthly Provisional Counts of Live Births, Deaths, and Other Vital Events (dataset hmz2-vwda, indicator 'Number of Live Births')"
+      "CDC's most current provisional monthly US birth counts. Calendar-year history and the fertility rate are coming from the WONDER natality pipeline."
   },
   {
     path: '/population-change',
     name: 'population-change',
     label: 'Population Decline / Gain',
     shortLabel: 'Population Change',
-    status: 'available',
     description:
-      'Births vs. deaths and the shrinking natural increase between them, plus a century of US births.',
-    source:
-      'CDC (data.cdc.gov, Socrata) — NCHS Births and General Fertility Rates (e6fc-ccez) + Leading Causes of Death "All causes" (bi63-dtpu)'
+      'Births vs. deaths and the shrinking natural increase between them, plus a century of US births.'
   },
   {
     path: '/by-the-numbers',
     name: 'by-the-numbers',
     label: 'By the Numbers',
     shortLabel: 'By the Numbers',
-    status: 'available',
     description:
-      'US births and deaths as a daily average — next to a few other things that happen in the same 24 hours.',
-    source:
-      'CDC (data.cdc.gov, Socrata) for births & deaths (hmz2-vwda); assorted public estimates for the rest'
+      'US births and deaths as a daily average — next to a few other things that happen in the same 24 hours.'
   }
 ]

@@ -6,9 +6,8 @@
 // year × the NCHS 113 Selected Causes list, with deaths, population, crude
 // rate and age-adjusted rate.
 //
-// This replaces the earlier data.cdc.gov Socrata source (dataset bi63-dtpu),
-// which only ran through 2017 and had no crude rate. The snapshot is served
-// same-origin as a plain file — no API call, no CORS, no key.
+// The snapshot is served same-origin as a plain file — no API call, no
+// CORS, no key.
 //
 // The 113 list contains three kinds of row: roll-up super-categories,
 // the ~50 mutually-exclusive "rankable" causes (their label starts with

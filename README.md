@@ -10,7 +10,7 @@ sourced from CDC data.
 | Home | — | project overview |
 | Death Statistics Over Time | Socrata | annual rollup + current monthly |
 | Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | overlay multiple periods (years or decade ranges) and multiple causes; friendly ↔ official cause names; optional Sex / Race breakdown (`/data/mortality_demographic.json`, hidden until the pipeline eras run) |
-| Birth Statistics | Socrata + CDC WONDER | annual births + fertility rate (1960–2018 Socrata baseline, extended to 2022 via the WONDER natality pipeline → `/data/natality.json`) + provisional monthly births (Socrata) |
+| Birth Statistics | Socrata + CDC WONDER | annual births + fertility rate (`/data/natality.json`, 1960–2022; latest complete year rolled up from monthly counts) + provisional monthly births (Socrata) |
 | Population Decline / Gain | Socrata | births vs. deaths + natural increase (1999–2017), century-long birth history |
 | By the Numbers | Socrata + public estimates | births/deaths as a daily average + rotating scale-comparison facts |
 
@@ -50,17 +50,22 @@ npm run preview    # locally preview the production build
 
 ## How the data pipelines work
 
-Most sections call data.cdc.gov's **Socrata (SODA) API** directly — plain
-JSON over HTTP GET, with CORS support, so the browser hits it with no
-backend proxy (`src/api/socrata.js` is the shared client, `src/api/*.js` is
-one module per pipeline). **Causes of Death** and the annual **Birth
-Statistics** series are the exception — they read committed JSON snapshots
-(`/data/mortality.json`, `/data/natality.json`) built out-of-band from CDC
-WONDER by [`pipeline/`](pipeline/). Every Socrata query below was tested
-against the live API while building this (not just written from docs), and
-each module has comments on the quirks that were found doing that.
+Most of the data now comes from **committed JSON snapshots** in
+`public/data/`, built out-of-band from CDC WONDER by
+[`pipeline/`](pipeline/) — `mortality.json` (all-cause + per-cause deaths),
+`mortality_demographic.json` (deaths by sex / race), `mortality_monthly.json`
+(all-cause deaths by month), `natality.json` (births + fertility rate). The
+frontend just `fetch()`es them.
 
-### 1. Current monthly births / deaths
+The **data.cdc.gov Socrata (SODA) API** — plain JSON GET + CORS, called
+straight from the browser via `src/api/socrata.js`, no backend — is still
+the source for the current monthly **births** chart (`hmz2-vwda`), the
+By-the-Numbers daily pace (`hmz2-vwda` 12-month-ending), and the pre-1960
+birth history / latest-year births roll-up (`e6fc-ccez` + `hmz2-vwda`).
+Every Socrata query below was tested against the live API, and each module
+has comments on the quirks found doing that.
+
+### 1. Current monthly births
 
 **Dataset:** `hmz2-vwda` — "AH Monthly Provisional Counts of Live Births,
 Deaths, and Other Vital Events" ([data.cdc.gov/d/hmz2-vwda](https://data.cdc.gov/d/hmz2-vwda))
@@ -68,48 +73,24 @@ Deaths, and Other Vital Events" ([data.cdc.gov/d/hmz2-vwda](https://data.cdc.gov
 
 ```
 GET https://data.cdc.gov/resource/hmz2-vwda.json
-    ?$where=state='UNITED STATES' AND period='Monthly' AND indicator='Number of Deaths'
+    ?$where=state='UNITED STATES' AND period='Monthly' AND indicator='Number of Live Births'
     &$order=year, month
 ```
-(swap `indicator` for `'Number of Live Births'` for births)
 
-⚠️ **This dataset is not continuously current.** Its most recent record as
-of building this was **June 2024** — despite being CDC's "current
-provisional" table, on a nominally quarterly update schedule, it hadn't
-been refreshed in over a year at time of writing. It's still the most
-current source CDC publishes for this figure; the site shows the actual
-latest available date rather than assuming it means "now." Worth
-periodically re-checking whether CDC has resumed updating it, or whether
-they've replaced it with a new dataset ID.
+⚠️ **This dataset is not continuously current.** CDC trimmed it to a
+rolling ~18-month window and hadn't refreshed it past June 2024 at time of
+writing. It's still the most current source CDC publishes for monthly
+births; the chart shows the actual latest date. Monthly *deaths* moved off
+this dataset to the WONDER `mortality_monthly.json` for the same reason.
 
-### 2. Historical annual death rollup
+### 2. Annual deaths
 
-**Dataset:** `muzy-jte6` — "Weekly Counts of Deaths by Jurisdiction and
-Select Causes of Death" ([data.cdc.gov/d/muzy-jte6](https://data.cdc.gov/d/muzy-jte6))
-**Module:** `src/api/historicalDeaths.js`
-
-The raw data is weekly, per jurisdiction. A server-side SoQL rollup sums it
-to annual national totals instead of downloading and summing weekly rows
-client-side:
-
-```
-GET https://data.cdc.gov/resource/muzy-jte6.json
-    ?$select=mmwryear as year, sum(all_cause) as total_annual_deaths, count(*) as week_count
-    &$where=jurisdiction_of_occurrence='United States'
-    &$group=mmwryear
-    &$order=mmwryear
-```
-
-⚠️ Two things that aren't obvious and matter a lot here:
-- `jurisdiction_of_occurrence='United States'` is required in `$where` —
-  the dataset has a row per state *and* a national total row each week; without
-  the filter, the sum adds every state on top of the national total.
-- **The most recent year is a partial year.** At time of writing, 2023 data
-  only covers 37 of ~52 weeks. Summed naively next to full years, it reads
-  as a sharp (fake) decline. `count(*) as week_count` is fetched alongside
-  the sum specifically so the UI can flag any year under ~52 weeks rather
-  than show a misleading total — see the muted point + caption on the
-  annual chart in `DeathStatisticsView.vue`.
+**Module:** `src/api/historicalDeaths.js` — reads the `"All causes"` rows
+out of `/data/mortality.json` (D76 1999–2020 + D176 provisional 2021+), so
+the annual chart is one continuous national series with crude and
+age-adjusted rate. 2021+ points are flagged provisional (dashed + grey).
+(This module used to roll up the Socrata weekly-deaths dataset `muzy-jte6`,
+which only started in 2020.)
 
 ### 3. Leading causes of death (CDC WONDER, not Socrata)
 
@@ -133,9 +114,10 @@ cause's series to the full year axis so several can be overlaid.
   State / County / Region grouping or filter. Every row is US-wide.
 - `/data/mortality.json` is committed as a baseline so the site works on a
   fresh deploy; the pipeline's publish step overwrites it in production.
-- Coverage is **1999–2020** (D76's range). Earlier decades (ICD-9 1979–98,
-  ICD-8 1968–78) and 2021+ need additional WONDER databases wired into the
-  pipeline — the comparison UI already has disabled controls for them.
+- Per-cause coverage is **1999–2020** (D76's range). 2021+ is wired only as
+  an all-cause total (D176); a per-cause 2021+ breakdown and the pre-1999
+  ICD-9/ICD-8 decades still need more WONDER databases — the decade buttons
+  for those are disabled in the UI.
 
 ### 4. Birth statistics
 
@@ -145,27 +127,23 @@ cause's series to the full year axis so several can be overlaid.
   baseline (NCHS Natality Measures by Race, "All races": births, crude
   birth rate, general fertility rate); 2003–2022 comes from the WONDER
   natality pipeline (D27 for 2003–2006, D66 for 2007–2022 — see
-  `pipeline/`), which `build-snapshots.js` merges over the baseline. D192
-  ("Provisional Natality, 2023 through Last Month") will extend it toward
-  the current month once its template is built. Shape mirrors
-  `mortality.json` (`years` + `byYear`).
+  `pipeline/`), which `build-snapshots.js` merges over the baseline.
+  `natality.js` then rolls up CDC's monthly counts (`hmz2-vwda`) into an
+  annual total for the latest complete year (2023), flagged provisional,
+  since D192 ("Provisional Natality, 2023 through Last Month") won't take
+  an API request — see `pipeline/templates/README.md`.
 - **Provisional monthly births** — `fetchCurrentMonthlyBirths()` in
   `src/api/currentVitalEvents.js` (`hmz2-vwda`, `indicator='Number of Live
   Births'`), plus a rough year-over-year.
 
 ### 5. Population change (births vs. deaths)
 
-`src/api/populationChange.js` combines two Socrata datasets, browser-direct:
-- **`e6fc-ccez`** — NCHS Births and General Fertility Rates: annual US birth
-  counts + crude birth rate, **1909–2018** (`year` is a *string* here).
-- **`bi63-dtpu`** — the `cause_name='All causes'` rows are the national
-  annual death total, **1999–2017** (`state='United States'`, not all-caps).
-
-`fetchBirthsVsDeaths()` returns the 1999–2017 overlap with natural increase
-(births − deaths); `fetchBirthHistory()` returns the full 1909–2018 birth
-line. `PopulationChangeView.vue` notes that 2021 — the first year US deaths
-exceeded births — is just past the data's edge and needs the WONDER
-pipeline.
+`src/api/populationChange.js` reads births from `/data/natality.json` (via
+`natality.js`, so it inherits the latest-year monthly roll-up) and deaths
+from `/data/mortality.json` `"All causes"`. `fetchBirthsVsDeaths()` returns
+the 1999–2022 overlap with natural increase; `fetchBirthHistory()` prepends
+the Socrata `e6fc-ccez` series for pre-1960 birth history. Deaths 2021+ are
+flagged provisional.
 
 ### 6. By the Numbers (daily pace)
 
@@ -180,19 +158,15 @@ scale, clearly labelled as estimates.
 
 Two data strategies coexist on purpose:
 
-- **Socrata** (`data.cdc.gov`) — plain JSON + CORS, so the browser calls it
-  directly, no infrastructure. Powers Death Statistics (current monthly +
-  annual rollup). Downside: short coverage (2020–present) and raw counts
-  only, no rate.
-- **CDC WONDER** — XML/POST, no CORS, and its API is national-only. Needs
-  the out-of-band [`pipeline/`](pipeline/) (an earlier version used an
-  always-on Node proxy; that's gone — the pipeline is a scheduled batch job
-  that writes a static file). Upside: finalized multi-decade data with
-  age-adjusted rates. Powers Causes of Death.
-
-If Death Statistics ever wants real multi-decade history, the move is to
-add a WONDER annual-totals pull to the pipeline rather than stretch
-Socrata.
+- **Socrata** (`data.cdc.gov`) — plain JSON + CORS, browser-direct, no
+  infrastructure. Downside: CDC trims and stalls the datasets. Now only
+  the monthly-births chart, the By-the-Numbers daily pace, and the pre-1960
+  birth history.
+- **CDC WONDER** — XML/POST, no CORS, national-only. Needs the out-of-band
+  [`pipeline/`](pipeline/) (an earlier version was an always-on Node proxy;
+  that's gone — it's a scheduled batch job that writes static files).
+  Upside: finalized multi-decade data with age-adjusted rates. Powers
+  everything else.
 
 ## Deploying to GoDaddy
 
@@ -231,13 +205,15 @@ src/
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
   api/
     socrata.js                # generic data.cdc.gov Socrata client
-    currentVitalEvents.js     # current monthly deaths + births (Socrata hmz2-vwda)
-    historicalDeaths.js       # historical annual death rollup (Socrata muzy-jte6)
+    currentVitalEvents.js     # current monthly births (Socrata hmz2-vwda)
+    monthlyDeaths.js          # monthly all-cause deaths from /data/mortality_monthly.json
+    historicalDeaths.js       # annual all-cause deaths from /data/mortality.json
     causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
-    populationChange.js       # births (e6fc-ccez) vs deaths (bi63-dtpu) + natural increase
+    causeBreakdown.js         # reads /data/mortality_demographic.json — Sex/Race breakdown
+    populationChange.js       # births (natality.json) vs deaths (mortality.json) + natural increase
     dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
     yearFacts.js              # per-year births/deaths/leading-cause for the Home "pick a year" panel
-    natality.js               # annual births + fertility rate from /data/natality.json
+    natality.js               # annual births + fertility rate from /data/natality.json (+ monthly roll-up)
   lib/
     csv.js                    # toCsv / downloadCsv helpers
   composables/
@@ -248,7 +224,7 @@ src/
     NavIcon.vue                # inline SVG icons per section
     PageHeader.vue             # consistent page title/description header
     YearLookup.vue             # Home "in the year N" cross-section lookup
-    ComingSoonPanel.vue        # placeholder panel (no longer used — all sections live)
+    RangeTabs.vue              # segmented control for a chart's time window
     TimeSeriesChart.vue        # Chart.js line chart, single- or multi-series (Death Stats + trend)
     RankedBarChart.vue         # Chart.js horizontal bar chart, single- or multi-series (period compare)
     ChartToolbar.vue           # Table / CSV / Copy-link row under a chart
@@ -262,9 +238,11 @@ src/
     ByTheNumbersView.vue       # births/deaths as a daily average + rotating scale facts
 public/
   .htaccess                   # Apache: HTTPS redirect + Vue Router history-mode fallback
-  data/
-    mortality.json            # committed baseline snapshot; pipeline/ refreshes it in prod
-    natality.json             # committed Socrata baseline 1960-2018; pipeline/ extends it
+  data/                       # committed snapshots; pipeline/ refreshes them in prod
+    mortality.json            #   all-cause + per-cause deaths, 1999-present
+    mortality_demographic.json #  deaths by sex / race, 1999-2020
+    mortality_monthly.json    #   all-cause deaths by month, 2018-present
+    natality.json             #   births + fertility rate, 1960-2022
 pipeline/                     # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
                               #   (own package.json; see pipeline/README.md)
 ```
@@ -272,8 +250,8 @@ pipeline/                     # standalone Node job: CDC WONDER -> MySQL -> /dat
 Adding a sidebar section: add an entry to `nav.js`, a view file, an icon
 branch in `NavIcon.vue`, and a line in the `viewComponents` map in
 `router/index.js`. Adding a new live-data section: add a `src/api/*.js`
-module following the pattern in `historicalDeaths.js` /
-`currentVitalEvents.js` (always test the actual query against the live API
+module — a snapshot reader (`causesOfDeath.js`) or a Socrata query
+(`currentVitalEvents.js`; always test the query against the live API
 before assuming a dataset's fields/quirks — see "How the data pipelines
 work" above), and a view using `useAsyncData` + a chart component the way
 `DeathStatisticsView.vue` does.

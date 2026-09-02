@@ -71,10 +71,7 @@ const dataSections = sections.filter((s) => s.path !== '/')
             class="card group flex flex-col justify-between hover:border-ink"
           >
             <div>
-              <div class="flex items-center justify-between gap-3">
-                <h3 class="text-base font-semibold text-ink">{{ section.label }}</h3>
-                <span v-if="section.status === 'coming-soon'" class="badge shrink-0">Soon</span>
-              </div>
+              <h3 class="text-base font-semibold text-ink">{{ section.label }}</h3>
               <p class="mt-2 text-sm leading-relaxed text-muted">{{ section.description }}</p>
             </div>
             <span class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-ink">

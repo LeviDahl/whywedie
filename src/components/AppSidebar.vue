@@ -1,5 +1,4 @@
 <script setup>
-import { useRoute } from 'vue-router'
 import { sections } from '@/nav.js'
 import NavIcon from '@/components/NavIcon.vue'
 
@@ -8,8 +7,6 @@ defineProps({
 })
 
 defineEmits(['close'])
-
-const route = useRoute()
 </script>
 
 <template>
@@ -54,15 +51,6 @@ const route = useRoute()
       >
         <NavIcon :name="section.name" class="h-5 w-5 shrink-0 opacity-90 group-hover:opacity-100" />
         <span class="flex-1">{{ section.shortLabel }}</span>
-        <span
-          v-if="section.status === 'coming-soon'"
-          class="rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide"
-          :class="route.path === section.path
-            ? 'border-line-strong text-muted'
-            : 'border-paper/20 text-paper/50'"
-        >
-          Soon
-        </span>
       </router-link>
     </nav>
 

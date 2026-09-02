@@ -1,27 +1,18 @@
-// Pipeline: CURRENT MONTHLY BIRTH / DEATH DATA
+// Pipeline: CURRENT MONTHLY BIRTHS (Birth Statistics "Monthly Births" chart)
 // Dataset: "AH Monthly Provisional Counts of Live Births, Deaths, and
 // Other Vital Events" — data.cdc.gov, ID hmz2-vwda
 // https://data.cdc.gov/d/hmz2-vwda
 //
-// Verified live against the real dataset while building this. A few things
-// that aren't obvious from the dataset name, confirmed by querying it
-// directly:
-//   - `state` includes a national total row where state = 'UNITED STATES'
-//     (all caps) alongside every individual state — must filter to it, or
-//     totals will double-count.
-//   - `period` has two values, 'Monthly' and '12 Month-ending' (a rolling
-//     12-month figure) — must filter to 'Monthly' for a true month-by-month
-//     series.
-//   - `indicator` values are exactly 'Number of Live Births', 'Number of
-//     Deaths', and 'Number of Infant Deaths' (not "Provisional Number of
-//     ..." — there's no "Provisional" in the actual indicator text).
-//   - There's no rate/age-adjusted figure here, only raw counts.
+// Monthly deaths moved to the WONDER pipeline (src/api/monthlyDeaths.js);
+// this is births-only now. Quirks confirmed by querying the dataset:
+//   - `state` has a 'UNITED STATES' (all caps) national row alongside the
+//     per-state rows — must filter to it or totals double-count.
+//   - `period` is 'Monthly' or '12 Month-ending'; filter to 'Monthly'.
+//   - `indicator` = 'Number of Live Births' exactly (no "Provisional").
 //
-// ⚠️ Data currency: as of when this was built, this dataset's most recent
-// record was June 2024, despite being CDC's "current provisional" table —
-// it hasn't been refreshed as often as its quarterly (R/P3M) update
-// schedule implies. This is CDC's most current source for this figure;
-// the UI surfaces the actual latest date rather than assuming it's "now."
+// ⚠️ Data currency: CDC trimmed this dataset to a rolling ~18-month window
+// and, as of writing, hadn't refreshed it past June 2024. The chart shows
+// the real latest date rather than assuming it's "now."
 
 import { socrataQuery } from './socrata.js'
 
@@ -67,10 +58,6 @@ async function fetchMonthlyIndicator(indicator) {
     labels: points.map((p) => `${p.month.slice(0, 3)} ${p.year}`),
     values: points.map((p) => p.value)
   }
-}
-
-export function fetchCurrentMonthlyDeaths() {
-  return fetchMonthlyIndicator('Number of Deaths')
 }
 
 export function fetchCurrentMonthlyBirths() {

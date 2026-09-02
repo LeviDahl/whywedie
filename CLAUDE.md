@@ -23,9 +23,10 @@ of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
   reads `/data/natality.json`; Socrata `89yk-m38d` baseline 1960–2018,
   WONDER natality pipeline extends it) plus provisional monthly births +
   rough YoY (Socrata `hmz2-vwda`).
-- **Population Decline/Gain** — births (`e6fc-ccez`, 1909–2018) vs deaths
-  (`bi63-dtpu` "All causes", 1999–2017), natural increase, century birth
-  history. All browser-direct Socrata.
+- **Population Decline/Gain** — births vs deaths and the shrinking natural
+  increase, plus the century birth history. Births from `/data/natality.json`
+  (+ Socrata `e6fc-ccez` for pre-1960), deaths from `/data/mortality.json`
+  "All causes"; overlap 1999–2022. Time-range tabs on each chart.
 - **By the Numbers** — births/deaths as a per-day average (`hmz2-vwda`
   12-month-ending ÷ 365) next to rotating hand-curated "N per day" scale
   facts (`src/data/dailyFacts.js`, clearly labelled as rough estimates).
@@ -142,7 +143,7 @@ whether it would pass.
 
 - **No Pinia yet — nothing in this project needs shared/global state at the
   moment.** `src/nav.js` is the single source of truth for the 6 sidebar
-  sections (path, label, description, status, planned data source); both the
+  sections (path, name, shortLabel, label, description); both the
   router and the sidebar read from it. When a real feature needs state
   shared across components (e.g. a chart's selected year range persisting
   across a page), add **Pinia** with setup-style stores
@@ -177,14 +178,15 @@ src/
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
   api/
     socrata.js                # generic data.cdc.gov Socrata (SODA) JSON client
-    currentVitalEvents.js     # current monthly deaths + births (Socrata hmz2-vwda)
-    historicalDeaths.js       # historical annual death rollup (Socrata muzy-jte6)
+    currentVitalEvents.js     # current monthly births (Socrata hmz2-vwda)
+    monthlyDeaths.js          # monthly all-cause deaths from /data/mortality_monthly.json
+    historicalDeaths.js       # annual all-cause deaths from /data/mortality.json "All causes"
     causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
     causeBreakdown.js         # reads /data/mortality_demographic.json — Sex/Race breakdown (optional)
-    populationChange.js       # births (e6fc-ccez) vs deaths (bi63-dtpu "All causes") + natural increase
+    populationChange.js       # births (natality.json + e6fc-ccez) vs deaths (mortality.json) + natural increase
     dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
     yearFacts.js              # per-year births/deaths/leading-cause for the Home "pick a year" panel
-    natality.js               # annual births + fertility rate from /data/natality.json
+    natality.js               # annual births + fertility rate from /data/natality.json (+ monthly roll-up)
   lib/
     csv.js                    # toCsv / downloadCsv helpers
   composables/
@@ -195,7 +197,7 @@ src/
     NavIcon.vue               # inline SVG icons per section (one v-if branch per section name)
     PageHeader.vue            # consistent page title/description header
     YearLookup.vue            # Home "in the year N" cross-section lookup
-    ComingSoonPanel.vue       # placeholder panel — no longer used (all sections live)
+    RangeTabs.vue             # segmented control for a chart's time window
     TimeSeriesChart.vue       # Chart.js line chart — single- OR multi-series (pass `series`)
     RankedBarChart.vue        # Chart.js horizontal bars — single- OR multi-series (period compare)
     ChartToolbar.vue           # Table / CSV / Copy-link row under a chart
@@ -293,26 +295,30 @@ the national-only constraint, the `#`-prefixed "rankable" cause convention,
 the template format, the schema — is in `pipeline/README.md` and
 `pipeline/templates/README.md`. Don't reach for `bi63-dtpu` again.
 
-### ⚠️ `muzy-jte6` (historical annual rollup) has a partial final year
+### ⚠️ Don't silently sum an in-progress period
 
-At time of writing, the most recent year (2023) only has 37 of ~52 weeks of
-data — `historicalDeaths.js` fetches `count(*) as week_count` alongside the
-sum specifically so `DeathStatisticsView.vue` can flag any year under 52
-weeks (muted chart point + caption) instead of showing a misleadingly low
-total next to full years. Keep this pattern for any future annual rollup
-from a weekly/monthly source — don't silently sum an in-progress period.
+Any monthly/weekly source has a partial trailing period. The D176
+provisional annual total treats the current calendar year as partial (its
+era run stops at the last full year); `monthlyDeaths.js` flags a trailing
+month under 80% of the recent median; the frontend renders those muted +
+dashed. Follow the same pattern for any future rollup — never show a
+half-filled period next to full ones un-flagged.
 
 ### Socrata vs. CDC WONDER — two strategies on purpose
 
-- **Socrata** (Death Statistics): browser calls it directly, zero
-  infrastructure, but short coverage (2020–present) and counts only.
-- **CDC WONDER** (Causes of Death): finalized multi-decade data with rates,
+- **Socrata**: browser calls it directly, zero infrastructure, but CDC
+  trims/stalls the datasets (see the ⚠️ on `hmz2-vwda`). Now only the
+  monthly-births chart, the By-the-Numbers daily pace, and the pre-1960
+  birth history.
+- **CDC WONDER** (everything else): finalized multi-decade data with rates,
   but XML/POST, no CORS, national-only — so it needs `pipeline/` (a
-  scheduled batch job writing a static file, *not* a request-time proxy).
+  scheduled batch job writing static files, *not* a request-time proxy).
 
-If Death Statistics ever needs real multi-decade history, add a WONDER
-annual-totals pull to `pipeline/` rather than stretch Socrata — don't force
-old and new into one series.
+Done for Death Statistics: the annual chart is the WONDER `icd10_total`
+(D76, 1999–2020) + `provisional` (D176, 2021+) "All causes" series, and
+monthly is `mortality_monthly` (D176 × Month). Same move for any other
+section that outgrows Socrata — a WONDER pipeline era, not a stretched
+Socrata query.
 
 ## Next steps
 

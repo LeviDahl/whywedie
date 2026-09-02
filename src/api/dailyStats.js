@@ -2,9 +2,8 @@
 //
 // Uses hmz2-vwda's `period='12 Month-ending'` rows — a rolling 12-month
 // total for births and for deaths, national — and takes the most recent
-// month that has both. Dividing by 365 gives a "typical day" figure. This
-// is more current than the annual-file sources (e6fc-ccez / bi63-dtpu);
-// as of writing it reaches ~mid-2024.
+// month that has both. Dividing by 365 gives a "typical day" figure. As of
+// writing it reaches ~mid-2024.
 
 import { socrataQuery } from './socrata.js'
 

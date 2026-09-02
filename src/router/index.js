@@ -14,10 +14,7 @@ const routes = sections.map((section) => ({
   path: section.path,
   name: section.name,
   component: viewComponents[section.name],
-  meta: {
-    title: section.label,
-    status: section.status
-  }
+  meta: { title: section.label }
 }))
 
 // Fallback: unknown paths go home rather than showing a dead end.
