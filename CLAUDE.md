@@ -316,39 +316,53 @@ old and new into one series.
 
 ## Next steps
 
-**Done:** D76 mortality (1999–2020) and natality `mid` D66 (2007–2022) +
-`gap` D27 (2003–2006) are run and committed (`mortality.json` 1999–2020,
-`natality.json` 1960–2022, pre-2003 merged from the Socrata baseline).
+**Done + deployed:**
 
-**Drafted, each needs one confirming `--dump` run then a pipeline run:**
+- D76 mortality (1999–2020), natality `mid` D66 (2007–2022) + `gap` D27
+  (2003–2006) — `mortality.json` 1999–2020, `natality.json` 1960–2022
+  (pre-2003 merged from the Socrata baseline).
+- **Sex / Race breakdown for Causes of Death** — eras `icd10_sex` /
+  `icd10_race` (D76 × `D76.V7` Gender / `D76.V8` Race) write the separate
+  `mortality_demographic` table → `/data/mortality_demographic.json`
+  (1999–2020, ~132 causes; race = the 4 bridged-race groups). Frontend:
+  `src/api/causeBreakdown.js` + the "Breakdown" segmented control on
+  `CausesOfDeathView.vue`. A breakdown collapses period-compare to one
+  period, and Race defaults the metric to age-adjusted rate. The control
+  hides itself if `mortality_demographic.json` has empty `dimensions`.
+- **D176 provisional all-cause totals 2021–2024** — era `provisional`,
+  Year-only (D176's "15 Leading Causes" list won't combine with any other
+  Group By). Written to `mortality` as a synthetic non-`#` "All causes"
+  cause; `causesOfDeath.js` filters it out of the cause-level UI and keeps
+  `years` / `coverage.yearMax` at 2020. Not surfaced anywhere yet —
+  banked for a future "total deaths through <year>" callout.
 
-1. **Sex / Race breakdown for Causes of Death** — templates
-   `mortality_icd10_sex.xml` / `_race.xml` (D76 with `B_3` = `D76.V7`
-   Gender / `D76.V8` Race), eras `icd10_sex` / `icd10_race` writing the
-   **separate `mortality_demographic`** table → `build-snapshots.js`
-   emits `/data/mortality_demographic.json`. Frontend: `src/api/
-   causeBreakdown.js` + the "Breakdown" segmented control on
-   `CausesOfDeathView.vue` (hidden until the snapshot has real
-   `dimensions`; a breakdown collapses period-compare to one period and,
-   for Race, defaults to age-adjusted rate).
-2. **Recent-years mortality (2021+)** — `mortality_provisional.xml` /
-   D176 era `provisional`. D176's "15 Leading Causes" list won't combine
-   with any other Group By and its 113-list variable is unconfirmed, so
-   this era is **Year-only all-cause totals** (deaths / population /
-   crude rate), tagged as a synthetic non-`#` "All causes" cause.
+**Tabled — possible enhancement:** period/decade comparison *inside* a
+Sex/Race breakdown. Blocked today because the ranked bar chart has one
+color axis and the breakdown already spends it on the subgroup. Paths if
+revisited: (a) a **single-cause** mode — bars grouped subgroup × decade
+(~8 bars, readable); (b) a different chart type (small multiples, or
+slope/dumbbell per subgroup). The trend chart already covers
+subgroup-over-time for one cause. Don't try to cram top-15 × subgroups ×
+decades onto one bar chart.
 
 **Still needs WONDER params (no skeleton — iterate against live WONDER):**
 
-3. **`natality_current.xml` (D192)** — births to the current month. A
-   straight D149→D192 substitution 400s; needs its real param set. Its
-   latest year is partial — `BirthStatisticsView.vue` already flags
-   provisional years.
-4. **D16 + D15** — pre-1999 mortality; lights up the disabled decade
+1. **D176 per-cause for 2021+** — the `provisional` era is Year-only; a
+   real per-cause breakdown needs D176's "ICD-10 113 Cause List" variable
+   (NOT `V4` = "15 Leading Causes"). `V25` (label "All Causes of Death",
+   codeset finder) is the likely candidate — one `--dump` to confirm,
+   then add `B_2` and widen the era's column contract back to 6.
+2. **`natality_current.xml` (D192)** — births to the current month. A
+   straight D149→D192 substitution 400s; needs its real param set (its
+   sibling D176 needed an extra `O_PR` param — expect similar). Latest
+   year is partial; `BirthStatisticsView.vue` already flags provisional
+   years.
+3. **D16 + D15** — pre-1999 mortality; lights up the disabled decade
    buttons. Also needs an ICD-8/9 → ICD-10 cause crosswalk (different
    cause taxonomy), so it's the biggest lift.
-5. Schedule the pipeline (host + cron + publish, `pipeline/README.md`)
-   once the *updating* dataset (D192 natality, or D176 provisional) is in.
-6. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+4. Schedule the pipeline (host + cron + publish, `pipeline/README.md`)
+   once an *updating* dataset (D192 natality, or D176 provisional) is in.
+5. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
 
 WONDER API rate limit: ≥15 s between requests (429 otherwise); a manual
 loop needs `sleep 16` between `fetch.js` calls.
