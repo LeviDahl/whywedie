@@ -402,9 +402,11 @@ Frontend: `natality.js` flags the partial trailing calendar year
 caption); Birth Statistics has an `(i)` popover explaining Births /
 Fertility rate (general, not total) / Birth rate, and **Pew generation
 bands** on the annual-births chart (`TimeSeriesChart` `bands` prop —
-faint fill + divider + label per cohort, Births metric only); Death
-Statistics annual range tabs are 10/25/50/Max. `historicalDeaths.js`
-source label is derived from the actual first year.
+faint fill + divider + label per cohort, Births metric only) with an
+On/Off toggle and per-cohort drill-down (a cohort button — or clicking a
+band — zooms the x-range to that generation's birth years; `TimeSeriesChart`
+emits `bandClick`); Death Statistics annual range tabs are 10/25/50/Max.
+`historicalDeaths.js` source label is derived from the actual first year.
 
 **Remaining:**
 
@@ -436,10 +438,19 @@ source label is derived from the actual first year.
      population series added as a source.
    The "Fertility rate" / "Birth rate" toggles on Birth Statistics are
    empty past those years; re-check periodically.
-4. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
+4. **Monthly births chart stops mid-2024** — `currentVitalEvents.js` still
+   reads Socrata `hmz2-vwda`, which CDC trimmed to a rolling window and
+   stopped refreshing past June 2024 (the same table monthly *deaths* were
+   moved off). Fix: a `natality.monthly` era = D192 grouped by Year × Month
+   (`B_1=D192.V20`, `B_2=D192.V25`, `M_002`), a `natality_monthly` table +
+   `buildNatalityMonthly()` snapshot fn, and a `monthlyBirths.js` that reads
+   it (falling back to Socrata) — a direct mirror of the `mortality_monthly`
+   / `monthlyDeaths.js` work. Needs one `--dump` to confirm the month
+   grouping, like the others.
+5. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
    only the `provisional` / `provisional_causes` / `monthly` / `current`
    eras recur; D76 / D66 / D27 / D16 / D74 are finalized, run once.
-5. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+6. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
 
 **Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
 ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).
