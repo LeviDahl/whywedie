@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
+import ChartToolbar from '@/components/ChartToolbar.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchCurrentMonthlyBirths } from '@/api/currentVitalEvents.js'
 import { sections } from '@/nav.js'
@@ -35,6 +36,16 @@ const yoy = computed(() => {
   const prior = d.values[latestIndex.value - 12]
   if (!now || !prior) return null
   return ((now - prior) / prior) * 100
+})
+
+const monthlyTable = computed(() => {
+  const d = monthly.data.value
+  if (!d) return null
+  return {
+    columns: ['Month', 'Births'],
+    rows: d.labels.map((m, i) => [m, d.values[i]]),
+    note: `Data through ${d.labels.at(-1)}`
+  }
 })
 </script>
 
@@ -95,6 +106,13 @@ const yoy = computed(() => {
               :values="monthly.data.value.values"
               series-label="Births"
               :value-formatter="integerFormatter"
+            />
+            <ChartToolbar
+              v-if="monthlyTable"
+              :columns="monthlyTable.columns"
+              :rows="monthlyTable.rows"
+              :note="monthlyTable.note"
+              filename="whywedie-monthly-births"
             />
           </div>
           <p class="mt-3 text-xs text-muted">

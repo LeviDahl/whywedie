@@ -3,7 +3,8 @@ import { computed, ref, onMounted } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchDailyPace } from '@/api/dailyStats.js'
-import { perDay, pickFacts } from '@/data/dailyFacts.js'
+import { DAILY_FACTS, perDay, pickFacts } from '@/data/dailyFacts.js'
+import { downloadCsv } from '@/lib/csv.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'by-the-numbers')
@@ -30,6 +31,18 @@ const netPerDay = computed(() =>
 const facts = ref(pickFacts(3))
 function shuffle() {
   facts.value = pickFacts(3, (Math.random() * 2 ** 31) | 0)
+}
+
+function exportCsv() {
+  const rows = []
+  if (data.value) {
+    rows.push(['Babies born (US)', Math.round(birthsPerDay.value), data.value.birthsPerYear, 'US', data.value.source])
+    rows.push(['People who die (US)', Math.round(deathsPerDay.value), data.value.deathsPerYear, 'US', data.value.source])
+  }
+  for (const f of DAILY_FACTS) {
+    rows.push([f.label, Math.round(perDay(f)), f.perYear, f.scope, f.source])
+  }
+  downloadCsv('whywedie-by-the-numbers', ['Item', 'Per day', 'Per year', 'Scope', 'Source'], rows)
 }
 </script>
 
@@ -101,6 +114,18 @@ function shuffle() {
             These are rough public estimates (annual ÷ 365), included for scale — not precise, and
             not health data.
           </p>
+          <div class="mt-3 border-t border-line pt-2.5">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-paper-soft hover:text-ink"
+              @click="exportCsv"
+            >
+              <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14" />
+              </svg>
+              Download all as CSV
+            </button>
+          </div>
         </section>
       </template>
     </div>

@@ -1,13 +1,19 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import RankedBarChart from '@/components/RankedBarChart.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
+import ChartToolbar from '@/components/ChartToolbar.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { useNamePreference } from '@/composables/useNamePreference.js'
 import { fetchCausesOfDeath } from '@/api/causesOfDeath.js'
 import { displayName } from '@/data/causeNames.js'
 import { sections } from '@/nav.js'
+
+const route = useRoute()
+const router = useRouter()
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
 const section = sections.find((s) => s.name === 'causes-of-death')
 
@@ -34,26 +40,68 @@ const METRICS = {
   },
   crudeRate: { label: 'Crude rate', axis: 'Crude rate (per 100,000)', unit: 'per 100,000' }
 }
-const metric = ref('deaths')
+const metric = ref(METRICS[route.query.metric] ? route.query.metric : 'deaths')
+if (route.query.names === 'friendly' || route.query.names === 'official') {
+  nameStyle.value = route.query.names
+}
 
 // Ranked chart: one series per "period" (a single year or a year range).
 const periods = ref([])
 // Trend chart: one line per selected cause.
 const trendCauses = ref([])
 
+function parsePeriodsParam(q, years) {
+  const lo = years[0]
+  const hi = years.at(-1)
+  const clamp = (n) => Math.min(hi, Math.max(lo, n))
+  return String(q || '')
+    .split(',')
+    .map((s) => s.match(/^(\d{4})(?:-(\d{4}))?$/))
+    .filter(Boolean)
+    .map((m) => ({ from: clamp(+m[1]), to: clamp(+(m[2] || m[1])) }))
+    .slice(0, MAX_PERIODS)
+}
+
 watch(
   data,
   (d) => {
     if (!d) return
     if (periods.value.length === 0) {
-      periods.value = [{ from: d.years.at(-1), to: d.years.at(-1) }]
+      periods.value =
+        parsePeriodsParam(route.query.periods, d.years).length
+          ? parsePeriodsParam(route.query.periods, d.years)
+          : [{ from: d.years.at(-1), to: d.years.at(-1) }]
     }
     if (trendCauses.value.length === 0) {
-      const top = d.byYear[d.years.at(-1)]?.[0]?.cause
-      if (top) trendCauses.value = [top]
+      const wanted = String(route.query.causes || '')
+        .split(',')
+        .filter(Boolean)
+      const bySlug = new Map(d.causes.map((c) => [slug(c), c]))
+      const fromUrl = wanted.map((s) => bySlug.get(s)).filter(Boolean).slice(0, MAX_TREND_CAUSES)
+      trendCauses.value = fromUrl.length
+        ? fromUrl
+        : [d.byYear[d.years.at(-1)]?.[0]?.cause].filter(Boolean)
     }
   },
   { immediate: true }
+)
+
+// Reflect the current view in the URL so "Copy link" is shareable.
+watch(
+  [metric, nameStyle, periods, trendCauses],
+  ([m, n, ps, cs]) => {
+    router.replace({
+      query: {
+        ...route.query,
+        metric: m === 'deaths' ? undefined : m,
+        names: n === 'friendly' ? undefined : n,
+        periods:
+          ps.map((p) => (p.from === p.to ? `${p.from}` : `${p.from}-${p.to}`)).join(',') || undefined,
+        causes: cs.map(slug).join(',') || undefined
+      }
+    })
+  },
+  { deep: true }
 )
 
 const integerFormatter = (v) => (v == null ? '—' : Math.round(v).toLocaleString())
@@ -163,6 +211,36 @@ const trendSeries = computed(() =>
     .map((name) => ({ label: label(name), values: data.value.byCause[name][metric.value] }))
 )
 const trendYearLabels = computed(() => data.value?.years.map(String) ?? [])
+
+// --- tables behind the two charts ---
+const rankedTable = computed(() => {
+  if (!rankedCauseNames.value.length) return null
+  return {
+    columns: ['Cause', ...periods.value.map(periodLabel)],
+    rows: rankedCauseNames.value.map((name) => [
+      label(name),
+      ...periodMeans.value.map((m) => {
+        const v = m?.get(name)
+        return v == null ? '' : Math.round(v * 100) / 100
+      })
+    ]),
+    note: `${METRICS[metric.value].label} · mean annual value per period`
+  }
+})
+const trendTable = computed(() => {
+  if (!data.value || !trendCauses.value.length) return null
+  return {
+    columns: ['Year', ...trendCauses.value.map(label)],
+    rows: data.value.years.map((y, i) => [
+      y,
+      ...trendCauses.value.map((name) => {
+        const v = data.value.byCause[name]?.[metric.value]?.[i]
+        return v == null ? '' : v
+      })
+    ]),
+    note: `${METRICS[metric.value].label} · ${data.value.coverage.yearMin}–${data.value.coverage.yearMax}`
+  }
+})
 
 function addTrendCause(name) {
   if (name && trendCauses.value.length < MAX_TREND_CAUSES && !trendCauses.value.includes(name)) {
@@ -318,6 +396,13 @@ function removeTrendCause(i) {
               :series="rankedSeries"
               :value-formatter="valueFormatter"
             />
+            <ChartToolbar
+              v-if="rankedTable"
+              :columns="rankedTable.columns"
+              :rows="rankedTable.rows"
+              :note="rankedTable.note"
+              filename="whywedie-leading-causes"
+            />
           </div>
           <p class="mt-3 text-xs text-muted">
             Top {{ TOP_N }} rankable ("113 Selected Causes") categories by {{ periodLabel(periods[0]) }},
@@ -365,6 +450,13 @@ function removeTrendCause(i) {
               :labels="trendYearLabels"
               :series="trendSeries"
               :value-formatter="valueFormatter"
+            />
+            <ChartToolbar
+              v-if="trendTable"
+              :columns="trendTable.columns"
+              :rows="trendTable.rows"
+              :note="trendTable.note"
+              filename="whywedie-cause-trend"
             />
           </div>
           <p class="mt-1 text-xs text-muted">Source: {{ data.source }}.</p>

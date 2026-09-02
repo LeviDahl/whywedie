@@ -1,10 +1,15 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
+import ChartToolbar from '@/components/ChartToolbar.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchBirthsVsDeaths, fetchBirthHistory } from '@/api/populationChange.js'
 import { sections } from '@/nav.js'
+
+const route = useRoute()
+const router = useRouter()
 
 const section = sections.find((s) => s.name === 'population-change')
 
@@ -64,6 +69,25 @@ const ERA_PRESETS = [
 ]
 const eras = ref([])
 
+// --- share the era selection via ?eras=1946-1964,2007-2018 ---
+function parseEras(q) {
+  return String(q || '')
+    .split(',')
+    .map((s) => s.match(/^(\d{4})-(\d{4})$/))
+    .filter(Boolean)
+    .map((m) => ({ from: Number(m[1]), to: Number(m[2]) }))
+    .slice(0, 4)
+}
+eras.value = parseEras(route.query.eras)
+watch(
+  eras,
+  (v) => {
+    const q = v.map((e) => `${e.from}-${e.to}`).join(',')
+    router.replace({ query: { ...route.query, eras: q || undefined } })
+  },
+  { deep: true }
+)
+
 function toggleEra(p) {
   const i = eras.value.findIndex((e) => e.from === p.from && e.to === p.to)
   if (i >= 0) eras.value.splice(i, 1)
@@ -89,6 +113,36 @@ const eraOverlay = computed(() => {
       label: `${e.from}–${e.to}`,
       values: Array.from({ length: maxLen }, (_, i) => map.get(e.from + i) ?? null)
     }))
+  }
+})
+
+// --- tables behind each chart ---
+const bvdTable = computed(() => {
+  const d = bvd.data.value
+  if (!d) return null
+  return {
+    columns: ['Year', 'Births', 'Deaths', 'Natural increase'],
+    rows: d.years.map((y, i) => [y, d.births[i], d.deaths[i], d.naturalIncrease[i]]),
+    note: `${d.years[0]}–${d.years.at(-1)}`
+  }
+})
+const historyTable = computed(() => {
+  if (eraOverlay.value) {
+    return {
+      columns: ['Year in span', ...eraOverlay.value.series.map((s) => s.label)],
+      rows: eraOverlay.value.labels.map((_, i) => [
+        i + 1,
+        ...eraOverlay.value.series.map((s) => s.values[i])
+      ]),
+      note: 'Aligned to year 1 of each span'
+    }
+  }
+  const d = history.data.value
+  if (!d) return null
+  return {
+    columns: ['Year', 'Births'],
+    rows: d.years.map((y, i) => [y, d.births[i]]),
+    note: `${d.years[0]}–${d.years.at(-1)}`
   }
 })
 </script>
@@ -153,6 +207,13 @@ const eraOverlay = computed(() => {
               series-label="People"
               :value-formatter="compact"
             />
+            <ChartToolbar
+              v-if="bvdTable"
+              :columns="bvdTable.columns"
+              :rows="bvdTable.rows"
+              :note="bvdTable.note"
+              filename="whywedie-births-vs-deaths"
+            />
           </div>
           <p class="mt-3 text-xs text-muted">
             The gap between the lines is <strong>natural increase</strong> — how much the population
@@ -171,6 +232,14 @@ const eraOverlay = computed(() => {
             :series="niSeries"
             series-label="Natural increase"
             :value-formatter="compact"
+          />
+          <ChartToolbar
+            v-if="bvd.data.value"
+            :columns="['Year', 'Natural increase']"
+            :rows="bvd.data.value.years.map((y, i) => [y, bvd.data.value.naturalIncrease[i]])"
+            :note="`${bvd.data.value.years[0]}–${bvd.data.value.years.at(-1)}`"
+            :show-link="false"
+            filename="whywedie-natural-increase"
           />
         </div>
         <p class="mt-3 text-xs text-muted">
@@ -232,6 +301,13 @@ const eraOverlay = computed(() => {
               :values="history.data.value.births"
               series-label="Births"
               :value-formatter="compact"
+            />
+            <ChartToolbar
+              v-if="historyTable"
+              :columns="historyTable.columns"
+              :rows="historyTable.rows"
+              :note="historyTable.note"
+              filename="whywedie-us-births-history"
             />
           </div>
           <p class="mt-3 text-xs text-muted">

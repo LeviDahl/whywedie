@@ -178,6 +178,8 @@ src/
     populationChange.js       # births (e6fc-ccez) vs deaths (bi63-dtpu "All causes") + natural increase
     dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
     yearFacts.js              # per-year births/deaths/leading-cause for the Home "pick a year" panel
+  lib/
+    csv.js                    # toCsv / downloadCsv helpers
   composables/
     useAsyncData.js          # shared loading/error/data helper for section views
     useNamePreference.js     # friendly vs official cause names, persisted (localStorage)
@@ -189,6 +191,8 @@ src/
     ComingSoonPanel.vue       # placeholder panel — no longer used (all sections live)
     TimeSeriesChart.vue       # Chart.js line chart — single- OR multi-series (pass `series`)
     RankedBarChart.vue        # Chart.js horizontal bars — single- OR multi-series (period compare)
+    ChartToolbar.vue           # Table / CSV / Copy-link row under a chart
+    DataTable.vue              # sortable table of a chart's underlying rows
   views/
     HomeView.vue              # project overview (built out)
     DeathStatisticsView.vue   # annual chart + monthly chart, each with own caveats

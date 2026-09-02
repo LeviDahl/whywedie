@@ -1,18 +1,45 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { useNamePreference } from '@/composables/useNamePreference.js'
 import { fetchYearFacts } from '@/api/yearFacts.js'
 import { displayName } from '@/data/causeNames.js'
+import ChartToolbar from '@/components/ChartToolbar.vue'
+
+const route = useRoute()
+const router = useRouter()
 
 const { data, error, loading, load } = useAsyncData(fetchYearFacts)
 onMounted(load)
 
 const { nameStyle } = useNamePreference()
 
-const year = ref(2000)
+const initialYear = Number(route.query.year)
+const year = ref(Number.isInteger(initialYear) ? initialYear : 2000)
 watch(data, (d) => {
   if (d && !d.byYear.has(year.value)) year.value = d.maxYear
+})
+watch(year, (y) => {
+  router.replace({ query: { ...route.query, year: y === 2000 ? undefined : String(y) } })
+})
+
+const yearTable = computed(() => {
+  if (!data.value) return null
+  return {
+    columns: ['Year', 'Births', 'Birth rate', 'Deaths', 'Natural increase', 'Leading cause'],
+    rows: data.value.years.map((y) => {
+      const f = data.value.byYear.get(y)
+      return [
+        y,
+        f.births ?? '',
+        f.birthRate ?? '',
+        f.deaths ?? '',
+        f.naturalIncrease ?? '',
+        f.leadingCause ? displayName(f.leadingCause, nameStyle.value) : ''
+      ]
+    })
+  }
 })
 
 const facts = computed(() => data.value?.byYear.get(year.value) ?? null)
@@ -81,6 +108,14 @@ const signed = (v) => (v == null ? null : (v >= 0 ? '+' : '−') + Math.abs(v).t
         Births 1909–2018 · deaths &amp; population change 1999–2017 · leading cause 1999–2020.
         Source: {{ data.source }}.
       </p>
+
+      <ChartToolbar
+        v-if="yearTable"
+        :columns="yearTable.columns"
+        :rows="yearTable.rows"
+        note="Every year, all sources"
+        filename="whywedie-by-year"
+      />
     </template>
   </div>
 </template>

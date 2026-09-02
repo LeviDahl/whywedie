@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
+import ChartToolbar from '@/components/ChartToolbar.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchHistoricalAnnualDeaths } from '@/api/historicalDeaths.js'
 import { fetchCurrentMonthlyDeaths } from '@/api/currentVitalEvents.js'
@@ -46,6 +47,25 @@ const partialYearLabel = computed(() => {
 const latestMonthIndex = computed(() => (monthly.data.value?.labels?.length ? monthly.data.value.labels.length - 1 : -1))
 const latestMonthLabel = computed(() => (latestMonthIndex.value >= 0 ? monthly.data.value.labels[latestMonthIndex.value] : null))
 const latestMonthDeaths = computed(() => (latestMonthIndex.value >= 0 ? monthly.data.value.values[latestMonthIndex.value] : null))
+
+const annualTable = computed(() => {
+  const d = historical.data.value
+  if (!d) return null
+  return {
+    columns: ['Year', 'Deaths', 'Weeks of data'],
+    rows: d.years.map((y, i) => [y, d.totalDeaths[i], d.weekCount?.[i] ?? '']),
+    note: `Data through ${d.years.at(-1)}`
+  }
+})
+const monthlyTable = computed(() => {
+  const d = monthly.data.value
+  if (!d) return null
+  return {
+    columns: ['Month', 'Deaths'],
+    rows: d.labels.map((m, i) => [m, d.values[i]]),
+    note: `Data through ${d.labels.at(-1)}`
+  }
+})
 </script>
 
 <template>
@@ -104,6 +124,13 @@ const latestMonthDeaths = computed(() => (latestMonthIndex.value >= 0 ? monthly.
               series-label="Deaths"
               :value-formatter="integerFormatter"
             />
+            <ChartToolbar
+              v-if="annualTable"
+              :columns="annualTable.columns"
+              :rows="annualTable.rows"
+              :note="annualTable.note"
+              filename="whywedie-annual-deaths"
+            />
           </div>
           <p v-if="hasPartialYear" class="mt-3 text-xs text-muted">
             The lighter point for {{ partialYearLabel.year }} reflects a partial year — CDC's data for it currently
@@ -142,6 +169,13 @@ const latestMonthDeaths = computed(() => (latestMonthIndex.value >= 0 ? monthly.
               :values="monthly.data.value.values"
               series-label="Deaths"
               :value-formatter="integerFormatter"
+            />
+            <ChartToolbar
+              v-if="monthlyTable"
+              :columns="monthlyTable.columns"
+              :rows="monthlyTable.rows"
+              :note="monthlyTable.note"
+              filename="whywedie-monthly-deaths"
             />
           </div>
           <p class="mt-3 text-xs text-muted">
