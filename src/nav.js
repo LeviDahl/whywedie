@@ -25,7 +25,7 @@ export const sections = [
     label: 'Causes of Death',
     shortLabel: 'Causes of Death',
     description:
-      'Leading causes of death, ranked by year (1999–2020), plus how each cause has trended over time — with deaths, crude rate, and age-adjusted rate.'
+      'Leading causes of death, ranked by year (1999–present), plus how each cause has trended over time — with deaths, crude rate, and age-adjusted rate.'
   },
   {
     path: '/birth-statistics',
