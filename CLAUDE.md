@@ -341,6 +341,13 @@ Socrata query.
   cause; `causesOfDeath.js` filters it out of the cause-level UI and keeps
   `years` / `coverage.yearMax` at 2020. Not surfaced anywhere yet —
   banked for a future "total deaths through <year>" callout.
+- **D176 per-cause 2021–2025** — era `provisional_causes`
+  (`mortality_provisional_causes.xml`), D176 grouped by Year × UCD ICD-10
+  113 Cause List (`B_2 = D176.V4` **with** `O_ucd = D176.V4` — the "button"
+  the earlier attempts were missing), age-adjusted rate enabled. Same 6-col
+  contract + `mortality` table as `icd10`, so `causesOfDeath.js` picks it
+  up with no frontend change. Causes of Death now spans **1999–2025**
+  (`coverage.yearMax` 2025). Committed in `mortality.json`.
 
 **Tabled — possible enhancement:** period/decade comparison *inside* a
 Sex/Race breakdown. Blocked today because the ranked bar chart has one
@@ -351,29 +358,42 @@ slope/dumbbell per subgroup). The trend chart already covers
 subgroup-over-time for one cause. Don't try to cram top-15 × subgroups ×
 decades onto one bar chart.
 
-**Still needs WONDER params (no skeleton — iterate against live WONDER):**
+**Built from the real WONDER request forms — need one live `--dump` to confirm:**
 
-1. **D176 per-cause for 2021+** — the `provisional` era is Year-only; a
-   real per-cause breakdown needs D176's "ICD-10 113 Cause List" variable
-   (NOT `V4` = "15 Leading Causes"). `V25` (label "All Causes of Death",
-   codeset finder) is the likely candidate — one `--dump` to confirm,
-   then add `B_2` and widen the era's column contract back to 6.
-2. **`natality_current.xml` (D192)** — births past 2022 with a fertility
-   rate. **Five attempts have 400'd** (D149 skeleton sub, D66 skeleton sub,
-   bare-bones, `stage=about`, D149 skeleton + `O_PR`). The last returns a
-   *bare* "Processing Error" with no `<message>` — WONDER can't parse the
-   request for D192 at all, i.e. its variable numbering differs from D149's
-   and isn't in any skeleton. Dead end without the real param set captured
-   from the D192 form on wonder.cdc.gov. **Interim (working):**
-   `src/api/natality.js` rolls up Socrata `hmz2-vwda` monthly births into
-   an annual total for the latest *complete* calendar year (2023 now),
-   flagged provisional — self-extends as CDC updates that table. D192 only
-   adds the rate for those years. The committed `natality_current.xml` is
-   the D149+O_PR draft, left as a starting point; the `current` era's
-   column contract is trimmed to `[year, birth_count]` to match it.
-3. **D16 + D15** — pre-1999 mortality; lights up the disabled decade
-   buttons. Also needs an ICD-8/9 → ICD-10 cause crosswalk (different
-   cause taxonomy), so it's the biggest lift.
+1. **`natality_current.xml` (D192)** — rebuilt straight from the D192
+   "Provisional Natality" request form (Group By = Year `D192.V20`,
+   measure `M_002` Births). **Key finding: D192 has no fertility/birth-rate
+   measure** — provisional natality exposes Births + "Average X" only — so
+   the `current` era stays `[year, birth_count]` and the fertility rate for
+   2023+ is simply not available from WONDER until CDC finalizes those years
+   into the Natality series. Still worth landing: 2023/2024 are Final and it
+   self-updates, replacing the Socrata `hmz2-vwda` month-sum stopgap in
+   `src/api/natality.js` for the *count*. Test:
+   `node --env-file=.env fetch.js --type=natality --era=current --years=2023 --out=rows.json --dump`
+   (on a 400 mentioning `O_PR`, add `<parameter><name>O_PR</name><value>false</value></parameter>`).
+2. **`mortality_icd9_chapter.xml` (D16, 1979–1998)** — built from the D16
+   "Compressed Mortality" request form. **Coarse by design:** Year × ICD
+   Chapter (`D16.V2-level1`, ~17 chapters) + Deaths / Population / Crude /
+   Age-Adjusted Rate. Chapter grain lines up with the ICD-10 chapter
+   roll-ups, so **no ICD-9→ICD-10 comparability crosswalk needed.** Same
+   6-col contract + `mortality` table as `icd10`; rows are non-`#` so the
+   ranked view ignores them. Frontend (decade buttons / a chapter view) is
+   still to wire once the dump confirms the shape. Test:
+   `node --env-file=.env fetch.js --type=mortality --era=icd9 --years=1979-1985 --out=rows.json --dump`
+3. **D15 (1968–1978, ICD-8) — BLOCKED.** On today's WONDER `D15` is the
+   Tuberculosis (OTIS) database, not pre-1979 mortality. "Compressed
+   Mortality, 1968–1978" needs its current database id captured from the
+   WONDER database list on wonder.cdc.gov; then a chapter-level template
+   like `mortality_icd9_chapter.xml`. The `mortality.icd8` era in
+   `datasets.js` is a stub pointing at the wrong id.
+
+**Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
+ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).
+Needs an ICD-9→ICD-10 and ICD-8→ICD-10 comparability-ratio crosswalk —
+NCHS publishes comparability studies, but applying them per cause is real
+work. Chapter-level answers "how did heart disease / cancer / accidents
+move since the 1970s" without it.
+
 4. Schedule the pipeline (host + cron + publish, `pipeline/README.md`)
    once an *updating* dataset (D192 natality, or D176 provisional) is in.
 5. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).

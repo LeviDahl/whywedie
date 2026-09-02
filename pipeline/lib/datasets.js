@@ -86,16 +86,23 @@ export const DATASETS = {
         { kind: 'measure', field: 'crude_rate' },
       ],
     },
+    // D16 = "Compressed Mortality, 1979-1998" (ICD-9 era). COARSE cause
+    // detail: Year x ICD Chapter (D16.V2-level1, ~17 chapters) — that grain
+    // lines up with the ICD-10 chapter roll-ups without a comparability
+    // crosswalk. A 113-list-equivalent ICD-9 breakdown is a separate future
+    // effort. Same 6-col contract + `mortality` table as `icd10`, so
+    // build-snapshots treats these as ordinary (non-'#', so non-rankable)
+    // mortality rows.
     icd9: {
       databaseId: 'D16',
-      templateFile: 'mortality_icd9.xml',
+      templateFile: 'mortality_icd9_chapter.xml',
       table: 'mortality',
       fixed: { icd_version: 9 },
       yearMin: 1979,
       yearMax: 1998,
       columns: [
         { kind: 'year' },
-        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' }, // "ICD-9 113 Cause List"
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' }, // D16.V2-level1 "ICD Chapter"
         { kind: 'measure', field: 'death_count', countField: true },
         { kind: 'measure', field: 'population' },
         { kind: 'measure', field: 'crude_rate' },
@@ -201,6 +208,12 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // BLOCKED. On today's WONDER, database id D15 is the Tuberculosis (OTIS)
+    // system, NOT pre-1979 mortality — the D15 request form pulled for this
+    // is TB case counts (help/tb.html), so `databaseId: 'D15'` here is
+    // wrong. "Compressed Mortality, 1968-1978" (ICD-8) needs its current
+    // database id captured from the WONDER database list on wonder.cdc.gov,
+    // then a chapter-level template like mortality_icd9_chapter.xml.
     icd8: {
       databaseId: 'D15',
       templateFile: 'mortality_icd8.xml',
@@ -208,9 +221,8 @@ export const DATASETS = {
       fixed: { icd_version: 8 },
       yearMin: 1968,
       yearMax: 1978,
-      // D15 has no NCHS 113-cause list. templates/README.md says to group by
-      // the coarsest cause recode / chapter it offers; the column shape is
-      // otherwise identical.
+      // Coarse (chapter) cause detail, like `icd9` — no ICD-8 -> ICD-10
+      // crosswalk at chapter grain. Column shape identical to `icd9`.
       columns: [
         { kind: 'year' },
         { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
@@ -235,11 +247,14 @@ export const DATASETS = {
     // Rate). Response columns: year, births, population, fertility_rate.
     //
     // D192 = "Provisional Natality, 2023 through Last Month" — updated
-    // monthly. Template built from the D149 expanded skeleton + O_PR; it
-    // requests M_002 (Births) only, so the response is [year, births].
-    // Its newest year is partial/provisional; the frontend flags it. Until
-    // this is confirmed against live WONDER, src/api/natality.js rolls up
-    // Socrata monthly births for the latest complete year as a stopgap.
+    // monthly. Template rebuilt from the real D192 request form. D192's
+    // measure list is Births + "Average X" only — there is NO fertility /
+    // birth rate measure in provisional natality — so this era is
+    // [year, birth_count]; the rate for 2023+ is unavailable from WONDER
+    // until CDC finalizes those years into the Natality series. Its newest
+    // year is partial/provisional; the frontend flags it. Until this is
+    // confirmed against live WONDER, src/api/natality.js rolls up Socrata
+    // monthly births for the latest complete year as a stopgap.
     current: {
       databaseId: 'D192',
       templateFile: 'natality_current.xml',
