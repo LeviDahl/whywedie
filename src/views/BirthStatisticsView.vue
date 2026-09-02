@@ -7,6 +7,7 @@ import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchMonthlyBirths } from '@/api/monthlyBirths.js'
 import { fetchAnnualNatality } from '@/api/natality.js'
+import { PEW_GENERATIONS, generationChoices } from '@/data/generations.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'birth-statistics')
@@ -99,18 +100,9 @@ const ANNUAL_METRICS = {
 const annualMetric = ref('births')
 const annualFmt = computed(() => ANNUAL_METRICS[annualMetric.value].fmt)
 
-// Pew Research Center generation cutoffs (by birth year). Pew defines
-// Boomer→Gen Z; "Gen Z" has no published end year, so it runs to the chart
-// edge. Shown only under the Births metric — they're birth cohorts.
-const PEW_GENERATIONS = [
-  { from: 1928, to: 1945, label: 'Silent' },
-  { from: 1946, to: 1964, label: 'Boomers' },
-  { from: 1965, to: 1980, label: 'Gen X' },
-  { from: 1981, to: 1996, label: 'Millennials' },
-  { from: 1997, to: 2100, label: 'Gen Z' }
-]
-// Ones that overlap the births data (starts 1960) — offered as drill-downs.
-const GEN_CHOICES = PEW_GENERATIONS.filter((g) => g.to >= 1960 && g.from <= 2025)
+// Pew generation cohorts — shown only under the Births metric (birth cohorts).
+// Ones that overlap the births data (starts 1960) are offered as drill-downs.
+const GEN_CHOICES = generationChoices(1960, 2025)
 
 // Generations overlay: on/off, plus an optional drilled-into cohort. Both
 // apply only to the Births metric.

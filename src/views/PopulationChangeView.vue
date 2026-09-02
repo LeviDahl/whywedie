@@ -1,16 +1,13 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
 import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchBirthsVsDeaths, fetchBirthHistory } from '@/api/populationChange.js'
+import { PEW_GENERATIONS, generationChoices } from '@/data/generations.js'
 import { sections } from '@/nav.js'
-
-const route = useRoute()
-const router = useRouter()
 
 const section = sections.find((s) => s.name === 'population-change')
 
@@ -98,75 +95,49 @@ const dropPct = computed(() => {
   return ((last.value.ni - first.value.ni) / first.value.ni) * 100
 })
 
-// --- long birth history: optional era-shape comparison ---
-const ERA_PRESETS = [
-  { label: 'Baby boom', from: 1946, to: 1964 },
-  { label: 'Baby bust', from: 1965, to: 1976 },
-  { label: 'Millennial echo', from: 1982, to: 1995 },
-  { label: 'Since 2007', from: 2007, to: 2018 }
-]
-const eras = ref([])
-
-// --- share the era selection via ?eras=1946-1964,2007-2018 ---
-function parseEras(q) {
-  return String(q || '')
-    .split(',')
-    .map((s) => s.match(/^(\d{4})-(\d{4})$/))
-    .filter(Boolean)
-    .map((m) => ({ from: Number(m[1]), to: Number(m[2]) }))
-    .slice(0, 4)
-}
-eras.value = parseEras(route.query.eras)
-watch(
-  eras,
-  (v) => {
-    const q = v.map((e) => `${e.from}-${e.to}`).join(',')
-    router.replace({ query: { ...route.query, eras: q || undefined } })
-  },
-  { deep: true }
-)
-
-function toggleEra(p) {
-  const i = eras.value.findIndex((e) => e.from === p.from && e.to === p.to)
-  if (i >= 0) eras.value.splice(i, 1)
-  else if (eras.value.length < 4) eras.value.push({ from: p.from, to: p.to })
-}
-const eraActive = (p) => eras.value.some((e) => e.from === p.from && e.to === p.to)
-
-const historyByYear = computed(() => {
-  const d = history.data.value
-  if (!d) return new Map()
-  return new Map(d.years.map((y, i) => [y, d.births[i]]))
-})
-
-// Long-view range (only applies when no era overlay is active — the
-// overlay re-indexes to "year N" and ignores the calendar).
+// --- long birth history: Pew generation bands + drill-down ---
+// One selector drives the window: a numeric range key OR a cohort label.
 const HISTORY_RANGES = [
   { key: '40y', label: '40 yr', n: 40 },
   { key: '80y', label: '80 yr', n: 80 },
   { key: 'max', label: 'Max', n: Infinity }
 ]
-const historyRange = ref('max')
-const historyWindow = computed(() => {
+const showGenerations = ref(true)
+const historyWindowKey = ref('max')
+const historySpan = computed(() => {
+  const ys = history.data.value?.years ?? []
+  return ys.length ? [ys[0], ys[ys.length - 1]] : [1909, 2026]
+})
+const GEN_CHOICES = computed(() => generationChoices(...historySpan.value))
+const selectedGen = computed(
+  () => PEW_GENERATIONS.find((g) => g.label === historyWindowKey.value) ?? null
+)
+function pickHistoryWindow(key) {
+  historyWindowKey.value = key
+}
+function onHistoryBandClick(band) {
+  if (!showGenerations.value) return
+  historyWindowKey.value = historyWindowKey.value === band.label ? 'max' : band.label
+}
+watch(showGenerations, (on) => {
+  if (!on && selectedGen.value) historyWindowKey.value = 'max'
+})
+const historyBands = computed(() =>
+  showGenerations.value
+    ? PEW_GENERATIONS.map((g) => ({ ...g, active: g.label === historyWindowKey.value }))
+    : []
+)
+
+const historyView = computed(() => {
   const d = history.data.value
   if (!d?.years?.length) return null
-  const n = HISTORY_RANGES.find((r) => r.key === historyRange.value)?.n ?? Infinity
-  return { years: tail(d.years, n), births: tail(d.births, n) }
-})
-
-// When eras are chosen, re-plot each span aligned to "year 1" so their
-// shapes sit on top of each other.
-const eraOverlay = computed(() => {
-  if (!eras.value.length) return null
-  const map = historyByYear.value
-  const maxLen = Math.max(...eras.value.map((e) => e.to - e.from + 1))
-  return {
-    labels: Array.from({ length: maxLen }, (_, i) => `Year ${i + 1}`),
-    series: eras.value.map((e) => ({
-      label: `${e.from}–${e.to}`,
-      values: Array.from({ length: maxLen }, (_, i) => map.get(e.from + i) ?? null)
-    }))
+  const g = showGenerations.value ? selectedGen.value : null
+  if (g) {
+    const keep = d.years.map((y) => y >= g.from && y <= g.to)
+    return { years: d.years.filter((_, i) => keep[i]), births: d.births.filter((_, i) => keep[i]) }
   }
+  const n = HISTORY_RANGES.find((r) => r.key === historyWindowKey.value)?.n ?? Infinity
+  return { years: tail(d.years, n), births: tail(d.births, n) }
 })
 
 // --- tables behind each chart ---
@@ -180,22 +151,12 @@ const bvdTable = computed(() => {
   }
 })
 const historyTable = computed(() => {
-  if (eraOverlay.value) {
-    return {
-      columns: ['Year in span', ...eraOverlay.value.series.map((s) => s.label)],
-      rows: eraOverlay.value.labels.map((_, i) => [
-        i + 1,
-        ...eraOverlay.value.series.map((s) => s.values[i])
-      ]),
-      note: 'Aligned to year 1 of each span'
-    }
-  }
-  const d = history.data.value
-  if (!d) return null
+  const v = historyView.value
+  if (!v) return null
   return {
     columns: ['Year', 'Births'],
-    rows: d.years.map((y, i) => [y, d.births[i]]),
-    note: `${d.years[0]}–${d.years.at(-1)}`
+    rows: v.years.map((y, i) => [y, v.births[i]]),
+    note: `${v.years[0]}–${v.years.at(-1)}`
   }
 })
 </script>
@@ -325,18 +286,9 @@ const historyTable = computed(() => {
       <section>
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-base font-semibold text-ink">US Births per Year, the Long View</h2>
-          <div class="flex items-center gap-3">
-            <p v-if="history.data.value?.years?.length" class="text-sm text-muted">
-              <template v-if="eraOverlay">aligned to year 1</template>
-              <template v-else>{{ historyWindow?.years[0] }}–{{ historyWindow?.years.at(-1) }}</template>
-            </p>
-            <RangeTabs
-              v-if="history.data.value?.years?.length && !eraOverlay"
-              v-model="historyRange"
-              :options="HISTORY_RANGES"
-              aria-label="Birth history range"
-            />
-          </div>
+          <p v-if="historyView" class="text-sm text-muted">
+            {{ historyView.years[0] }}–{{ historyView.years.at(-1) }}
+          </p>
         </div>
 
         <div v-if="history.loading.value" class="card flex items-center justify-center py-20 text-sm text-muted">
@@ -346,42 +298,59 @@ const historyTable = computed(() => {
           <p class="text-sm font-semibold text-ink">Couldn't load this chart</p>
           <button type="button" class="btn-secondary mt-4" @click="history.load">Try again</button>
         </div>
-        <template v-else-if="history.data.value?.years?.length">
+        <template v-else-if="historyView">
+          <div class="mb-4 flex flex-wrap items-center gap-3">
+            <span class="text-xs font-medium uppercase tracking-wide text-muted">Generations</span>
+            <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="opt in [{ v: true, l: 'On' }, { v: false, l: 'Off' }]"
+                :key="opt.l"
+                type="button"
+                class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="showGenerations === opt.v ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="showGenerations = opt.v"
+              >
+                {{ opt.l }}
+              </button>
+            </div>
+          </div>
+
           <div class="mb-4 flex flex-wrap items-center gap-2">
-            <span class="text-xs font-medium uppercase tracking-wide text-muted">Compare eras</span>
-            <button
-              v-for="p in ERA_PRESETS"
-              :key="p.label"
-              type="button"
-              class="badge min-h-[34px] cursor-pointer px-3.5 py-1.5 transition-colors duration-150"
-              :class="eraActive(p) ? 'border-ink bg-ink text-paper' : 'text-ink hover:border-ink'"
-              @click="toggleEra(p)"
-            >
-              {{ p.label }}
-            </button>
-            <button
-              v-if="eras.length"
-              type="button"
-              class="text-xs text-muted underline decoration-line-strong underline-offset-2 hover:text-ink"
-              @click="eras = []"
-            >
-              clear
-            </button>
+            <span class="text-xs font-medium uppercase tracking-wide text-muted">Show</span>
+            <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="r in HISTORY_RANGES"
+                :key="r.key"
+                type="button"
+                class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="historyWindowKey === r.key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="pickHistoryWindow(r.key)"
+              >
+                {{ r.label }}
+              </button>
+            </div>
+            <div v-if="showGenerations" class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="g in GEN_CHOICES"
+                :key="g.label"
+                type="button"
+                class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="historyWindowKey === g.label ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="pickHistoryWindow(g.label)"
+              >
+                {{ g.label }}
+              </button>
+            </div>
           </div>
 
           <div class="card">
             <TimeSeriesChart
-              v-if="eraOverlay"
-              :labels="eraOverlay.labels"
-              :series="eraOverlay.series"
-              :value-formatter="compact"
-            />
-            <TimeSeriesChart
-              v-else-if="historyWindow"
-              :labels="historyWindow.years"
-              :values="historyWindow.births"
+              :labels="historyView.years"
+              :values="historyView.births"
+              :bands="historyBands"
               series-label="Births"
               :value-formatter="compact"
+              @band-click="onHistoryBandClick"
             />
             <ChartToolbar
               v-if="historyTable"
@@ -391,16 +360,15 @@ const historyTable = computed(() => {
               filename="whywedie-us-births-history"
             />
           </div>
-          <p class="mt-3 text-xs text-muted">
-            <template v-if="eraOverlay">
-              Each era is lined up from its first year, so you're comparing the <em>shape</em> — how
-              fast births rose or fell — not the calendar.
-            </template>
-            <template v-else>
-              The 1946–1964 baby boom, the 1970s "baby bust", the early-2000s echo, and the steady
-              decline since 2007 are all visible here. Pick an era or two above to compare their
-              shapes side by side.
-            </template>
+          <p v-if="showGenerations" class="mt-3 text-xs text-muted">
+            Shaded bands are the <a class="link-underline" href="https://www.pewresearch.org/short-reads/2019/01/17/where-millennials-end-and-generation-z-begins/" target="_blank" rel="noopener">Pew Research Center</a>
+            generation cutoffs by birth year. Click a band — or a cohort button above — to zoom to
+            just those years; <em>Generations: Off</em> hides them. The 1946–1964 baby boom, the
+            1970s "baby bust", and the decline since 2007 are all visible here.
+          </p>
+          <p v-else class="mt-3 text-xs text-muted">
+            The 1946–1964 baby boom, the 1970s "baby bust", the early-2000s echo, and the steady
+            decline since 2007 are all visible here.
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ history.data.value.source }}.</p>
         </template>

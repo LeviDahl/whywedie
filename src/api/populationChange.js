@@ -2,15 +2,17 @@
 //
 // Reads the WONDER pipeline snapshots, with a Socrata call only for the
 // deep pre-1960 birth history:
-//   - /data/natality.json   annual US births (1960–2022, WONDER D27/D66 +
-//                            Socrata baseline)
-//   - /data/mortality.json   annual all-cause deaths ("All causes" rows:
-//                            D76 1999–2020 + D176 provisional 2021+)
-//   - e6fc-ccez (Socrata)    US births 1909–1959, for the long-view chart
+//   - /data/natality.json    annual US births (Socrata baseline + WONDER
+//                             D27/D66 + D192 provisional, 1960–present)
+//   - /data/mortality.json    annual all-cause deaths ("All causes" rows:
+//                             D74/D16 1968–1998 + D76 1999–2020 + D176 2021+)
+//   - e6fc-ccez (Socrata)     US births 1909–1959, for the long-view chart
 //
-// births − deaths = natural increase. The overlap is 1999→2022 (bounded by
-// the natality series). Years whose death figure comes from the provisional
-// database (2021+) are flagged so the view can render them dashed.
+// births − deaths = natural increase. The overlap is bounded by the two
+// series — deaths back to 1968, births forward to the last full year — so it
+// currently runs ~1968→2025. A partial trailing birth year is excluded.
+// Years whose death figure comes from the provisional database (2021+) are
+// flagged so the view can render them dashed.
 
 import { socrataQuery } from './socrata.js'
 import { fetchAnnualNatality } from './natality.js'
@@ -30,7 +32,7 @@ const getJson = (url) =>
 function birthsByYear(natality) {
   const m = new Map()
   for (const [y, v] of Object.entries(natality?.byYear ?? {})) {
-    if (v?.births != null) m.set(Number(y), v.births)
+    if (v?.births != null && !v.partial) m.set(Number(y), v.births)
   }
   return m
 }
