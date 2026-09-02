@@ -5,6 +5,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import RankedBarChart from '@/components/RankedBarChart.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
+import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { useNamePreference } from '@/composables/useNamePreference.js'
 import { fetchCausesOfDeath } from '@/api/causesOfDeath.js'
@@ -361,8 +362,27 @@ const trendSeries = computed(() => {
     .filter((name) => data.value?.byCause[name])
     .map((name) => ({ label: label(name), values: data.value.byCause[name][metric.value] }))
 })
-const trendYearLabels = computed(() =>
+const trendAllYears = computed(() =>
   (breakdownActive.value ? bd.data.value.years : data.value?.years ?? []).map(String)
+)
+
+// Time-range window for the Trend chart. The cause series are aligned to the
+// full year axis, so windowing is just a tail slice of labels + every
+// series' values (and the table behind it).
+const TREND_RANGES = [
+  { key: '10y', label: '10 yr', n: 10 },
+  { key: '20y', label: '20 yr', n: 20 },
+  { key: 'max', label: 'Max', n: Infinity }
+]
+const trendRange = ref('max')
+const trendStart = computed(() => {
+  const len = trendAllYears.value.length
+  const n = TREND_RANGES.find((r) => r.key === trendRange.value)?.n ?? Infinity
+  return n === Infinity ? 0 : Math.max(0, len - n)
+})
+const trendYearLabels = computed(() => trendAllYears.value.slice(trendStart.value))
+const trendWindowSeries = computed(() =>
+  trendSeries.value.map((s) => ({ ...s, values: (s.values ?? []).slice(trendStart.value) }))
 )
 
 // --- tables behind the two charts ---
@@ -399,27 +419,31 @@ const trendTable = computed(() => {
     const years = bd.data.value.years
     return {
       columns: ['Year', ...activeSubgroups.value],
-      rows: years.map((y, i) => [
-        y,
-        ...activeSubgroups.value.map((sg) => {
-          const v = entry.subgroups[sg]?.[metric.value]?.[i]
-          return v == null ? '' : v
-        })
-      ]),
-      note: `${label(name)} · ${METRICS[metric.value].label} · by ${BREAKDOWN_LABELS[breakdown.value].toLowerCase()}`
+      rows: years
+        .map((y, i) => [
+          y,
+          ...activeSubgroups.value.map((sg) => {
+            const v = entry.subgroups[sg]?.[metric.value]?.[i]
+            return v == null ? '' : v
+          })
+        ])
+        .slice(trendStart.value),
+      note: `${label(name)} · ${METRICS[metric.value].label} · by ${BREAKDOWN_LABELS[breakdown.value].toLowerCase()} · ${trendYearLabels.value[0]}–${trendYearLabels.value.at(-1)}`
     }
   }
   if (!data.value || !trendCauses.value.length) return null
   return {
     columns: ['Year', ...trendCauses.value.map(label)],
-    rows: data.value.years.map((y, i) => [
-      y,
-      ...trendCauses.value.map((name) => {
-        const v = data.value.byCause[name]?.[metric.value]?.[i]
-        return v == null ? '' : v
-      })
-    ]),
-    note: `${METRICS[metric.value].label} · ${data.value.coverage.yearMin}–${data.value.coverage.yearMax}`
+    rows: data.value.years
+      .map((y, i) => [
+        y,
+        ...trendCauses.value.map((name) => {
+          const v = data.value.byCause[name]?.[metric.value]?.[i]
+          return v == null ? '' : v
+        })
+      ])
+      .slice(trendStart.value),
+    note: `${METRICS[metric.value].label} · ${trendYearLabels.value[0]}–${trendYearLabels.value.at(-1)}`
   }
 })
 
@@ -745,15 +769,22 @@ function onAddChapterSelect(event) {
           <p v-else class="mt-3 text-xs text-muted">
             Top {{ TOP_N }} rankable ("113 Selected Causes") categories by {{ periodLabel(periods[0]) }},
             shown as the mean annual value for each period. National,
-            {{ data.coverage.yearMin }}–{{ data.coverage.yearMax }} — earlier decades unlock when the
-            ICD-9 / ICD-8 pipelines are built.
+            {{ data.coverage.yearMin }}–{{ data.coverage.yearMax }}. The pre-1999 decades run at
+            coarser ICD-chapter grain — see "Broad Chapters" below.
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ data.source }}.</p>
         </section>
 
         <!-- Trend for one or more causes over time -->
         <section>
-          <h2 class="mb-4 text-base font-semibold text-ink">Trend Over Time</h2>
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-base font-semibold text-ink">Trend Over Time</h2>
+            <RangeTabs
+              v-model="trendRange"
+              :options="TREND_RANGES"
+              aria-label="Trend time range"
+            />
+          </div>
 
           <div class="mb-5 flex flex-wrap items-center gap-2">
             <span class="text-xs font-medium uppercase tracking-wide text-muted">Causes</span>
@@ -797,7 +828,7 @@ function onAddChapterSelect(event) {
           <div class="card">
             <TimeSeriesChart
               :labels="trendYearLabels"
-              :series="trendSeries"
+              :series="trendWindowSeries"
               :value-formatter="valueFormatter"
             />
             <ChartToolbar
