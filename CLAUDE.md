@@ -18,17 +18,17 @@ of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
   official cause-name toggle, and an optional **Breakdown** (None / Sex /
   Race) that splits the bars/lines by subgroup for one period. Data: CDC
   WONDER national, from `/data/mortality.json` — 113-cause list 1999–2025
-  (D76 + D176), ICD-chapter grain 1968–1998 once those eras are loaded; the
-  breakdown
-  reads a separate `/data/mortality_demographic.json` (`src/api/
-  causeBreakdown.js`) and the control stays hidden until that file has
-  real `dimensions`. See pipeline note below.
+  (D76 + D176), ICD-chapter grain 1968–1998 (D74/D16, loaded but not yet
+  surfaced in the UI); the breakdown reads a separate
+  `/data/mortality_demographic.json` (`src/api/causeBreakdown.js`) and the
+  control stays hidden until that file has real `dimensions`.
 - **Birth Statistics** — annual births 1960–present + fertility/birth-rate
   toggle (`src/api/natality.js` reads `/data/natality.json`: Socrata
   baseline 1960–2018, then WONDER D27/D66 + D192 provisional; rate series
-  stop earlier — see Next steps), Pew generation bands on the births view,
-  an `(i)` explainer for the three figures, plus provisional monthly births
-  + rough YoY (Socrata `hmz2-vwda`).
+  stop earlier — see Next steps), Pew generation bands with drill-down on
+  the births view, an `(i)` explainer for the three figures, plus monthly
+  births (`src/api/monthlyBirths.js` → `/data/natality_monthly.json`, D192;
+  Socrata `hmz2-vwda` fallback) + a YoY off the latest complete month.
 - **Population Decline/Gain** — births vs deaths and the shrinking natural
   increase, plus the century birth history. Births from `/data/natality.json`
   (+ Socrata `e6fc-ccez` for pre-1960), deaths from `/data/mortality.json`
@@ -180,7 +180,7 @@ src/
   charts/
     palette.js                # validated color palette for chart MARKS only (chrome stays mono)
   data/
-    causeNames.js             # friendly labels for the 49 rankable causes
+    causeNames.js             # plain-language labels for the rankable causes
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
   api/
     socrata.js                # generic data.cdc.gov Socrata (SODA) JSON client
