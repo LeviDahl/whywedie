@@ -8,6 +8,7 @@ substitution, data-use consent), and POSTs it to
 ```
 mortality_icd10.xml       -> D76    Underlying Cause of Death, 1999-2020           [BUILT + TESTED]
 mortality_icd10_total.xml -> D76    ... Year only = all-cause totals               [BUILT + TESTED]
+mortality_monthly.xml     -> D176   ... Year x Month = monthly all-cause           [DRAFT — one test run to confirm month grouping]
 mortality_icd10_sex.xml   -> D76    ... x Gender (V7)                              [BUILT + TESTED]
 mortality_icd10_race.xml  -> D76    ... x Race (V8)                               [BUILT + TESTED]
 mortality_provisional.xml -> D176   Provisional Mortality Statistics, 2018->now    [BUILT + TESTED — Year-only all-cause totals]

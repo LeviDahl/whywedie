@@ -56,6 +56,27 @@ export function mapGrid(grid, dataset) {
         continue
       }
 
+      if (col.kind === 'month') {
+        // WONDER month grouping can come back as "Jan., 2021" / "January" /
+        // a "2021/01" code / a bare 1-12.
+        const raw = String(cell.value || cell.label || '').trim()
+        let mo = null
+        const code = raw.match(/^\d{4}[/-](\d{1,2})\b/)
+        if (code) mo = parseInt(code[1], 10)
+        if (mo == null) {
+          const names = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+          const i = names.findIndex((n) => raw.toLowerCase().startsWith(n))
+          if (i >= 0) mo = i + 1
+        }
+        if (mo == null && /^\d{1,2}$/.test(raw)) mo = parseInt(raw, 10)
+        if (!Number.isInteger(mo) || mo < 1 || mo > 12) {
+          badYear = true
+          break
+        }
+        row[col.field || 'month'] = mo
+        continue
+      }
+
       if (col.kind === 'coded') {
         // WONDER 113-list cells carry only a label (in l=), no short code.
         // Use the raw label (with any leading '#') as the stable key; expose

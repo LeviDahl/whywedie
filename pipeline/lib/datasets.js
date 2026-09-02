@@ -67,6 +67,25 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // D176 grouped by Year x Month — one all-cause row per month, back to
+    // Jan 2018. Feeds the Death Statistics monthly chart (the Socrata table
+    // hmz2-vwda was trimmed to a rolling ~18-month window). Own table
+    // `mortality_monthly`.
+    monthly: {
+      databaseId: 'D176',
+      templateFile: 'mortality_monthly.xml',
+      table: 'mortality_monthly',
+      fixed: {},
+      yearMin: 2018,
+      yearMax: 2027,
+      columns: [
+        { kind: 'year' },
+        { kind: 'month', field: 'month' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+      ],
+    },
     icd9: {
       databaseId: 'D16',
       templateFile: 'mortality_icd9.xml',
@@ -271,6 +290,16 @@ export const TABLE_COLUMNS = {
     'suppressed',
     'status',
   ],
+  mortality_monthly: [
+    'year',
+    'month',
+    'state_code',
+    'death_count',
+    'population',
+    'crude_rate',
+    'suppressed',
+    'status',
+  ],
   natality: [
     'year',
     'state_code',
@@ -305,6 +334,7 @@ export const UPSERT_UPDATE_COLUMNS = {
     'suppressed',
     'status',
   ],
+  mortality_monthly: ['death_count', 'population', 'crude_rate', 'suppressed', 'status'],
   natality: ['birth_count', 'population', 'birth_rate', 'fertility_rate', 'suppressed', 'status'],
 }
 

@@ -9,10 +9,10 @@ by the Vite frontend and vice-versa.
 
 ```
 pipeline/
-  schema.sql            three tables: mortality, mortality_demographic, natality  (apply once)
+  schema.sql            tables: mortality, mortality_demographic, mortality_monthly, natality  (apply once)
   apply-schema.js       runs schema.sql (or just paste it into phpMyAdmin)
   fetch.js              one (type, era) chunk: WONDER -> parse -> upsert
-  build-snapshots.js    DB -> mortality.json / mortality_demographic.json / natality.json / meta.json
+  build-snapshots.js    DB -> mortality{,_demographic,_monthly}.json / natality.json / meta.json
   app.js                placeholder HTTP listener — ONLY needed if you deploy
                         this to a Passenger/PaaS host that requires a server
   lib/                  config, dataset registry, template loader, WONDER

@@ -70,6 +70,29 @@ CREATE TABLE IF NOT EXISTS mortality_demographic (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------------
+-- mortality_monthly : one all-cause row per (year, month, state) from D176
+--   "Provisional Mortality Statistics, 2018 through Last Month" grouped by
+--   Year x Month. Feeds the Death Statistics "monthly" chart with a
+--   continuous series back to Jan 2018 (the older Socrata table hmz2-vwda
+--   was trimmed to a rolling ~18-month window). National only.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS mortality_monthly (
+  id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  year         SMALLINT UNSIGNED NOT NULL,
+  month        TINYINT UNSIGNED NOT NULL,             -- 1-12
+  state_code   VARCHAR(2)   NOT NULL DEFAULT 'US',
+  death_count  INT UNSIGNED NULL,
+  population   BIGINT UNSIGNED NULL,
+  crude_rate   DECIMAL(12,4) NULL,
+  suppressed   TINYINT(1)   NOT NULL DEFAULT 0,
+  status       VARCHAR(24)  NULL,
+  updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uniq_mortality_monthly (year, month, state_code),
+  KEY idx_mortality_monthly_ym (year, month)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
 -- natality : one row per (year, state) from the WONDER natality databases
 --            D149 / D66 / D27.
 -- ---------------------------------------------------------------------------

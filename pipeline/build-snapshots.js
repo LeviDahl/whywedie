@@ -185,6 +185,45 @@ async function buildMortalityDemographic() {
   return { file: payload, count: rows.length }
 }
 
+const MONTH_ABBR = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+]
+
+async function buildMortalityMonthly() {
+  const rows = await query(
+    `SELECT year, month, death_count, population, crude_rate, suppressed
+       FROM mortality_monthly
+      WHERE state_code = 'US'
+      ORDER BY year ASC, month ASC`
+  ).catch((err) => {
+    if (/doesn'?t exist|Unknown table|no such table/i.test(err.message)) return []
+    throw err
+  })
+  if (rows.length === 0) return { file: null, count: 0 }
+
+  const months = rows.map((r) => {
+    const mm = String(r.month).padStart(2, '0')
+    return {
+      ym: `${r.year}-${mm}`,
+      year: r.year,
+      month: r.month,
+      label: `${MONTH_ABBR[r.month - 1]} ${r.year}`,
+      deaths: r.death_count,
+      crudeRate: r.crude_rate,
+      suppressed: Boolean(r.suppressed),
+    }
+  })
+
+  const payload = {
+    source:
+      'CDC WONDER (wonder.cdc.gov) — Provisional Mortality Statistics (D176), national, by month',
+    fetchedAt: new Date().toISOString(),
+    coverage: { first: months[0].ym, last: months[months.length - 1].ym },
+    months,
+  }
+  return { file: payload, count: rows.length }
+}
+
 async function buildNatality(outDir) {
   const rows = await query(
     `SELECT year, birth_count, population, birth_rate, fertility_rate, suppressed
@@ -244,6 +283,7 @@ async function main() {
 
   const mortality = await buildMortality()
   const mortalityDemographic = await buildMortalityDemographic()
+  const mortalityMonthly = await buildMortalityMonthly()
   const natality = await buildNatality(outDir)
 
   const sources = {}
@@ -292,6 +332,7 @@ async function main() {
     ['meta.json', meta],
     mortality.file && ['mortality.json', mortality.file],
     mortalityDemographic.file && ['mortality_demographic.json', mortalityDemographic.file],
+    mortalityMonthly.file && ['mortality_monthly.json', mortalityMonthly.file],
     natality.file && ['natality.json', natality.file],
   ].filter(Boolean)
 
