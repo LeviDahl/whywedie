@@ -1,0 +1,59 @@
+name: Deploy to GoDaddy
+
+# Builds the site and mirrors dist/ into public_html over FTPS.
+#
+# Triggers: every push to main (comment out `push:` for manual-only), plus a
+# manual "Run workflow" button. Because the pipeline commits its JSON
+# snapshots into public/data/, a pipeline refresh that pushes to main also
+# redeploys through here — one publish path, no separate FTP step for data.
+#
+# Repo → Settings → Secrets and variables → Actions, add:
+#   FTP_HOST      e.g. ftp.whywedie.org  (or the server hostname from
+#                 cPanel → FTP Accounts → "Configure FTP Client")
+#   FTP_USER      the FTP account username (user@whywedie.org)
+#   FTP_PASSWORD  that account's password
+#
+# server-dir below assumes the FTP user lands at the account HOME. If you
+# make a dedicated FTP account whose directory IS public_html, change it to
+# "./".
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-godaddy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: FTPS sync dist/ → public_html
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ./public_html/
+          # keeps a small .ftp-deploy-sync-state.json on the server so later
+          # runs only upload changed files. Set to true once to force a full
+          # re-upload, then set back to false.
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.DS_Store
