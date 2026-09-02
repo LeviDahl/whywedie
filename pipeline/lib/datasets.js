@@ -180,6 +180,27 @@ export const DATASETS = {
         { kind: 'measure', field: 'crude_rate' },
       ],
     },
+    // Per-cause version of the above: D176 grouped by Year x UCD ICD-10 113
+    // Cause List (V4), with O_ucd=D176.V4 and age-adjusted rate enabled.
+    // Same 6-col contract + `mortality` table as `icd10`, so causesOfDeath.js
+    // picks up 2021+ per-cause automatically. Runs alongside `provisional`
+    // (year-only all-cause) — different cause_code, no key collision.
+    provisional_causes: {
+      databaseId: 'D176',
+      templateFile: 'mortality_provisional_causes.xml',
+      table: 'mortality',
+      fixed: { icd_version: 10 },
+      yearMin: 2021,
+      yearMax: 2030,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
     icd8: {
       databaseId: 'D15',
       templateFile: 'mortality_icd8.xml',
