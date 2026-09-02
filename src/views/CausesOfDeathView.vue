@@ -10,7 +10,7 @@ import { useNamePreference } from '@/composables/useNamePreference.js'
 import { fetchCausesOfDeath } from '@/api/causesOfDeath.js'
 import { fetchCauseBreakdown } from '@/api/causeBreakdown.js'
 import { displayName } from '@/data/causeNames.js'
-import { SERIES } from '@/charts/palette.js'
+import { SERIES, SERIES_DASH } from '@/charts/palette.js'
 import { sections } from '@/nav.js'
 
 const route = useRoute()
@@ -72,9 +72,34 @@ const breakdownReady = computed(
 )
 const breakdownActive = computed(() => breakdown.value !== 'none' && breakdownReady.value)
 const breakdownChoices = computed(() => ['none', ...(bd.data.value?.dimensionKeys ?? [])])
-const activeSubgroups = computed(() =>
+
+// Every subgroup the active dimension offers, in the snapshot's order.
+const allSubgroups = computed(() =>
   breakdownActive.value ? bd.data.value.dimensions[breakdown.value].subgroups : []
 )
+// Subgroups the user has toggled off (per dimension). Reset on switch.
+const hiddenSubgroups = ref([])
+watch(breakdown, () => {
+  hiddenSubgroups.value = []
+})
+const activeSubgroups = computed(() =>
+  allSubgroups.value.filter((sg) => !hiddenSubgroups.value.includes(sg))
+)
+// Colour/dash follow the subgroup's fixed position in `allSubgroups`, not
+// its index among the *visible* ones — hiding one must not repaint the rest.
+const subgroupStyle = (sg) => {
+  const i = allSubgroups.value.indexOf(sg)
+  return { color: SERIES[i % SERIES.length], dash: SERIES_DASH[i % SERIES_DASH.length] }
+}
+function toggleSubgroup(sg) {
+  const hidden = hiddenSubgroups.value
+  if (hidden.includes(sg)) {
+    hiddenSubgroups.value = hidden.filter((x) => x !== sg)
+  } else if (activeSubgroups.value.length > 1) {
+    // keep at least one visible
+    hiddenSubgroups.value = [...hidden, sg]
+  }
+}
 
 // Picking a breakdown collapses the comparison to a single period and, for
 // Race, defaults to the age-adjusted rate (crude rate mostly tracks age
@@ -84,6 +109,9 @@ watch(breakdown, (b) => {
   if (periods.value.length > 1) periods.value = [periods.value[0]]
   if (b === 'race' && metric.value === 'deaths') metric.value = 'ageAdjustedRate'
 })
+
+// Metric explainer popover (age-adjusted vs crude isn't common knowledge).
+const showMetricHelp = ref(false)
 
 // Ranked chart: one series per "period" (a single year or a year range).
 const periods = ref([])
@@ -251,6 +279,7 @@ const rankedSeries = computed(() => {
   if (breakdownActive.value) {
     return activeSubgroups.value.map((sg) => ({
       label: sg,
+      color: subgroupStyle(sg).color,
       values: rankedCauseNames.value.map((name) => breakdownMeans.value.get(name)?.get(sg) ?? null)
     }))
   }
@@ -318,6 +347,8 @@ const trendSeries = computed(() => {
     if (!entry) return []
     return activeSubgroups.value.map((sg) => ({
       label: sg,
+      color: subgroupStyle(sg).color,
+      dash: subgroupStyle(sg).dash,
       values: entry.subgroups[sg]?.[metric.value] ?? []
     }))
   }
@@ -423,7 +454,19 @@ function removeTrendCause(i) {
         <!-- Controls — shared by both charts below -->
         <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8">
           <div class="flex flex-wrap items-center gap-3">
-            <span class="text-xs font-medium uppercase tracking-wide text-muted">Metric</span>
+            <span class="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted">
+              Metric
+              <button
+                type="button"
+                class="grid size-4 place-items-center rounded-full border border-line-strong text-[10px] font-semibold leading-none text-muted transition-colors hover:border-ink hover:text-ink"
+                :class="{ 'border-ink text-ink': showMetricHelp }"
+                :aria-expanded="showMetricHelp"
+                aria-label="What do these metrics mean?"
+                @click="showMetricHelp = !showMetricHelp"
+              >
+                i
+              </button>
+            </span>
             <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
               <button
                 v-for="(m, key) in METRICS"
@@ -470,6 +513,27 @@ function removeTrendCause(i) {
             </div>
           </div>
         </div>
+
+        <dl v-if="showMetricHelp" class="card space-y-2 text-xs text-muted">
+          <div>
+            <dt class="inline font-semibold text-ink">Deaths</dt>
+            — the raw count. Rises with population size, so a bigger or older
+            country shows more even if it isn't "deadlier."
+          </div>
+          <div>
+            <dt class="inline font-semibold text-ink">Crude rate</dt>
+            — deaths per 100,000 people. Controls for population size, but not
+            for age: a place with more older residents looks worse for
+            age-related causes.
+          </div>
+          <div>
+            <dt class="inline font-semibold text-ink">Age-adjusted rate</dt>
+            — deaths per 100,000, recalculated as if every year (or group) had
+            the same age structure (the 2000 US standard population). Use this
+            one to compare across time or between groups — differences reflect
+            actual risk, not who happens to be older.
+          </div>
+        </dl>
 
         <!-- Stat callout -->
         <div v-if="primaryTop" class="card">
@@ -563,6 +627,31 @@ function removeTrendCause(i) {
               </button>
             </div>
 
+            <div v-if="breakdownActive" class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-medium uppercase tracking-wide text-muted">Show</span>
+              <button
+                v-for="sg in allSubgroups"
+                :key="sg"
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm transition-colors"
+                :class="
+                  hiddenSubgroups.includes(sg)
+                    ? 'border-line bg-paper text-muted line-through'
+                    : 'border-line-strong bg-paper text-ink hover:border-ink'
+                "
+                :aria-pressed="!hiddenSubgroups.includes(sg)"
+                @click="toggleSubgroup(sg)"
+              >
+                <span
+                  class="size-2.5 shrink-0 rounded-full"
+                  :style="{ backgroundColor: subgroupStyle(sg).color }"
+                  :class="{ 'opacity-30': hiddenSubgroups.includes(sg) }"
+                  aria-hidden="true"
+                ></span>
+                {{ sg }}
+              </button>
+            </div>
+
             <p v-if="breakdownActive" class="text-xs text-muted">
               Comparing one period, split by {{ BREAKDOWN_LABELS[breakdown].toLowerCase() }}. Period
               comparison is paused — switch Breakdown back to None to overlay decades again.
@@ -574,6 +663,7 @@ function removeTrendCause(i) {
               :labels="rankedLabels"
               :series="rankedSeries"
               :value-formatter="valueFormatter"
+              :legend="!breakdownActive"
             />
             <ChartToolbar
               v-if="rankedTable"

@@ -20,10 +20,14 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 const props = defineProps({
   labels: { type: Array, required: true },
   series: { type: Array, required: true },
-  valueFormatter: { type: Function, default: (v) => v?.toLocaleString() ?? '—' }
+  valueFormatter: { type: Function, default: (v) => v?.toLocaleString() ?? '—' },
+  // Suppress the built-in legend when the caller shows its own key
+  // (e.g. the interactive Show chips on the breakdown view).
+  legend: { type: Boolean, default: true }
 })
 
 const multi = computed(() => props.series.length > 1)
+const showLegend = computed(() => props.legend && multi.value)
 
 // Wrap a category label onto at most `maxLines` lines of ~`maxChars` each,
 // so long cause names stay readable on a narrow (phone) viewport instead of
@@ -57,7 +61,9 @@ const chartData = computed(() => ({
   datasets: props.series.map((s, i) => ({
     label: s.label,
     data: s.values,
-    backgroundColor: SERIES[i % SERIES.length],
+    // `s.color` lets the caller pin a colour to an entity so hiding one
+    // series doesn't repaint the others; falls back to slot order.
+    backgroundColor: s.color ?? SERIES[i % SERIES.length],
     borderRadius: 4,
     borderSkipped: 'start',
     maxBarThickness: multi.value ? 14 : 22
@@ -70,8 +76,12 @@ const chartOptions = computed(() => ({
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      display: multi.value,
-      position: 'bottom',
+      display: showLegend.value,
+      // top, not bottom: this chart is tall (15 rows), and the legend is
+      // how you read which colour is which period / subgroup — it
+      // shouldn't require scrolling past the whole chart to reach.
+      position: 'top',
+      align: 'start',
       labels: { color: '#171717', boxWidth: 12, boxHeight: 12, font: { size: 11 } }
     },
     tooltip: {

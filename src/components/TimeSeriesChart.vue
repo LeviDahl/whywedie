@@ -42,8 +42,9 @@ const normalized = computed(() => {
     return props.series.map((s, i) => ({
       label: s.label ?? `Series ${i + 1}`,
       values: s.values,
-      color: SERIES[i % SERIES.length],
-      dash: SERIES_DASH[i % SERIES_DASH.length],
+      // caller may pin colour/dash to an entity (see RankedBarChart note)
+      color: s.color ?? SERIES[i % SERIES.length],
+      dash: s.dash ?? SERIES_DASH[i % SERIES_DASH.length],
       fill: props.series.length === 1,
       mutedPoints: s.muted ?? []
     }))
