@@ -38,6 +38,7 @@ open -u '${FTP_USER}','${FTP_PASSWORD}' '${FTP_HOST}';
 mirror --reverse --delete --parallel=4 --verbose ${DRY} \
   --exclude-glob .git* --exclude-glob .DS_Store \
   --exclude-glob .ftp-deploy-sync-state.json \
+  --exclude-glob cgi-bin/ --exclude-glob .well-known/ \
   dist/ '${REMOTE_DIR}';
 bye
 "

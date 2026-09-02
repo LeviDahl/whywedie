@@ -53,7 +53,11 @@ jobs:
           # runs only upload changed files. Set to true once to force a full
           # re-upload, then set back to false.
           dangerous-clean-slate: false
+          # excluded paths are neither uploaded nor deleted on the server —
+          # keep cgi-bin/ and .well-known/ (AutoSSL) that cPanel manages.
           exclude: |
             **/.git*
             **/.git*/**
             **/.DS_Store
+            cgi-bin/**
+            .well-known/**
