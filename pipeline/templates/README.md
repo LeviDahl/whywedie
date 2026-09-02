@@ -7,9 +7,10 @@ substitution, data-use consent), and POSTs it to
 
 ```
 mortality_icd10.xml       -> D76    Underlying Cause of Death, 1999-2020           [BUILT + TESTED]
-mortality_icd10_sex.xml   -> D76    ... x Gender (V7)                              [DRAFT — one test run to confirm]
-mortality_icd10_race.xml  -> D76    ... x Race (V8)                               [DRAFT — one test run to confirm]
-mortality_provisional.xml -> D176   Provisional Mortality Statistics, 2018->now    [DRAFT — Year-only all-cause totals]
+mortality_icd10_total.xml -> D76    ... Year only = all-cause totals               [BUILT + TESTED]
+mortality_icd10_sex.xml   -> D76    ... x Gender (V7)                              [BUILT + TESTED]
+mortality_icd10_race.xml  -> D76    ... x Race (V8)                               [BUILT + TESTED]
+mortality_provisional.xml -> D176   Provisional Mortality Statistics, 2018->now    [BUILT + TESTED — Year-only all-cause totals]
 mortality_icd9.xml        -> D16    Compressed Mortality, 1979-1998               [TODO — no skeleton; needs WONDER params]
 mortality_icd8.xml        -> D15    Compressed Mortality, 1968-1978               [TODO — no skeleton; needs WONDER params]
 natality_mid.xml          -> D66    Natality, 2007-2022 (returns to 2024)         [BUILT + TESTED]

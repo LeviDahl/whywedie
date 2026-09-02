@@ -20,27 +20,26 @@ onMounted(() => {
 
 const integerFormatter = (v) => (v == null ? '—' : v.toLocaleString())
 
-// --- Historical annual (2020–2023-ish, last year may be partial) ---
-const latestCompleteYearIndex = computed(() => {
-  const d = historical.data.value
-  if (!d?.years?.length) return -1
-  for (let i = d.years.length - 1; i >= 0; i--) {
-    if (!d.isPartialYear[i]) return i
-  }
-  return -1
+// --- Historical annual (1999–present; 2021+ are CDC provisional) ---
+const latestIndex = computed(() => {
+  const n = historical.data.value?.years?.length ?? 0
+  return n ? n - 1 : -1
 })
-const latestCompleteYear = computed(() =>
-  latestCompleteYearIndex.value >= 0 ? historical.data.value.years[latestCompleteYearIndex.value] : null
+const latestYear = computed(() =>
+  latestIndex.value >= 0 ? historical.data.value.years[latestIndex.value] : null
 )
-const latestCompleteYearDeaths = computed(() =>
-  latestCompleteYearIndex.value >= 0 ? historical.data.value.totalDeaths[latestCompleteYearIndex.value] : null
+const latestYearDeaths = computed(() =>
+  latestIndex.value >= 0 ? historical.data.value.totalDeaths[latestIndex.value] : null
 )
-const hasPartialYear = computed(() => historical.data.value?.isPartialYear?.some(Boolean))
-const partialYearLabel = computed(() => {
+const latestYearProvisional = computed(() =>
+  latestIndex.value >= 0 ? Boolean(historical.data.value.isProvisional[latestIndex.value]) : false
+)
+const hasProvisional = computed(() => historical.data.value?.isProvisional?.some(Boolean))
+const firstProvisionalYear = computed(() => {
   const d = historical.data.value
   if (!d) return null
-  const i = d.isPartialYear.findIndex(Boolean)
-  return i === -1 ? null : { year: d.years[i], weeks: d.weekCount[i] }
+  const i = d.isProvisional.findIndex(Boolean)
+  return i === -1 ? null : d.years[i]
 })
 
 // --- Current monthly ---
@@ -52,9 +51,15 @@ const annualTable = computed(() => {
   const d = historical.data.value
   if (!d) return null
   return {
-    columns: ['Year', 'Deaths', 'Weeks of data'],
-    rows: d.years.map((y, i) => [y, d.totalDeaths[i], d.weekCount?.[i] ?? '']),
-    note: `Data through ${d.years.at(-1)}`
+    columns: ['Year', 'Deaths', 'Crude rate', 'Age-adjusted rate', 'Provisional'],
+    rows: d.years.map((y, i) => [
+      y,
+      d.totalDeaths[i],
+      d.crudeRate?.[i] ?? '',
+      d.ageAdjustedRate?.[i] ?? '',
+      d.isProvisional[i] ? 'yes' : ''
+    ]),
+    note: `${d.years[0]}–${d.years.at(-1)} · per 100,000`
   }
 })
 const monthlyTable = computed(() => {
@@ -74,13 +79,14 @@ const monthlyTable = computed(() => {
 
     <div class="mx-auto max-w-4xl px-6 py-10 sm:px-10 space-y-12">
       <!-- Stat callouts -->
-      <div v-if="latestCompleteYearDeaths != null || latestMonthDeaths != null" class="grid gap-4 sm:grid-cols-2">
+      <div v-if="latestYearDeaths != null || latestMonthDeaths != null" class="grid gap-4 sm:grid-cols-2">
         <div class="card">
           <dt class="text-xs font-medium uppercase tracking-wide text-muted">
-            Deaths in {{ latestCompleteYear }} (most recent complete year)
+            Deaths in {{ latestYear }}
+            ({{ latestYearProvisional ? 'provisional' : 'most recent full year' }})
           </dt>
           <dd class="mt-1.5 text-2xl font-semibold tracking-tight text-ink">
-            {{ integerFormatter(latestCompleteYearDeaths) }}
+            {{ integerFormatter(latestYearDeaths) }}
           </dd>
         </div>
         <div class="card">
@@ -120,7 +126,7 @@ const monthlyTable = computed(() => {
             <TimeSeriesChart
               :labels="historical.data.value.years"
               :values="historical.data.value.totalDeaths"
-              :muted-points="historical.data.value.isPartialYear"
+              :muted-points="historical.data.value.isProvisional"
               series-label="Deaths"
               :value-formatter="integerFormatter"
             />
@@ -132,9 +138,10 @@ const monthlyTable = computed(() => {
               filename="whywedie-annual-deaths"
             />
           </div>
-          <p v-if="hasPartialYear" class="mt-3 text-xs text-muted">
-            The lighter point for {{ partialYearLabel.year }} reflects a partial year — CDC's data for it currently
-            covers {{ partialYearLabel.weeks }} of ~52 weeks, so it isn't comparable to the full-year totals shown.
+          <p v-if="hasProvisional" class="mt-3 text-xs text-muted">
+            Lighter points ({{ firstProvisionalYear }} onward) are CDC provisional counts from the
+            Provisional Mortality database — close to final, but subject to small upward revision, and
+            the most recent year may run a month or two short of a full year.
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ historical.data.value.source }}.</p>
         </template>

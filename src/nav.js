@@ -19,8 +19,9 @@ export const sections = [
     shortLabel: 'Death Statistics',
     status: 'available',
     description:
-      'Annual US death totals (2020–present) plus the most current monthly figures CDC has published.',
-    source: 'CDC (data.cdc.gov, Socrata) — annual rollup + current monthly provisional counts'
+      'Annual US death totals (1999–present) plus the most current monthly figures CDC has published.',
+    source:
+      'CDC WONDER — Underlying Cause of Death + Provisional Mortality (annual) · CDC Socrata (current monthly)'
   },
   {
     path: '/causes-of-death',

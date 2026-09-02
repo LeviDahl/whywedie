@@ -42,6 +42,31 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // D76 grouped by Year only — one all-cause total per year, with crude
+    // and age-adjusted rate. Feeds the Death Statistics annual chart
+    // (1999-2020), continuous with the D176 `provisional` all-cause rows
+    // (2021+). Same synthetic non-'#' "All causes" cause tag as
+    // `provisional`, so the Causes-of-Death ranked view ignores it.
+    icd10_total: {
+      databaseId: 'D76',
+      templateFile: 'mortality_icd10_total.xml',
+      table: 'mortality',
+      fixed: {
+        icd_version: 10,
+        cause_code: 'All causes',
+        cause_name: 'All causes',
+        cause_level: 0,
+      },
+      yearMin: 1999,
+      yearMax: 2020,
+      columns: [
+        { kind: 'year' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
     icd9: {
       databaseId: 'D16',
       templateFile: 'mortality_icd9.xml',
