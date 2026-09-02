@@ -93,9 +93,10 @@ async function buildMortality() {
       icdVersions,
       note:
         'National totals only. The CDC WONDER API does not return ' +
-        'Region/Division/State/County data for vital statistics. Cause codes ' +
-        'are the NCHS 113 Selected Causes list for ICD-10 and ICD-9; ICD-8 ' +
-        'uses a coarser cause recode. Compare within an ICD version, not across.',
+        'Region/Division/State/County data for vital statistics. Cause detail ' +
+        'is the NCHS 113 Selected Causes list for ICD-10 (1999+); ICD-9 ' +
+        '(1979-1998) and ICD-8 (1968-1978) are ICD-chapter grain only. ' +
+        'Compare within an ICD version, not across.',
     },
     years,
     causes: [...causesMap.values()],
