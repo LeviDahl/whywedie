@@ -12,14 +12,43 @@
 // whose births fall well below the year before it; the view drops those from
 // the plotted line and shows the running total as a caption instead.
 //
+// The crude birth rate (per 1,000 residents) is backfilled from
+// births ÷ mortality.json population wherever the natality snapshot lacks it
+// (WONDER stopped supplying it after 2018) — flagged `birthRateDerived`. The
+// general fertility rate (per 1,000 women 15-44) can't be reconstructed the
+// same way and stops at 2020.
+//
 // Shape:  { source, fetchedAt, coverage:{yearMin,yearMax,note},
 //           years:[int], partial:[bool],
-//           byYear: { <year>: { births, birthRate, fertilityRate,
-//                               population, suppressed, provisional?, partial? } } }
+//           byYear: { <year>: { births, birthRate, fertilityRate, population,
+//                       suppressed, provisional?, partial?, birthRateDerived? } } }
 
 import { socrataQuery } from './socrata.js'
 
 const SNAPSHOT_URL = `${import.meta.env.BASE_URL}data/natality.json`
+const MORTALITY_URL = `${import.meta.env.BASE_URL}data/mortality.json`
+
+// The WONDER natality databases stopped supplying the crude birth rate after
+// 2018 (D66/D27 give it; D192 provisional has no rate measure). But the
+// crude birth rate is just births ÷ resident population × 1,000, and the
+// mortality snapshot's "All causes" rows already carry that exact Census
+// resident-population estimate per year (it's WONDER's own rate denominator,
+// so this reproduces NCHS's published figure to ~0.1). Fill the gap from it.
+async function totalPopulationByYear() {
+  try {
+    const res = await fetch(MORTALITY_URL, { headers: { accept: 'application/json' } })
+    if (!res.ok) return new Map()
+    const raw = await res.json()
+    const out = new Map()
+    for (const [year, rows] of Object.entries(raw.byYear ?? {})) {
+      const all = (rows ?? []).find((r) => r.name === 'All causes')
+      if (all?.population) out.set(Number(year), all.population)
+    }
+    return out
+  } catch {
+    return new Map()
+  }
+}
 
 // A real annual total is never much below the prior year outside catastrophe;
 // a mid-year D192 total sits near half. Anything under this fraction of the
@@ -65,7 +94,10 @@ export async function fetchAnnualNatality() {
 
   const raw = await res.json()
   const snapshotMax = raw.years.length ? Math.max(...raw.years) : 0
-  const rolled = await monthlyBirthRollup(snapshotMax)
+  const [rolled, totalPop] = await Promise.all([
+    monthlyBirthRollup(snapshotMax),
+    totalPopulationByYear()
+  ])
 
   const byYear = { ...raw.byYear }
   for (const [y, births] of rolled) {
@@ -76,6 +108,19 @@ export async function fetchAnnualNatality() {
       population: null,
       suppressed: false,
       provisional: true
+    }
+  }
+
+  // Backfill the crude birth rate wherever it's missing but we have both a
+  // birth count and a resident-population figure.
+  for (const [y, rec] of Object.entries(byYear)) {
+    const pop = totalPop.get(Number(y))
+    if (rec.births != null && rec.birthRate == null && pop) {
+      byYear[y] = {
+        ...rec,
+        birthRate: Math.round((rec.births / pop) * 1000 * 10) / 10,
+        birthRateDerived: true
+      }
     }
   }
 

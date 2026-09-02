@@ -156,12 +156,19 @@ const partialYears = computed(() => {
   if (!d) return []
   return d.years.filter((y, i) => d.partial[i]).map((y) => ({ year: y, births: d.byYear[y]?.births }))
 })
+// A plotted year is "don't over-read this" (dashed/grey) when the value for
+// the CURRENT metric is provisional or reconstructed rather than a finalized
+// published figure.
 const annualMuted = computed(() => {
   const d = annual.data.value
   if (!d) return []
-  return plottedYears.value.map(
-    (y) => d.byYear[y]?.births != null && d.byYear[y]?.fertilityRate == null
-  )
+  return plottedYears.value.map((y) => {
+    const rec = d.byYear[y]
+    if (!rec || rec.births == null) return false
+    if (annualMetric.value === 'birthRate') return !!rec.birthRateDerived
+    // births + fertilityRate: flag the years past finalized natality
+    return rec.fertilityRate == null
+  })
 })
 const hasProvisional = computed(() => annualMuted.value.some(Boolean))
 
@@ -347,7 +354,9 @@ const annualTable = computed(() => {
               — live births per 1,000 people of <em>all</em> ages (the "crude
               birth rate"). Useful for comparing against the crude death rate on
               the Population Change page, but sensitive to a country's overall
-              age mix.
+              age mix. CDC WONDER stopped publishing it after 2018; later years
+              here are births ÷ resident population, which reproduces the
+              official figure to ~0.1.
             </div>
           </dl>
 
@@ -380,8 +389,18 @@ const annualTable = computed(() => {
             ({{ integerFormatter(p.births) }} births to date).
           </p>
           <p v-if="hasProvisional" class="mt-3 text-xs text-muted">
-            The dashed, greyed tail is provisional: the count is close to final but the fertility and
-            birth rates aren't published for those years yet (they need finalized population figures).
+            <template v-if="annualMetric === 'fertilityRate'">
+              The fertility rate isn't available past 2020 — WONDER's natality databases stopped
+              supplying it and it needs a finalized women-15–44 population figure.
+            </template>
+            <template v-else-if="annualMetric === 'birthRate'">
+              The dashed, greyed tail is provisional. From 2019 on, the birth rate is computed here
+              from births ÷ resident population (WONDER stopped publishing it after 2018).
+            </template>
+            <template v-else>
+              The dashed, greyed tail is provisional — those years' births come from CDC's
+              provisional releases and are still subject to small revision.
+            </template>
           </p>
           <p class="mt-3 text-xs text-muted">{{ annual.data.value.coverage.note }}</p>
           <p class="mt-1 text-xs text-muted">Source: {{ annual.data.value.source }}.</p>
