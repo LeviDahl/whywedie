@@ -392,18 +392,21 @@ committed in `mortality.json` (1968–2025) / `natality.json` (1960–2026).
 Frontend: `natality.js` flags the partial trailing calendar year
 (< 70% of the prior year → dropped from the plotted line, shown as a
 caption); Birth Statistics has an `(i)` popover explaining Births /
-Fertility rate (general, not total) / Birth rate; Death Statistics annual
-range tabs are 10/25/50/Max. `historicalDeaths.js` source label is derived
-from the actual first year.
+Fertility rate (general, not total) / Birth rate, and **Pew generation
+bands** on the annual-births chart (`TimeSeriesChart` `bands` prop —
+faint fill + divider + label per cohort, Births metric only); Death
+Statistics annual range tabs are 10/25/50/Max. `historicalDeaths.js`
+source label is derived from the actual first year.
 
 **Remaining:**
 
 1. **Run `icd9_total` / `icd8_total`** (built — `mortality_icd9_total.xml` /
-   `_icd8_total.xml`, Year-only all-cause, `B_2=*None*`). Then
-   `build-snapshots.js` + commit `public/data/*.json`, and the Death
-   Statistics annual chart runs continuously 1968→present with no frontend
-   change (`historicalDeaths.js` already reads the "All causes" rows and
-   re-labels its source once they're present).
+   `_icd8_total.xml`, Year-only all-cause, `B_2=*None*`). **Until this runs,
+   the Death Statistics annual all-cause line starts at 1999** — the
+   1968–1998 rows in `mortality.json` are chapter-level only, no "All
+   causes" row for `historicalDeaths.js` to read. Then `build-snapshots.js`
+   + commit `public/data/*.json` and the annual chart runs continuously
+   1968→present with no frontend change (the source label re-derives).
    `fetch.js --type=mortality --era=icd9_total --years=1979-1998`
    `fetch.js --type=mortality --era=icd8_total --years=1968-1978`
 2. **Surface the 1968–1998 ICD-chapter rows on Causes of Death** — a
@@ -414,16 +417,30 @@ from the actual first year.
    so a ~17-row map is needed to stitch each chapter into one continuous
    series. `causesOfDeath.js` would gain a `byChapter` shape from the
    non-`#` rows.
-3. **Fertility rate stops at 2020** — `natality.json` has births 2021–2026
-   but no fertility rate past 2020 (D66's `mid` era returned no rate for
-   2021–2022; D192 has no rate measure at all). The "Fertility rate" toggle
-   on Birth Statistics is empty for those years. Options: re-run D66 on a
-   newer vintage, or add D149 ("Natality, 2016–2022 expanded") which may
-   carry the rate further. Re-check periodically.
-4. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
+3. **Sex / Race breakdown stops at 2020** — eras `icd10_sex` / `icd10_race`
+   are D76-only (`mortality_demographic.json` 1999–2020). Extend to 2021+
+   with a D176 era: Year × `D176.V4` (113 list, with `O_ucd=D176.V4`) ×
+   `D176.V7` (Sex) or D176's single-race var (`V42`/`V43`/`V44`), writing
+   to `mortality_demographic`. `V4` combines with other Group Bys (unlike
+   `V28` "15 Leading Causes"), so this is a template + era + one `--dump` to
+   confirm the 3-deep grouping holds. Race groups will be single-race
+   (not the D76 bridged-race 4), so the frontend legend/labels need a note
+   that the pre/post-2020 race categories differ.
+4. **Rate series that stop early — need a non-WONDER denominator:**
+   - **Fertility rate → 2020.** `natality.json` has births 2021–2026 but no
+     fertility rate past 2020 (D66's `mid` era returned no rate for
+     2021–22; D192 has no rate measure). Try D149 ("Natality, 2016–2022
+     expanded"), or compute births ÷ Census female-population-15-44.
+   - **Birth rate (crude, per 1,000 people) → 2018.** Only ever came from
+     the committed Socrata baseline; no WONDER natality DB exposes it. For
+     2019+ it's births ÷ Census total population — needs a Census/ACS
+     population series added as a source.
+   The "Fertility rate" / "Birth rate" toggles on Birth Statistics are
+   empty past those years; re-check periodically.
+5. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
    only the `provisional` / `provisional_causes` / `monthly` / `current`
    eras recur; D76 / D66 / D27 / D16 / D74 are finalized, run once.
-5. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+6. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
 
 **Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
 ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).
