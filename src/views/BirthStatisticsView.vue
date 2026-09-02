@@ -171,8 +171,8 @@ const annualTable = computed(() => {
             />
           </div>
           <p v-if="hasProvisional" class="mt-3 text-xs text-muted">
-            Lighter points are provisional — the most recent year's rate and population figures aren't
-            final yet.
+            The dashed, greyed tail is provisional — the most recent year's rate and population figures
+            aren't final yet.
           </p>
           <p class="mt-3 text-xs text-muted">{{ annual.data.value.coverage.note }}</p>
           <p class="mt-1 text-xs text-muted">Source: {{ annual.data.value.source }}.</p>

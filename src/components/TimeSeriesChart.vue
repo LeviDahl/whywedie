@@ -63,24 +63,37 @@ const normalized = computed(() => {
 
 const multi = computed(() => normalized.value.length > 1)
 
+// A line segment counts as "provisional" if the point it draws *into* is
+// flagged — so the run of provisional years at the end renders dashed and
+// dimmed, with the last final→first provisional transition dashed too.
+const PROVISIONAL_DASH = [5, 4]
+const segmentStyle = (s) => ({
+  borderDash: (ctx) => (s.mutedPoints[ctx.p1DataIndex] ? PROVISIONAL_DASH : undefined),
+  borderColor: (ctx) => (s.mutedPoints[ctx.p1DataIndex] ? MUTED_MARK : undefined)
+})
+
 const chartData = computed(() => ({
   labels: props.labels.map(String),
-  datasets: normalized.value.map((s) => ({
-    label: s.label,
-    data: s.values,
-    borderColor: s.color,
-    borderDash: s.dash,
-    backgroundColor: multi.value ? 'transparent' : fillFor(s.color, 0.1),
-    pointBackgroundColor: s.values.map((_, i) => (s.mutedPoints[i] ? MUTED_MARK : s.color)),
-    pointBorderColor: '#ffffff',
-    pointBorderWidth: 1.5,
-    pointRadius: multi.value ? 2.5 : 3,
-    pointHoverRadius: 5.5,
-    borderWidth: 2,
-    tension: 0.25,
-    fill: s.fill,
-    spanGaps: false
-  }))
+  datasets: normalized.value.map((s) => {
+    const hasMuted = s.mutedPoints.some(Boolean)
+    return {
+      label: s.label,
+      data: s.values,
+      borderColor: s.color,
+      borderDash: s.dash,
+      segment: hasMuted ? segmentStyle(s) : undefined,
+      backgroundColor: multi.value ? 'transparent' : fillFor(s.color, 0.1),
+      pointBackgroundColor: s.values.map((_, i) => (s.mutedPoints[i] ? MUTED_MARK : s.color)),
+      pointBorderColor: '#ffffff',
+      pointBorderWidth: 1.5,
+      pointRadius: multi.value ? 2.5 : 3,
+      pointHoverRadius: 5.5,
+      borderWidth: 2,
+      tension: 0.25,
+      fill: s.fill,
+      spanGaps: false
+    }
+  })
 }))
 
 const chartOptions = computed(() => ({

@@ -36,9 +36,26 @@ const firstProvisionalYear = computed(() => {
   return i === -1 ? null : d.years[i]
 })
 
-// --- Current monthly ---
-const latestMonthLabel = computed(() => monthly.data.value?.labels?.at(-1) ?? null)
-const latestMonthDeaths = computed(() => monthly.data.value?.values?.at(-1) ?? null)
+// --- Current monthly --- (headline the latest COMPLETE month) ---
+const latestCompleteMonthIdx = computed(() => {
+  const d = monthly.data.value
+  if (!d?.labels?.length) return -1
+  for (let i = d.labels.length - 1; i >= 0; i--) {
+    if (!d.partial?.[i]) return i
+  }
+  return d.labels.length - 1
+})
+const latestMonthLabel = computed(() =>
+  latestCompleteMonthIdx.value >= 0
+    ? monthly.data.value.labels[latestCompleteMonthIdx.value]
+    : null
+)
+const latestMonthDeaths = computed(() =>
+  latestCompleteMonthIdx.value >= 0
+    ? monthly.data.value.values[latestCompleteMonthIdx.value]
+    : null
+)
+const monthlyHasPartial = computed(() => monthly.data.value?.partial?.some(Boolean))
 
 // --- time-range windows -------------------------------------------------
 const ANNUAL_RANGES = [
@@ -71,13 +88,20 @@ const annualView = computed(() => {
 const monthlyView = computed(() => {
   const d = monthly.data.value
   if (!d?.labels?.length) return null
+  const partial = d.partial ?? d.labels.map(() => false)
   if (monthlyRange.value === 'ytd') {
     const lastYear = d.months?.at(-1)?.year
-    const keep = (d.months ?? []).filter((m) => m.year === lastYear)
-    return { labels: keep.map((m) => m.label), values: keep.map((m) => m.deaths) }
+    const keep = (d.months ?? [])
+      .map((m, i) => ({ m, i }))
+      .filter(({ m }) => m.year === lastYear)
+    return {
+      labels: keep.map(({ m }) => m.label),
+      values: keep.map(({ m }) => m.deaths),
+      muted: keep.map(({ i }) => partial[i])
+    }
   }
   const n = MONTHLY_RANGES.find((r) => r.key === monthlyRange.value)?.n ?? Infinity
-  return { labels: tail(d.labels, n), values: tail(d.values, n) }
+  return { labels: tail(d.labels, n), values: tail(d.values, n), muted: tail(partial, n) }
 })
 
 // --- tables (always the full series) ---
@@ -181,9 +205,9 @@ const monthlyTable = computed(() => {
             />
           </div>
           <p v-if="hasProvisional" class="mt-3 text-xs text-muted">
-            Lighter points ({{ firstProvisionalYear }} onward) are CDC provisional counts from the
-            Provisional Mortality database — close to final, but subject to small upward revision, and
-            the most recent year may run a month or two short of a full year.
+            The dashed, greyed segment ({{ firstProvisionalYear }} onward) is CDC provisional data from
+            the Provisional Mortality database — close to final, but subject to small upward revision,
+            and the most recent year may run a month or two short of a full year.
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ historical.data.value.source }}.</p>
         </template>
@@ -232,6 +256,7 @@ const monthlyTable = computed(() => {
             <TimeSeriesChart
               :labels="monthlyView.labels"
               :values="monthlyView.values"
+              :muted-points="monthlyView.muted"
               series-label="Deaths"
               :value-formatter="integerFormatter"
             />
@@ -244,8 +269,9 @@ const monthlyTable = computed(() => {
             />
           </div>
           <p class="mt-3 text-xs text-muted">
-            CDC provisional monthly counts (Provisional Mortality database). The most recent month or
-            two may still be filling in, so the tail can tick up as late records arrive.
+            CDC provisional monthly counts (Provisional Mortality database).<template v-if="monthlyHasPartial">
+              The dashed tail is the latest month or two still filling in — the count climbs as late
+              records arrive.</template>
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ monthly.data.value.source }}.</p>
         </template>

@@ -31,11 +31,28 @@ export async function fetchMonthlyDeaths() {
 
   const raw = await res.json()
   const months = raw.months ?? []
+
+  // D176 is "through last month" — the final month or two are still
+  // accumulating late records and read far below the run rate. Flag any
+  // trailing month under 80% of the prior 6-month median as incomplete.
+  const partial = months.map(() => false)
+  if (months.length >= 8) {
+    const prior = months.slice(-7, -1).map((m) => m.deaths).filter((v) => v != null).sort((a, b) => a - b)
+    const ref = prior.length ? prior[Math.floor(prior.length / 2)] : null
+    if (ref) {
+      for (let i = months.length - 1; i >= months.length - 3; i--) {
+        if (months[i].deaths != null && months[i].deaths < ref * 0.8) partial[i] = true
+        else break
+      }
+    }
+  }
+
   return {
     source: raw.source,
     fetchedAt: raw.fetchedAt,
     labels: months.map((m) => m.label),
     values: months.map((m) => m.deaths),
+    partial,
     months
   }
 }
