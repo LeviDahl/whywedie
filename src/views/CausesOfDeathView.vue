@@ -98,7 +98,11 @@ function parsePeriodsParam(q, years) {
     .split(',')
     .map((s) => s.match(/^(\d{4})(?:-(\d{4}))?$/))
     .filter(Boolean)
-    .map((m) => ({ from: clamp(+m[1]), to: clamp(+(m[2] || m[1])) }))
+    .map((m) => {
+      const a = clamp(+m[1])
+      const b = clamp(+(m[2] || m[1]))
+      return { from: Math.min(a, b), to: Math.max(a, b) }
+    })
     .slice(0, MAX_PERIODS)
 }
 
@@ -524,7 +528,9 @@ function removeTrendCause(i) {
                   class="min-h-[28px] bg-transparent py-0.5 text-ink focus-visible:outline-none"
                   aria-label="Period start year"
                 >
-                  <option v-for="y in data.years" :key="y" :value="y">{{ y }}</option>
+                  <option v-for="y in data.years.filter((y) => y <= p.to)" :key="y" :value="y">
+                    {{ y }}
+                  </option>
                 </select>
                 <span class="text-muted">–</span>
                 <select
@@ -532,7 +538,9 @@ function removeTrendCause(i) {
                   class="min-h-[28px] bg-transparent py-0.5 text-ink focus-visible:outline-none"
                   aria-label="Period end year"
                 >
-                  <option v-for="y in data.years" :key="y" :value="y">{{ y }}</option>
+                  <option v-for="y in data.years.filter((y) => y >= p.from)" :key="y" :value="y">
+                    {{ y }}
+                  </option>
                 </select>
                 <button
                   v-if="periods.length > 1 && !breakdownActive"
