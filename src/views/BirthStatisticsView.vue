@@ -70,6 +70,20 @@ const ANNUAL_METRICS = {
 const annualMetric = ref('births')
 const annualFmt = computed(() => ANNUAL_METRICS[annualMetric.value].fmt)
 const annualValues = computed(() => annual.data.value?.[annualMetric.value] ?? [])
+
+// Flag the most recent year(s) as provisional/partial: within a year of
+// "now", or where the fertility rate hasn't landed yet. Renders muted on
+// the chart. (Ready for the D192 provisional feed; today it just catches
+// years whose rate/population came back empty.)
+const thisYear = new Date().getFullYear()
+const annualMuted = computed(() => {
+  const d = annual.data.value
+  if (!d) return []
+  return d.years.map(
+    (y) => y >= thisYear - 1 || (d.byYear[y]?.births != null && d.byYear[y]?.fertilityRate == null)
+  )
+})
+const hasProvisional = computed(() => annualMuted.value.some(Boolean))
 const annualTable = computed(() => {
   const d = annual.data.value
   if (!d) return null
@@ -144,6 +158,7 @@ const annualTable = computed(() => {
             <TimeSeriesChart
               :labels="annual.data.value.years"
               :values="annualValues"
+              :muted-points="annualMuted"
               :series-label="ANNUAL_METRICS[annualMetric].axis"
               :value-formatter="annualFmt"
             />
@@ -155,6 +170,10 @@ const annualTable = computed(() => {
               filename="whywedie-annual-births"
             />
           </div>
+          <p v-if="hasProvisional" class="mt-3 text-xs text-muted">
+            Lighter points are provisional — the most recent year's rate and population figures aren't
+            final yet.
+          </p>
           <p class="mt-3 text-xs text-muted">{{ annual.data.value.coverage.note }}</p>
           <p class="mt-1 text-xs text-muted">Source: {{ annual.data.value.source }}.</p>
         </template>
