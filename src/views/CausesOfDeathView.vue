@@ -9,6 +9,7 @@ import { useAsyncData } from '@/composables/useAsyncData.js'
 import { useNamePreference } from '@/composables/useNamePreference.js'
 import { fetchCausesOfDeath } from '@/api/causesOfDeath.js'
 import { displayName } from '@/data/causeNames.js'
+import { SERIES } from '@/charts/palette.js'
 import { sections } from '@/nav.js'
 
 const route = useRoute()
@@ -352,8 +353,13 @@ function removeTrendCause(i) {
               <div
                 v-for="(p, i) in periods"
                 :key="i"
-                class="inline-flex items-center gap-1 rounded-lg border border-line-strong bg-paper py-1.5 pl-2 pr-1 text-sm"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-paper py-1.5 pl-2 pr-1 text-sm"
               >
+                <span
+                  class="size-2.5 shrink-0 rounded-full"
+                  :style="{ backgroundColor: SERIES[i % SERIES.length] }"
+                  aria-hidden="true"
+                ></span>
                 <select
                   v-model.number="p.from"
                   class="min-h-[28px] bg-transparent py-0.5 text-ink focus-visible:outline-none"
@@ -424,6 +430,11 @@ function removeTrendCause(i) {
               :key="name"
               class="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-paper py-1.5 pl-2.5 pr-1 text-sm text-ink"
             >
+              <span
+                class="size-2.5 shrink-0 rounded-full"
+                :style="{ backgroundColor: SERIES[i % SERIES.length] }"
+                aria-hidden="true"
+              ></span>
               {{ label(name) }}
               <button
                 v-if="trendCauses.length > 1"

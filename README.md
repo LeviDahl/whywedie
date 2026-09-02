@@ -10,7 +10,7 @@ sourced from CDC data.
 | Home | — | project overview |
 | Death Statistics Over Time | Socrata | annual rollup + current monthly |
 | Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | overlay multiple periods (years or decade ranges) and multiple causes; friendly ↔ official cause names |
-| Birth Statistics | Socrata | annual births + fertility rate (1960–2018 baseline, → latest via the WONDER natality pipeline) and provisional monthly births |
+| Birth Statistics | Socrata + CDC WONDER | annual births + fertility rate (1960–2018 Socrata baseline, extended to 2022 via the WONDER natality pipeline → `/data/natality.json`) + provisional monthly births (Socrata) |
 | Population Decline / Gain | Socrata | births vs. deaths + natural increase (1999–2017), century-long birth history |
 | By the Numbers | Socrata + public estimates | births/deaths as a daily average + rotating scale-comparison facts |
 
@@ -25,11 +25,11 @@ sourced from CDC data.
 
 **The site itself is static** — no server, no build-time data fetch. It
 either calls data.cdc.gov's Socrata JSON API directly from the browser, or
-reads a static JSON file (`/data/mortality.json`). That JSON is produced
-out-of-band by the Node pipeline in [`pipeline/`](pipeline/), which runs on
-its own schedule against CDC WONDER and is completely separate from the
-frontend (its own `package.json`, never imported by the app). See
-[`pipeline/README.md`](pipeline/README.md).
+reads a committed JSON snapshot (`/data/mortality.json`, `/data/natality.json`).
+Those snapshots are produced out-of-band by the Node pipeline in
+[`pipeline/`](pipeline/), which runs on its own schedule against CDC WONDER
+and is completely separate from the frontend (its own `package.json`, never
+imported by the app). See [`pipeline/README.md`](pipeline/README.md).
 
 `package.json` pins dependencies to their current major versions with `^`
 ranges, so `npm install` will pull the latest compatible release.
@@ -50,12 +50,15 @@ npm run preview    # locally preview the production build
 
 ## How the data pipelines work
 
-Everything goes through data.cdc.gov's **Socrata (SODA) API** — plain JSON
-over HTTP GET, with CORS support, so the browser calls it directly with no
-backend proxy. See `src/api/socrata.js` for the shared client and
-`src/api/*.js` for each pipeline. Every query below was tested against the
-live API while building this (not just written from docs), and each module
-has comments on the quirks that were found doing that.
+Most sections call data.cdc.gov's **Socrata (SODA) API** directly — plain
+JSON over HTTP GET, with CORS support, so the browser hits it with no
+backend proxy (`src/api/socrata.js` is the shared client, `src/api/*.js` is
+one module per pipeline). **Causes of Death** and the annual **Birth
+Statistics** series are the exception — they read committed JSON snapshots
+(`/data/mortality.json`, `/data/natality.json`) built out-of-band from CDC
+WONDER by [`pipeline/`](pipeline/). Every Socrata query below was tested
+against the live API while building this (not just written from docs), and
+each module has comments on the quirks that were found doing that.
 
 ### 1. Current monthly births / deaths
 
@@ -138,11 +141,14 @@ cause's series to the full year axis so several can be overlaid.
 
 `BirthStatisticsView.vue` has two series:
 - **Annual births + fertility rate** — `src/api/natality.js` reads
-  `/data/natality.json`. Baseline committed from Socrata `89yk-m38d` (NCHS
-  Natality Measures by Race, "All races", 1960–2018: births, crude birth
-  rate, general fertility rate). The WONDER natality pipeline (D149 / D66 /
-  D27, see `pipeline/`) overwrites it with a series reaching the latest
-  published year. Shape mirrors `mortality.json` (`years` + `byYear`).
+  `/data/natality.json`. Pre-2003 is the committed Socrata `89yk-m38d`
+  baseline (NCHS Natality Measures by Race, "All races": births, crude
+  birth rate, general fertility rate); 2003–2022 comes from the WONDER
+  natality pipeline (D27 for 2003–2006, D66 for 2007–2022 — see
+  `pipeline/`), which `build-snapshots.js` merges over the baseline. D192
+  ("Provisional Natality, 2023 through Last Month") will extend it toward
+  the current month once its template is built. Shape mirrors
+  `mortality.json` (`years` + `byYear`).
 - **Provisional monthly births** — `fetchCurrentMonthlyBirths()` in
   `src/api/currentVitalEvents.js` (`hmz2-vwda`, `indicator='Number of Live
   Births'`), plus a rough year-over-year.
@@ -296,15 +302,11 @@ drawer on mobile, toggled from a top bar.
 
 ## What's next
 
-The pipeline code is complete for two more things — they just need their
-WONDER templates exported and a run:
-
-- [ ] **Run D76** — makes Causes of Death live instead of a static
-      baseline. D76 is finalized, so a one-time run + commit is enough.
-- [ ] **Natality: run D66 + D27** (`natality_mid.xml` 2007–2022,
-      `natality_gap.xml` 2003–2006) — built and tested. Extends the
-      Birth-page annual series past the Socrata baseline. `build-snapshots.js`
-      merges pre-2003 from the baseline.
+- [x] **D76 (Causes of Death)** — run + committed. `/data/mortality.json`
+      is real WONDER output, national, 1999–2020. Finalized — no schedule
+      needed.
+- [x] **Natality D66 + D27** — run + committed. `/data/natality.json` is
+      1960–2022 (pre-2003 Socrata baseline, 2003–2006 D27, 2007–2022 D66).
 - [ ] **`natality_current.xml` (D192)** — "Provisional Natality, 2023
       through Last Month", updated monthly. Placeholder; needs its API
       parameter set from WONDER (its "expanded" param names differ from
