@@ -20,8 +20,23 @@ onMounted(() => {
 })
 
 const integerFormatter = (v) => (v == null ? '—' : v.toLocaleString())
+const rateFormatter = (v) => (v == null ? '—' : v.toFixed(1))
 
-// --- Historical annual (1999–present; 2021+ are CDC provisional) ---
+// The annual chart plots either the raw count (WONDER, 1968+) or the
+// age-adjusted rate, which extends back to 1900 from CDC's historical
+// series. Crude rate has no pre-1968 source so it isn't offered here.
+const ANNUAL_METRICS = {
+  deaths: { key: 'totalDeaths', label: 'Total deaths', fmt: integerFormatter },
+  ageAdjustedRate: {
+    key: 'ageAdjustedRate',
+    label: 'Age-adjusted rate',
+    fmt: rateFormatter
+  }
+}
+const metric = ref('deaths')
+const metricFmt = computed(() => ANNUAL_METRICS[metric.value].fmt)
+
+// --- Historical annual (1900–present for the rate, 1968+ for counts) ---
 const annualYears = computed(() => historical.data.value?.years ?? [])
 const latestYear = computed(() => annualYears.value.at(-1) ?? null)
 const latestYearDeaths = computed(() => historical.data.value?.totalDeaths?.at(-1) ?? null)
@@ -78,12 +93,16 @@ const tail = (arr, n) => (n === Infinity ? arr.slice() : arr.slice(Math.max(0, a
 const annualView = computed(() => {
   const d = historical.data.value
   if (!d?.years?.length) return null
+  const field = ANNUAL_METRICS[metric.value].key
+  const series = d[field] ?? []
+  // Drop the leading run of nulls (the count series is empty before 1968).
+  const start = series.findIndex((v) => v != null)
+  const from = start < 0 ? 0 : start
+  const years = d.years.slice(from)
+  const values = series.slice(from)
+  const muted = d.isProvisional.slice(from)
   const n = ANNUAL_RANGES.find((r) => r.key === annualRange.value)?.n ?? Infinity
-  return {
-    labels: tail(d.years, n),
-    values: tail(d.totalDeaths, n),
-    muted: tail(d.isProvisional, n)
-  }
+  return { labels: tail(years, n), values: tail(values, n), muted: tail(muted, n) }
 })
 
 const monthlyView = computed(() => {
@@ -162,7 +181,19 @@ const monthlyTable = computed(() => {
       <section>
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-base font-semibold text-ink">Annual Deaths</h2>
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <div v-if="annualYears.length" class="inline-flex overflow-hidden rounded-lg border border-line-strong">
+              <button
+                v-for="(m, key) in ANNUAL_METRICS"
+                :key="key"
+                type="button"
+                class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
+                :class="metric === key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
+                @click="metric = key"
+              >
+                {{ m.label }}
+              </button>
+            </div>
             <p v-if="annualYears.length" class="text-sm text-muted">
               {{ annualView?.labels[0] }}–{{ annualView?.labels.at(-1) }}
             </p>
@@ -194,8 +225,8 @@ const monthlyTable = computed(() => {
               :labels="annualView.labels"
               :values="annualView.values"
               :muted-points="annualView.muted"
-              series-label="Deaths"
-              :value-formatter="integerFormatter"
+              :series-label="ANNUAL_METRICS[metric].label"
+              :value-formatter="metricFmt"
             />
             <ChartToolbar
               v-if="annualTable"
@@ -209,6 +240,12 @@ const monthlyTable = computed(() => {
             The dashed, greyed segment ({{ firstProvisionalYear }} onward) is CDC provisional data from
             the Provisional Mortality database — close to final, but subject to small upward revision,
             and the most recent year may run a month or two short of a full year.
+          </p>
+          <p v-if="metric === 'ageAdjustedRate'" class="mt-1 text-xs text-muted">
+            Age-adjusted to the 2000 US standard population, so years are comparable despite the
+            population aging. Pre-1968 comes from CDC's historical series; before 1933 it covers the
+            expanding death-registration area rather than every state. Raw death <em>counts</em> only
+            go back to 1968 (no earlier source).
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ historical.data.value.source }}.</p>
         </template>
