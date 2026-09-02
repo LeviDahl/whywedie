@@ -387,25 +387,39 @@ decades onto one bar chart.
   accompany the `O_aar_enable=true` checkbox; location `V_` fields go
   **blank** (CMF reads blank as all-US).
 
-**Remaining to ship the pre-1999 + D192 data:**
+**Done since:** D192 births + D16/D74 chapter data run to MySQL and
+committed in `mortality.json` (1968–2025) / `natality.json` (1960–2026).
+Frontend: `natality.js` flags the partial trailing calendar year
+(< 70% of the prior year → dropped from the plotted line, shown as a
+caption); Birth Statistics has an `(i)` popover explaining Births /
+Fertility rate (general, not total) / Birth rate; Death Statistics annual
+range tabs are 10/25/50/Max. `historicalDeaths.js` source label is derived
+from the actual first year.
 
-1. **Production pipeline runs + snapshot rebuild** (on the pipeline host,
-   against MySQL — not `--dump`):
-   `fetch.js --type=natality --era=current`,
-   `fetch.js --type=mortality --era=icd9 --years=1979-1998` (slice if it
-   times out), `fetch.js --type=mortality --era=icd8 --years=1968-1978`,
-   then `build-snapshots.js`, then commit `public/data/*.json`. The
-   committed baseline JSON does **not** carry these yet.
-2. **Frontend wiring:**
-   - `src/api/natality.js` — prefer D192 counts for 2023+ from
-     `natality.json`, keep the Socrata `hmz2-vwda` roll-up only as a
-     fallback for years past the snapshot, flag the partial trailing year.
-   - Surface the 1968–1998 ICD-chapter rows on Causes of Death (decade
-     buttons / a chapter view). They load harmlessly today (non-`#`,
-     ignored by `causesOfDeath.js`) but nothing displays them.
-3. **Cheap enhancement — extend the Death Statistics *annual* chart back to
-   1968:** add `icd9_total` / `icd8_total` year-only eras (`B_2 = *None*`,
-   like `icd10_total`), giving a continuous all-cause line 1968→2025.
+**Remaining:**
+
+1. **Run `icd9_total` / `icd8_total`** (built — `mortality_icd9_total.xml` /
+   `_icd8_total.xml`, Year-only all-cause, `B_2=*None*`). Then
+   `build-snapshots.js` + commit `public/data/*.json`, and the Death
+   Statistics annual chart runs continuously 1968→present with no frontend
+   change (`historicalDeaths.js` already reads the "All causes" rows and
+   re-labels its source once they're present).
+   `fetch.js --type=mortality --era=icd9_total --years=1979-1998`
+   `fetch.js --type=mortality --era=icd8_total --years=1968-1978`
+2. **Surface the 1968–1998 ICD-chapter rows on Causes of Death** — a
+   chapter view / decade buttons. They load harmlessly today (non-`#`,
+   ignored by `causesOfDeath.js`) but nothing displays them. The real work
+   is a **cross-revision chapter-label crosswalk**: ICD-8 "Diseases of the
+   circulatory system (390-458)" ≠ ICD-9 "(390-459)" ≠ ICD-10 "(I00-I99)",
+   so a ~17-row map is needed to stitch each chapter into one continuous
+   series. `causesOfDeath.js` would gain a `byChapter` shape from the
+   non-`#` rows.
+3. **Fertility rate stops at 2020** — `natality.json` has births 2021–2026
+   but no fertility rate past 2020 (D66's `mid` era returned no rate for
+   2021–2022; D192 has no rate measure at all). The "Fertility rate" toggle
+   on Birth Statistics is empty for those years. Options: re-run D66 on a
+   newer vintage, or add D149 ("Natality, 2016–2022 expanded") which may
+   carry the rate further. Re-check periodically.
 4. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
    only the `provisional` / `provisional_causes` / `monthly` / `current`
    eras recur; D76 / D66 / D27 / D16 / D74 are finalized, run once.
