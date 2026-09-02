@@ -417,50 +417,34 @@ chart on the page's metric toggle. Stops at 1998; extending it needs a
 chapter-grouped D76/D176 era (the 113-list snapshot has no ICD-10 chapter
 row).
 
+**Done since:** Sex/Race breakdown 2021+ (`provisional_sex` / `provisional_race`
+D176 eras run + deployed — `mortality_demographic.json` now 1999–2025, race
+seam caption live). Monthly births D192 (`natality/monthly` era +
+`natality_monthly.json`, 42 months Jan 2023–Jun 2026, run + deployed). Crude
+birth rate backfilled from births ÷ `mortality.json` population
+(`birthRateDerived`, runs to 2024). Local `./deploy.sh` (build + lftp FTPS
+mirror) is the working deploy path; the GitHub Action is manual-only (GoDaddy
+throttles FTP from CI IPs).
+
 **Remaining:**
 
-1. **ICD-10 chapter grain for 1999+** — the "Broad Chapters" section stops
-   at 1998 because the 113-list snapshot has no chapter roll-up. A
-   `mortality_icd10_chapter` era (D76/D176 grouped by the ICD-10 chapter
-   variable — find it on the D76 request form; `D76.V4` is the 113 list, not
-   chapters) would extend that chart to 2025. `CHAPTER_CANON` already has
-   the ICD-10 → canonical slots ready to fill.
-2. **Sex / Race breakdown 2021+ — eras BUILT, need a `--dump`.**
-   `provisional_sex` (`mortality_provisional_sex.xml`, B_3 = `D176.V7`) and
-   `provisional_race` (`_race.xml`, B_3 = `D176.V42` "Single Race 6") —
-   `mortality_provisional_causes.xml` + one Group By, writing to
-   `mortality_demographic` on the same `sex`/`race` dimension as the D76
-   `icd10_*` eras. `build-snapshots.js` + `causeBreakdown.js` are
-   year-agnostic, so no code change once the rows land; the Causes of Death
-   breakdown shows a **2020/2021 seam caption** for race (D176 = 6
-   single-race groups, not D76's 4 bridged). Run:
-   `fetch.js --type=mortality --era=provisional_sex --years=2021 --out=rows.json --dump`
-   `fetch.js --type=mortality --era=provisional_race --years=2021 --out=rows.json --dump`
-   then the real `--years=2021-2025` runs + `build-snapshots.js` + commit.
-   Expect heavy CDC suppression (1–9 death cells → NULL) at 3-deep grouping.
-3. **General fertility rate stops at 2020.** `natality.json` has births
-   2021–2026 but no fertility rate past 2020 (D66's `mid` era returned no
-   rate for 2021–22; D192 has none). The **crude birth rate** gap is
-   closed — `natality.js` backfills it from births ÷ the
-   resident-population figure in `mortality.json` (`birthRateDerived`),
-   matching NCHS to ~0.1 for 2010–2018 overlap; the toggle runs to 2024.
-   The fertility rate needs a women-15–44 population (Census PEP) or D149
-   ("Natality, 2016–2022 expanded"). Re-check periodically.
-4. **Monthly births — D192 `natality/monthly` era BUILT, needs a run.**
-   `natality_monthly.xml` (natality_current.xml + `B_2 = D192.V25` Month),
-   era + `natality_monthly` table + `buildNatalityMonthly()` +
-   `src/api/monthlyBirths.js` (reads `natality_monthly.json`, falls back to
-   Socrata `hmz2-vwda` while the committed file is an empty stub). The
-   Birth Statistics monthly chart, stat card, and YoY now key off the
-   latest *complete* month and dash the incomplete tail. To land it:
-   `node --env-file=.env fetch.js --type=natality --era=monthly --years=2024 --out=rows.json --dump`
-   to confirm the month grouping, then run it for real + `build-snapshots.js`
-   + commit. (Socrata `hmz2-vwda` stopped refreshing past June 2024 — same
-   table monthly *deaths* were moved off.)
-5. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
-   only the `provisional` / `provisional_causes` / `monthly` / `current`
-   eras recur; D76 / D66 / D27 / D16 / D74 are finalized, run once.
-6. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
+1. **ICD-10 chapter grain for 1999+** — the "Broad Chapters, 1968–1998"
+   section on Causes of Death stops at 1998 because the 113-list snapshot
+   has no chapter roll-up. A `mortality_icd10_chapter` era (D76/D176 grouped
+   by the ICD-10 chapter variable — find it on the D76 request form; `D76.V4`
+   is the 113 list, not chapters) would extend that chart to 2025.
+   `CHAPTER_CANON` in `src/api/causesOfDeath.js` already has ICD-10 →
+   canonical slots ready to fill.
+2. **General fertility rate stops at 2020.** Births run to 2026 but no
+   fertility rate past 2020 (D66 returned none for 2021–22; D192 has no rate
+   measure). Needs a women-15–44 population series (Census PEP) to compute
+   births ÷ population like `natality.js` already does for the crude birth
+   rate, or try D149 ("Natality, 2016–2022 expanded").
+3. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
+   only the `provisional*` / `monthly` / `current` eras recur; D76 / D66 /
+   D27 / D16 / D74 are finalized, run once. `./deploy.sh` or a commit-then-
+   pull is the publish step.
+4. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above).
 
 **Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
 ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).
