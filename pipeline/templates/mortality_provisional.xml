@@ -1,37 +1,29 @@
 <request-parameters>
 <!--
   D176 = "Provisional Mortality Statistics, 2018 through Last Month".
-  Updated monthly. This is what lights up Causes of Death for 2021+
-  (D76 stops at 2020).
+  Updated monthly. Lights up Causes of Death for 2021+ (D76 stops at 2020).
 
-  DRAFT — adapted from wonderapi's D176_Defaults.xml (its own accepted
-  default envelope) plus the four edits that turn it into a
-  "Year x 113-Cause-List, national, with rates" request, matching what
-  mortality_icd10.xml (D76) does:
+  DRAFT v2. Modeled directly on the WORKING mortality_icd10.xml (D76)
+  request shape, with D176 ids and D176's extra residence/occurrence
+  location filters (V77/V79/V80/V100 exist only in the expanded vintage).
+  All multiple-cause-of-death (MCD) machinery from D176's default envelope
+  is deliberately stripped — we do underlying-cause-of-death only, exactly
+  like D76. (v1 kept O_mcd + the V13/V15/V16 AND-combination boxes and
+  WONDER 500'd: "The second box of the AND combination for 'MCD - ICD-10
+  Codes' contains an entry while the first one is empty.")
 
-    B_2      *None*      -> D176.V4     (group by the ICD-10 113 Cause List)
-    M_4      (added)     -> D176.M4     (age-adjusted rate)
-    O_aar    aar_none    -> aar_std     (needed for M_4)
-    O_ucd    D176.V2     -> D176.V4     (rank by the 113 list, not full ICD detail)
-    F_D176.V1            -> {{YEAR_LIST}}  (fetch.js fills it; era clips to 2021+)
-    O_show_totals true   -> false
-    O_precision  1       -> 3
-
-  UNVERIFIED: that D176's 113 Cause List is variable V4 (it is on D76).
-  Test before trusting:
+  Still UNVERIFIED: that D176's "ICD-10 113 Cause List" is variable V4.
+  It is on D76, and D176's other core variables line up with D76's
+  numbering (V5=age, V9=location, V19=urbanization, V42=race), so V4 is a
+  well-founded guess — but confirm with:
     cd pipeline
     node --env-file=.env fetch.js --type=mortality --era=provisional \
          --years=2021 --out=rows.json --dump
-  Expect ~130 cause rows for 2021 with death_count / population /
-  crude_rate / age_adjusted_rate populated. If rows.json instead has
-  thousands of rows (individual ICD-10 codes) or is empty, V4 is wrong —
-  paste the WONDER <message> from mortality_provisional.raw.xml, or the
-  D176 variable list, and we'll re-point B_2 / O_ucd.
-
-  When it validates: add an era to lib/datasets.js (databaseId 'D176',
-  templateFile 'mortality_provisional.xml', fixed { icd_version: 10 },
-  yearMin 2021, yearMax <current>, same 6-column contract as icd10) and
-  a bullet in templates/README.md.
+  Expect ~130 cause rows for 2021, each with death_count / population /
+  crude_rate / age_adjusted_rate. If instead you get thousands of rows
+  (full ICD-10 code detail) or zero, V4 is wrong — paste the <message>
+  from mortality_provisional.raw.xml (or D176's variable list) and we
+  re-point B_2 / O_ucd.
 -->
 <parameter><name>accept_datause_restrictions</name><value>true</value></parameter>
 
@@ -51,8 +43,6 @@
 <parameter><name>F_D176.V4</name><value>*All*</value></parameter>
 <parameter><name>F_D176.V9</name><value>*All*</value></parameter>
 <parameter><name>F_D176.V10</name><value>*All*</value></parameter>
-<parameter><name>F_D176.V13</name><value>*All*</value></parameter>
-<parameter><name>F_D176.V25</name><value>*All*</value></parameter>
 <parameter><name>F_D176.V27</name><value>*All*</value></parameter>
 <parameter><name>F_D176.V77</name><value>*All*</value></parameter>
 <parameter><name>F_D176.V79</name><value>*All*</value></parameter>
@@ -64,19 +54,14 @@
 <parameter><name>I_D176.V4</name><value>*All* (All Causes of Death)</value></parameter>
 <parameter><name>I_D176.V9</name><value>*All* (The United States)</value></parameter>
 <parameter><name>I_D176.V10</name><value>*All* (The United States)</value></parameter>
-<parameter><name>I_D176.V25</name><value>All Causes of Death</value></parameter>
 <parameter><name>I_D176.V27</name><value>*All* (The United States)</value></parameter>
 <parameter><name>I_D176.V77</name><value>*All* (The United States)</value></parameter>
 <parameter><name>I_D176.V79</name><value>*All* (The United States)</value></parameter>
 <parameter><name>I_D176.V80</name><value>*All* (The United States)</value></parameter>
 <parameter><name>I_D176.V100</name><value>*All* (All Dates)</value></parameter>
 
-<parameter><name>O_MMWR</name><value>false</value></parameter>
-<parameter><name>O_V100_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V10_fmode</name><value>freg</value></parameter>
-<parameter><name>O_V13_fmode</name><value>fadv</value></parameter>
 <parameter><name>O_V1_fmode</name><value>freg</value></parameter>
-<parameter><name>O_V25_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V27_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V2_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V4_fmode</name><value>freg</value></parameter>
@@ -84,17 +69,15 @@
 <parameter><name>O_V79_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V80_fmode</name><value>freg</value></parameter>
 <parameter><name>O_V9_fmode</name><value>freg</value></parameter>
+<parameter><name>O_V100_fmode</name><value>freg</value></parameter>
+<parameter><name>O_MMWR</name><value>false</value></parameter>
 <parameter><name>O_aar</name><value>aar_std</value></parameter>
 <parameter><name>O_aar_pop</name><value>0000</value></parameter>
 <parameter><name>O_age</name><value>D176.V5</value></parameter>
 <parameter><name>O_dates</name><value>YEAR</value></parameter>
-<parameter><name>O_death_location</name><value>D176.V79</value></parameter>
-<parameter><name>O_death_urban</name><value>D176.V89</value></parameter>
 <parameter><name>O_javascript</name><value>on</value></parameter>
 <parameter><name>O_location</name><value>D176.V9</value></parameter>
-<parameter><name>O_mcd</name><value>D176.V13</value></parameter>
 <parameter><name>O_precision</name><value>3</value></parameter>
-<parameter><name>O_race</name><value>D176.V42</value></parameter>
 <parameter><name>O_rate_per</name><value>100000</value></parameter>
 <parameter><name>O_show_totals</name><value>false</value></parameter>
 <parameter><name>O_timeout</name><value>300</value></parameter>
@@ -113,9 +96,6 @@
 <parameter><name>V_D176.V100</name><value></value></parameter>
 <parameter><name>V_D176.V11</name><value>*All*</value></parameter>
 <parameter><name>V_D176.V12</name><value>*All*</value></parameter>
-<parameter><name>V_D176.V13</name><value></value></parameter>
-<parameter><name>V_D176.V15</name><value></value></parameter>
-<parameter><name>V_D176.V16</name><value></value></parameter>
 <parameter><name>V_D176.V17</name><value>*All*</value></parameter>
 <parameter><name>V_D176.V19</name><value>*All*</value></parameter>
 <parameter><name>V_D176.V2</name><value></value></parameter>
@@ -123,8 +103,6 @@
 <parameter><name>V_D176.V21</name><value>*All*</value></parameter>
 <parameter><name>V_D176.V22</name><value>*All*</value></parameter>
 <parameter><name>V_D176.V23</name><value>*All*</value></parameter>
-<parameter><name>V_D176.V25</name><value></value></parameter>
-<parameter><name>V_D176.V26</name><value></value></parameter>
 <parameter><name>V_D176.V27</name><value></value></parameter>
 <parameter><name>V_D176.V4</name><value>*All*</value></parameter>
 <parameter><name>V_D176.V42</name><value>*All*</value></parameter>
@@ -150,8 +128,6 @@
 <parameter><name>finder-stage-D176.V4</name><value>codeset</value></parameter>
 <parameter><name>finder-stage-D176.V9</name><value>codeset</value></parameter>
 <parameter><name>finder-stage-D176.V10</name><value>codeset</value></parameter>
-<parameter><name>finder-stage-D176.V13</name><value>codeset</value></parameter>
-<parameter><name>finder-stage-D176.V25</name><value>codeset</value></parameter>
 <parameter><name>finder-stage-D176.V27</name><value>codeset</value></parameter>
 <parameter><name>finder-stage-D176.V77</name><value>codeset</value></parameter>
 <parameter><name>finder-stage-D176.V79</name><value>codeset</value></parameter>
