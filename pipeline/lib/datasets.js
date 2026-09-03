@@ -42,6 +42,30 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // D76 grouped by Year x ICD-10 CHAPTER (D76.V2-level1, ~17 chapters),
+    // with O_ucd=D76.V2. Extends the Causes-of-Death "Broad Chapters" view
+    // — chapter grain, continuous with the D16/D74 chapter rows — past its
+    // 1998 edge to 2020. Chapter labels are NOT '#'-prefixed, so the
+    // ranked view ignores them; causesOfDeath.js `buildChapters` picks
+    // them up via CHAPTER_CANON. Same 6-col `coded` contract + `mortality`
+    // table as `icd10`. DRAFT — dump-validate the row shape + chapter
+    // label strings before a real run (see the template comment).
+    icd10_chapter: {
+      databaseId: 'D76',
+      templateFile: 'mortality_icd10_chapter.xml',
+      table: 'mortality',
+      fixed: { icd_version: 10 },
+      yearMin: 1999,
+      yearMax: 2020,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' }, // D76.V2-level1 "ICD Chapter"
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
     // D76 grouped by Year only — one all-cause total per year, with crude
     // and age-adjusted rate. Feeds the Death Statistics annual chart
     // (1999-2020), continuous with the D176 `provisional` all-cause rows
@@ -283,6 +307,27 @@ export const DATASETS = {
     provisional_causes: {
       databaseId: 'D176',
       templateFile: 'mortality_provisional_causes.xml',
+      table: 'mortality',
+      fixed: { icd_version: 10 },
+      yearMin: 2021,
+      yearMax: 2030,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
+    // D176 continuation of `icd10_chapter` for 2021+ (D76 stops at 2020).
+    // B_2 = D176.V2-level1, O_ucd = D176.V2. Same 6-col `coded` contract +
+    // `mortality` table; runs alongside `provisional` / `provisional_causes`
+    // (different cause_code grain, no key collision). DRAFT — dump-validate
+    // before a real run.
+    provisional_chapter: {
+      databaseId: 'D176',
+      templateFile: 'mortality_provisional_chapter.xml',
       table: 'mortality',
       fixed: { icd_version: 10 },
       yearMin: 2021,

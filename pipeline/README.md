@@ -116,6 +116,7 @@ for chunk in \
   "mortality icd10_sex" "mortality icd10_race" \
   "mortality provisional" "mortality provisional_causes" "mortality provisional_sex" "mortality provisional_race" "mortality monthly" \
   "mortality icd9" "mortality icd8" \
+  "mortality icd10_chapter" "mortality provisional_chapter" \
   "natality mid" "natality gap" "natality current" "natality monthly" ; do
   set -- $chunk
   node --env-file=.env fetch.js --type=$1 --era=$2 || exit 1
@@ -125,7 +126,10 @@ SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
 ```
 
 (`icd9` = D16 1979-1998, `icd8` = D74 1968-1978 — both ICD-chapter grain;
-pass `--years=` to slice them. `natality current` = D192 births-only.)
+pass `--years=` to slice them. `natality current` = D192 births-only.
+`icd10_chapter` / `provisional_chapter` = the ICD-10 chapter roll-up
+(D76 1999-2020 / D176 2021+) that extends "Broad Chapters" past 1998 —
+**DRAFT templates, `--dump`-validate first**, see step 4.)
 
 `ON DUPLICATE KEY UPDATE` makes every run re-runnable. If a mortality era
 errors on size/timeout, slice it (needs the `{{YEAR_LIST}}` token in that

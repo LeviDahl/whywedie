@@ -431,26 +431,39 @@ caption reworded off the old "since 1999" framing.
 
 **Remaining:**
 
+There's a **batch of pipeline runs** staged — see "Pipeline batch" below.
+Items 1, 2, 5 all resolve in that one sitting.
+
 1. **ICD-10 chapter grain for 1999+ — the "map broad chapters to the
    leading-cause view" gap.** "Broad Chapters" stops at 1998 because the
-   113-list snapshot has no ICD-10 chapter roll-up. Extend it with a
-   `mortality_icd10_chapter` era (D76/D176 grouped by the ICD-10 *chapter*
-   variable — find it on the D76 request form; `D76.V4` is the 113 list,
-   not chapters). `CHAPTER_CANON` in `src/api/causesOfDeath.js` already has
-   the ICD-10 → canonical slots ready. A true 113-list-equivalent for the
-   pre-1999 decades (so the *ranked* view works back to 1968) is the bigger
-   "Future effort" below.
-2. **General fertility rate stops at 2020.** No rate past 2020 (D66 returned
-   none for 2021–22; D192 has no rate measure). To compute births ÷
-   women-15–44 (the move `natality.js` already makes for the crude rate)
-   you need that population series, and **there's no browser-direct
-   no-key source**: the Census PEP API now 302s to `missing_key.html`
-   without an API key (a credential we don't want client-side), and no
-   data.cdc.gov Socrata set carries US female population by single age /
-   5-year band by year (`b2jx-uyck` is age `Total/<18/18+` only, US =
-   2019 only). So this needs either a Census key on a build/pipeline step,
-   or WONDER **D149** ("Natality, 2016–2022 expanded", has GFR) as a new
-   pipeline era. Both need a run — not a no-action fix.
+   113-list snapshot has no ICD-10 chapter roll-up. **Prepped:** draft
+   eras `icd10_chapter` (D76, 1999–2020) + `provisional_chapter` (D176,
+   2021+) in `datasets.js`, templates
+   `mortality_icd10_chapter.xml` / `mortality_provisional_chapter.xml`
+   (113-list templates with `B_2 → <db>.V2-level1`, `O_ucd → <db>.V2`).
+   **Needs a `--dump` first** to confirm the row shape and the exact
+   chapter label strings, then a frontend pass: add the ICD-10 chapter
+   labels to `CHAPTER_CANON` in `src/api/causesOfDeath.js`, make
+   `buildChapters` *sum* (not overwrite) when >1 source row maps to one
+   canonical slot (ICD-10 splits nervous-system / eye / ear), and give
+   the "Broad Chapters" section a second seam at 1999 + a wider year
+   label. A true 113-list-equivalent for the pre-1999 decades (so the
+   *ranked* view works back to 1968) is the bigger "Future effort" below.
+2. **General fertility rate stops at 2020.** D192 has no rate measure, and
+   there's **no browser-direct no-key** women-15–44 population series
+   (Census PEP now 302s to `missing_key.html`; no data.cdc.gov Socrata
+   set has US female pop by age-band by year). **But `natality_mid.xml`
+   (D66) already requests the General Fertility Rate measure and D66 now
+   returns through 2024** — the `mid` era just clips to 2022. So the
+   likely fix is: `--dump` `natality mid` at `--years=2019-2024`, and if
+   2021–2024 come back *with* a fertility rate, bump `mid`'s `yearMax` to
+   2024 and handle the natality-table key collision with the `current`
+   (D192) era (same `year+state` key; `current` writes births only and
+   would null the rate — run `mid` **after** `current`, or set
+   `current`'s `yearMin` past `mid`'s `yearMax`). If D66 returns births
+   only for those years, fall back to WONDER **D149** ("Natality,
+   2016–2022 expanded", has GFR) as a new era (needs a `stage=request`
+   form capture).
 3. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
    only the `provisional*` / `monthly` / `current` eras recur; D76 / D66 /
    D27 / D16 / D74 are finalized, run once. `./deploy.sh` (or commit + a
@@ -465,6 +478,28 @@ caption reworded off the old "since 1999" framing.
    from the VSRR splice). After that, `datasets.js`'s `provisional` era
    parses a 5th column; a stale 4-column run would misalign — run the
    fetch and rebuild the snapshot together.
+
+**Pipeline batch — staged, run in one sitting** (`≥16 s` between WONDER
+calls; from `pipeline/` with `.env` filled):
+
+*Real run (ready now):*
+```
+node --env-file=.env fetch.js --type=mortality --era=provisional          # 5-col: backfills 2021-25 all-cause age-adjusted rate (item 5)
+```
+
+*Dumps to validate before their real runs (paste the `rows.json` +
+`pipeline/mortality_*.raw.xml` back for the frontend wiring):*
+```
+node --env-file=.env fetch.js --type=mortality --era=icd10_chapter        --years=1999-2001 --out=rows.json --dump   # item 1: D76 chapter labels
+node --env-file=.env fetch.js --type=mortality --era=provisional_chapter  --years=2021      --out=rows.json --dump   # item 1: D176 chapter labels
+node --env-file=.env fetch.js --type=natality  --era=mid                  --years=2019-2024 --out=rows.json --dump   # item 2: does D66 return GFR for 2021-24?
+```
+
+*Then, once dumps check out:* the real `icd10_chapter` / `provisional_chapter`
+runs (full year ranges), the `mid` re-run (after the `yearMax` bump +
+collision fix), then
+`SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js`
+and `./deploy.sh`.
 
 **On the 1909 / 1968 / 1999 start dates** (from a review question):
 
