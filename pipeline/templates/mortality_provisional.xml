@@ -2,13 +2,14 @@
 <!--
   D176 = "Provisional Mortality Statistics, 2018 through Last Month".
   This is the wonderapi D176_Defaults.xml envelope (known-good) with only
-  four edits: F_D176.V1 -> {{YEAR_LIST}}, O_show_totals false, O_precision 3,
-  O_title. Group By = Year only (B_2..B_5 = *None*). Measures are D176s own
-  defaults: M_1 Deaths, M_2 Population, M_3 Crude Rate. No cause / sex /
-  race grouping - just yearly national totals for 2021+, which is all D76
-  cannot give (it stops at 2020). "15 Leading Causes" (V4) refuses to
-  combine with Year; the 113-list variable for D176 is not confirmed, so
-  cause-level provisional data is a later iteration if wanted.
+  these edits: F_D176.V1 -> {{YEAR_LIST}}, O_show_totals false, O_precision
+  3, O_title, and O_aar aar_none -> aar_std + O_aar_enable=true so the
+  response carries an Age Adjusted Rate column after Crude Rate (same knob
+  mortality_provisional_causes.xml uses). Group By = Year only (B_2..B_5 =
+  *None*). Measures are D176s own defaults: M_1 Deaths, M_2 Population,
+  M_3 Crude Rate; the age-adjusted rate rides in on O_aar_enable, not an
+  M_ slot. No cause / sex / race grouping - just yearly national totals
+  for 2021+, which is all D76 cannot give (it stops at 2020).
 -->
 <parameter>
 <name>accept_datause_restrictions</name>
@@ -204,8 +205,9 @@
 </parameter>
 <parameter>
 <name>O_aar</name>
-<value>aar_none</value>
+<value>aar_std</value>
 </parameter>
+<parameter><name>O_aar_enable</name><value>true</value></parameter>
 <parameter>
 <name>O_aar_pop</name>
 <value>0000</value>

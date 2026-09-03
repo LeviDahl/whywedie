@@ -12,22 +12,33 @@
 //     provisional) — CDC provisional counts; close to final but subject to
 //     small revision, and the most recent year may be a month or two short.
 //
-// The age-adjusted RATE is extended back to 1900 from CDC's historical
-// series (Socrata w9j2-ggv5, "Death rates and life expectancy at birth",
-// All Races / Both Sexes). That series is age-adjusted to the same 2000 US
-// standard population as the WONDER pulls — the overlap years match to ~0.1
-// per 100,000 — so the join is seamless. Death COUNTS (and the crude rate)
-// still start at 1968: WONDER has no earlier count, and you can't recover a
-// count from an age-adjusted rate. Pre-1933 the figure covers the expanding
-// US death-registration area rather than every state.
+// The age-adjusted RATE is extended past the ends of the WONDER snapshot
+// from two CDC Socrata series, both age-adjusted to the same 2000 US
+// standard population, so the joins are seamless (overlap years match to
+// ~0.1 per 100,000):
+//   - back to 1900   w9j2-ggv5 "Death rates and life expectancy at birth"
+//                    (All Races / Both Sexes)
+//   - forward past   489q-934x "VSRR Quarterly provisional estimates for
+//     the snapshot   selected indicators of mortality" — All causes,
+//                    Age-adjusted, "12 months ending with quarter", Q4 row
+//                    = the calendar-year provisional rate. Fills 2023+
+//                    until a WONDER D176 pipeline run carries an
+//                    age-adjusted rate on the all-cause row (today it
+//                    carries deaths + crude rate only, so 2021–2022 have
+//                    no rate yet).
+// Death COUNTS (and the crude rate) still start at 1968: WONDER has no
+// earlier count, and you can't recover a count from an age-adjusted rate.
+// Pre-1933 the figure covers the expanding US death-registration area
+// rather than every state.
 
 import { socrataQuery } from './socrata.js'
 
 const SNAPSHOT_URL = `${import.meta.env.BASE_URL}data/mortality.json`
 const HIST_RATE_ID = 'w9j2-ggv5'
+const VSRR_RATE_ID = '489q-934x'
 
 // Named by which sources actually contributed years to each series.
-function sourceLabel(firstRateYear, firstCountYear) {
+function sourceLabel(firstRateYear, firstCountYear, lastRateYear) {
   const parts = []
   if (firstRateYear <= 1967) {
     parts.push('Death rates & life expectancy since 1900 (NCHS/Socrata w9j2-ggv5, age-adjusted rate)')
@@ -35,6 +46,9 @@ function sourceLabel(firstRateYear, firstCountYear) {
   if (firstCountYear <= 1998) parts.push('Compressed Mortality (D74/D16, 1968–1998)')
   parts.push('Underlying Cause of Death (D76, 1999–2020)')
   parts.push('Provisional Mortality Statistics (D176, 2021–present)')
+  if (lastRateYear >= 2023) {
+    parts.push('VSRR quarterly provisional age-adjusted rate (NCHS/Socrata 489q-934x, 2023+)')
+  }
   return `CDC WONDER + CDC Socrata — ${parts.join(' + ')}, national`
 }
 
@@ -42,7 +56,7 @@ function sourceLabel(firstRateYear, firstCountYear) {
 const FINAL_THROUGH = 2020
 
 export async function fetchHistoricalAnnualDeaths() {
-  const [res, histRateRows] = await Promise.all([
+  const [res, histRateRows, vsrrRateRows] = await Promise.all([
     fetch(SNAPSHOT_URL, { headers: { accept: 'application/json' } }).catch((err) => {
       throw new Error(`Couldn't load the mortality data file: ${err.message}`)
     }),
@@ -50,6 +64,14 @@ export async function fetchHistoricalAnnualDeaths() {
       $select: 'year, mortality',
       $where: "race='All Races' AND sex='Both Sexes'",
       $order: 'year',
+      $limit: 5000
+    }).catch(() => []),
+    socrataQuery(VSRR_RATE_ID, {
+      $select: 'year_and_quarter, rate_overall',
+      $where:
+        "cause_of_death='All causes' AND rate_type='Age-adjusted' " +
+        "AND time_period='12 months ending with quarter'",
+      $order: 'year_and_quarter',
       $limit: 5000
     }).catch(() => [])
   ])
@@ -75,8 +97,8 @@ export async function fetchHistoricalAnnualDeaths() {
     }
   }
 
-  // Historical age-adjusted rate, 1900+, for years the WONDER snapshot
-  // doesn't cover.
+  // Historical age-adjusted rate, 1900+, for years before the WONDER
+  // snapshot.
   const histRate = new Map()
   for (const r of histRateRows) {
     const y = Number(r.year)
@@ -84,20 +106,35 @@ export async function fetchHistoricalAnnualDeaths() {
     if (Number.isInteger(y) && Number.isFinite(v)) histRate.set(y, v)
   }
 
-  const years = [...new Set([...histRate.keys(), ...wonder.keys()])].sort((a, b) => a - b)
+  // VSRR provisional age-adjusted rate, for years past the WONDER
+  // snapshot's rate coverage. The Q4 "12 months ending with quarter" row
+  // is the calendar-year figure; earlier quarters are rolling 12-month
+  // windows that don't line up with a year, so skip them.
+  const vsrrRate = new Map()
+  for (const r of vsrrRateRows) {
+    const [yStr, q] = String(r.year_and_quarter ?? '').split(' ')
+    const y = Number(yStr)
+    const v = Number(r.rate_overall)
+    if (q === 'Q4' && Number.isInteger(y) && Number.isFinite(v)) vsrrRate.set(y, v)
+  }
+
+  const years = [...new Set([...histRate.keys(), ...wonder.keys(), ...vsrrRate.keys()])].sort(
+    (a, b) => a - b
+  )
   const rows = years.map((y) => {
     const w = wonder.get(y)
     return {
       year: y,
       deaths: w?.deaths ?? null,
       crudeRate: w?.crudeRate ?? null,
-      ageAdjustedRate: w?.ageAdjustedRate ?? histRate.get(y) ?? null
+      ageAdjustedRate: w?.ageAdjustedRate ?? histRate.get(y) ?? vsrrRate.get(y) ?? null
     }
   })
 
   const firstCountYear = rows.find((r) => r.deaths != null)?.year ?? 1999
+  const lastRateYear = [...rows].reverse().find((r) => r.ageAdjustedRate != null)?.year ?? 2020
   return {
-    source: sourceLabel(rows[0]?.year ?? 1968, firstCountYear),
+    source: sourceLabel(rows[0]?.year ?? 1968, firstCountYear, lastRateYear),
     fetchedAt: raw.fetchedAt,
     years: rows.map((r) => r.year),
     totalDeaths: rows.map((r) => r.deaths),

@@ -95,12 +95,17 @@ const annualView = computed(() => {
   if (!d?.years?.length) return null
   const field = ANNUAL_METRICS[metric.value].key
   const series = d[field] ?? []
-  // Drop the leading run of nulls (the count series is empty before 1968).
+  // Trim the leading and trailing runs of nulls: the count series is empty
+  // before 1968, and the age-adjusted rate has no value for the newest
+  // provisional years until a pipeline run fills them — without this the
+  // x-axis (and the "1900–YYYY" caption) would stretch past the last point.
   const start = series.findIndex((v) => v != null)
   const from = start < 0 ? 0 : start
-  const years = d.years.slice(from)
-  const values = series.slice(from)
-  const muted = d.isProvisional.slice(from)
+  let to = series.length
+  while (to > from && series[to - 1] == null) to--
+  const years = d.years.slice(from, to)
+  const values = series.slice(from, to)
+  const muted = d.isProvisional.slice(from, to)
   const n = ANNUAL_RANGES.find((r) => r.key === annualRange.value)?.n ?? Infinity
   return { labels: tail(years, n), values: tail(values, n), muted: tail(muted, n) }
 })
@@ -245,7 +250,9 @@ const monthlyTable = computed(() => {
             Age-adjusted to the 2000 US standard population, so years are comparable despite the
             population aging. Pre-1968 comes from CDC's historical series; before 1933 it covers the
             expanding death-registration area rather than every state. Raw death <em>counts</em> only
-            go back to 1968 (no earlier source).
+            go back to 1968 (no earlier source). 2021–2022 have no age-adjusted rate here yet — CDC's
+            provisional all-cause row carries only a crude rate, and the rapid-release quarterly rate
+            starts in 2023.
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ historical.data.value.source }}.</p>
         </template>

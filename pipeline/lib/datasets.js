@@ -257,7 +257,6 @@ export const DATASETS = {
         cause_code: 'All causes',
         cause_name: 'All causes',
         cause_level: 0,
-        age_adjusted_rate: null,
       },
       // Run `--years=2021-<last COMPLETE year>`. D176 is "through Last
       // Month", so the current calendar year is partial — including it
@@ -265,11 +264,15 @@ export const DATASETS = {
       // clipped; keep the run range at the last full year.
       yearMin: 2021,
       yearMax: 2030,
+      // 5 cols: the template enables O_aar_enable, so WONDER appends an
+      // Age Adjusted Rate column after Crude Rate (matches the tail of the
+      // `icd10_total` / `provisional_causes` contract).
       columns: [
         { kind: 'year' },
         { kind: 'measure', field: 'death_count', countField: true },
         { kind: 'measure', field: 'population' },
         { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
     // Per-cause version of the above: D176 grouped by Year x UCD ICD-10 113

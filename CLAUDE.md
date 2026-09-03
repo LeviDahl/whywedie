@@ -417,7 +417,7 @@ caption reworded off the old "since 1999" framing.
 |---|---|---|
 | Home "pick a year" | births 1909–, deaths 1968–, **leading cause 1999–** | leading-cause field only exists for the 113-list era |
 | Death Statistics — annual, **counts** | 1968–2025 | monthly 2018–present |
-| Death Statistics — annual, **age-adjusted rate** | **1900–2025** | pre-1968 from Socrata `w9j2-ggv5` (2000-std, matches WONDER at the seam); metric toggle on the chart |
+| Death Statistics — annual, **age-adjusted rate** | **1900–2024** (gap at 2021–22) | pre-1968 from Socrata `w9j2-ggv5`; 1968–2020 WONDER; **2023–24 from Socrata `489q-934x`** (VSRR quarterly provisional, Q4 12-mo-ending). 2021–22 have no rate until the `provisional` era re-runs with the new `O_aar_enable` knob (template + `datasets.js` updated, needs a fetch). All 2000-std, match at the seams. Metric toggle on the chart |
 | Causes of Death — ranked + trend | **1999–2025** | 113 list; pre-1999 is chapter grain only (see below) |
 | Causes of Death — Sex/Race breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race) |
 | Causes of Death — Broad Chapters | **1968–1998** | ICD-8/9 chapters; stops at 1998 — no ICD-10 chapter roll-up in the snapshot |
