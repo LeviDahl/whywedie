@@ -409,7 +409,13 @@ Change long view uses generations on a real calendar axis (was an "Year
 local `./deploy.sh` (build + lftp FTPS mirror), **Death Statistics annual
 chart — Total-deaths / Age-adjusted-rate metric toggle, rate spliced back
 to 1900** from Socrata `w9j2-ggv5` (counts stay 1968+), natural-increase
-caption reworded off the old "since 1999" framing.
+caption reworded off the old "since 1999" framing, **Home "pick a year"
+shows the Pew generation** for the year (+ drops the partial trailing
+natality year), **age-adjusted rate filled 2021–2025 from D176**
+(`O_aar_enable`) so the annual-rate chart has no gap, **"Broad Chapters"
+now 1968–2025** — ICD-10 chapter roll-up added (D76 `icd10_chapter` +
+D176 `provisional_chapter` eras), COVID shows as a "Special-purpose
+codes" line.
 
 ## Coverage by page (as of the last review)
 
@@ -417,10 +423,10 @@ caption reworded off the old "since 1999" framing.
 |---|---|---|
 | Home "pick a year" | births 1909–2025, deaths 1968–2025, **leading cause 1999–2025** | leading cause works to 2025 now (provisional_causes rows carry the `leading` flag); partial trailing natality year dropped; shows the Pew generation for the year |
 | Death Statistics — annual, **counts** | 1968–2025 | monthly 2018–present |
-| Death Statistics — annual, **age-adjusted rate** | **1900–2024** (gap at 2021–22) | pre-1968 from Socrata `w9j2-ggv5`; 1968–2020 WONDER; **2023–24 from Socrata `489q-934x`** (VSRR quarterly provisional, Q4 12-mo-ending). 2021–22 have no rate until the `provisional` era re-runs with the new `O_aar_enable` knob (template + `datasets.js` updated, needs a fetch). All 2000-std, match at the seams. Metric toggle on the chart |
+| Death Statistics — annual, **age-adjusted rate** | **1900–2025** | pre-1968 from Socrata `w9j2-ggv5`; 1968–2025 WONDER (D176 provisional 2021+ now carries the age-adjusted rate — the `O_aar_enable` fetch ran). Socrata `489q-934x` (VSRR) stays wired as a fallback for years the snapshot lacks. All 2000-std, match at the seams. Metric toggle on the chart |
 | Causes of Death — ranked + trend | **1999–2025** | 113 list; pre-1999 is chapter grain only (see below) |
 | Causes of Death — Sex/Race breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race) |
-| Causes of Death — Broad Chapters | **1968–1998 now; 1968–2025 once the batch runs** | ICD-8/9/10 chapters; frontend handles ICD-10 (incl. eye/ear merge + "Special-purpose codes"/COVID), waiting on the `icd10_chapter` / `provisional_chapter` fetches |
+| Causes of Death — Broad Chapters | **1968–2025** | ICD-8/9/10 chapters (D74/D16/D76/D176); seams at 1979 and 1999; ICD-10 eye/ear folded into "Nervous system & sense organs"; "Special-purpose codes" line = COVID-19 (U07.1), from 2020 |
 | Birth Statistics — annual births | 1960–2025 | + generation bands |
 | Birth Statistics — fertility rate | **1960–2020** | gap 2021+ — see Remaining #2 |
 | Birth Statistics — crude birth rate | 1960–2025 | 2019+ derived from births ÷ resident population |
@@ -431,80 +437,49 @@ caption reworded off the old "since 1999" framing.
 
 **Remaining:**
 
-There's a **batch of pipeline runs** staged — see "Pipeline batch" below.
-Items 1, 2, 5 all resolve in that one sitting.
-
-1. **ICD-10 chapter grain for 1999+ — the "map broad chapters to the
-   leading-cause view" gap.** "Broad Chapters" stopped at 1998 because the
-   113-list snapshot had no ICD-10 chapter roll-up. **Frontend: done.**
-   Eras `icd10_chapter` (D76, 1999–2020) + `provisional_chapter` (D176,
-   2021+), templates `mortality_icd10_chapter.xml` /
-   `mortality_provisional_chapter.xml` (113-list templates with
-   `B_2 → <db>.V2-level1`, `O_ucd → <db>.V2`) — **dump-validated**
-   (1999–2001 = 19 chapters, 2021 = 20: D176 adds "Codes for special
-   purposes" U00-U99 = COVID-19). `CHAPTER_CANON` in
-   `src/api/causesOfDeath.js` now has every ICD-10 label; `buildChapters`
-   SUMS when >1 source row shares a canonical slot (ICD-10 splits nervous
-   system / eye / ear); `seams` is `[1979, 1999]` filtered to the data
-   range; the view heading + copy are dynamic. **Left:** the real
-   `icd10_chapter` / `provisional_chapter` fetches (full year ranges) +
-   `build-snapshots` + deploy; the section auto-extends when the snapshot
-   carries the rows. If `build-snapshots` logs an unmapped chapter label,
-   add it to `CHAPTER_CANON` (one line). A true 113-list-equivalent for
-   the pre-1999 decades (so the *ranked* view works back to 1968) is the
-   bigger "Future effort" below.
+1. ~~ICD-10 chapter grain for 1999+~~ **DONE (deployed 2026-09).** Eras
+   `icd10_chapter` (D76, 1999–2020) + `provisional_chapter` (D176, 2021+),
+   templates with `B_2 → <db>.V2-level1` / `O_ucd → <db>.V2`. Snapshot
+   carries ICD-8/9/10 chapter rows 1968–2025; `CHAPTER_CANON` +
+   `buildChapters` (sums the ICD-10 nervous/eye/ear split) +
+   `seams: [1979, 1999]` in `src/api/causesOfDeath.js`; "Broad Chapters"
+   heading/copy are dynamic. "Codes for special purposes" (COVID-19,
+   U07.1) shows as its own line from 2020. A true 113-list-equivalent for
+   pre-1999 (so the *ranked* view works back to 1968) is still the
+   "Future effort" below.
 2. **General fertility rate stops at 2020 — no path without a run.**
    Confirmed by dump 2026-09: **D66 returns births for 2021–2024 but
-   `population` and `fertility_rate` are "Not Available"** for every year
-   past 2020, so bumping the `mid` era does nothing for the rate. D192 has
-   no rate measure. No browser-direct no-key women-15–44 population series
-   exists (Census PEP now 302s to `missing_key.html`; no data.cdc.gov
-   Socrata set has US female pop by age-band by year). Remaining options,
-   both needing a run: WONDER **D149** ("Natality, 2016–2022 expanded",
-   has GFR) as a new era (needs a `stage=request` form capture), or a
-   Census API key on a build/pipeline step.
+   `population` and `fertility_rate` are "Not Available"** past 2020, so
+   the `mid` era can't help. D192 has no rate measure. No browser-direct
+   no-key women-15–44 population series exists (Census PEP now 302s to
+   `missing_key.html`; no data.cdc.gov Socrata set has US female pop by
+   age-band by year). Options, both needing a run: WONDER **D149**
+   ("Natality, 2016–2022 expanded", has GFR) as a new era (needs a
+   `stage=request` form capture), or a Census API key on a build step.
+   **This is the only remaining data gap.**
 3. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
-   only the `provisional*` / `monthly` / `current` eras recur; D76 / D66 /
-   D27 / D16 / D74 are finalized, run once. `./deploy.sh` (or commit + a
-   later pull) is the publish step.
+   only the `provisional*` / `monthly` / `current` eras recur (they now
+   need `--years=2021-<last full year>` — see below); D76 / D66 / D27 /
+   D16 / D74 are finalized, run once. `./deploy.sh` (or commit + a later
+   pull) is the publish step.
 4. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above) — only
    still used for the pre-1960 birth history and as the By-the-Numbers /
    monthly-births fallback. **Re-checked 2026-09: still ends June 2024, no
    CDC refresh — the ⚠️ note stands.**
-5. Re-run the `provisional` mortality era once — its template now enables
-   `O_aar_enable`, so the run backfills the all-cause **age-adjusted rate
-   for 2021–2025** from D176 (today 2021–22 are blank and 2023–24 come
-   from the VSRR splice). After that, `datasets.js`'s `provisional` era
-   parses a 5th column; a stale 4-column run would misalign — run the
-   fetch and rebuild the snapshot together.
+5. ~~Re-run the `provisional` mortality era with `O_aar_enable`~~ **DONE
+   (deployed 2026-09).** The all-cause age-adjusted rate is now populated
+   1900–2025 with no gap; D176 provides 2021–2025, `489q-934x` (VSRR)
+   stays wired as a fallback.
 
-**Pipeline batch — dumps done 2026-09, ready for the real runs** (`≥16 s`
-between WONDER calls; from `pipeline/` with `.env` filled). All three
-templates dump-validated: `provisional` returns the 5th (age-adjusted
-rate) column; `icd10_chapter` / `provisional_chapter` return the 6-col
-`coded` contract with the expected ~19–20 chapter labels (frontend
-`CHAPTER_CANON` already covers them). Then rebuild + deploy.
-
-```
-node --env-file=.env fetch.js --type=mortality --era=provisional         --years=2021-2025   # item 5: all-cause AAR
-node --env-file=.env fetch.js --type=mortality --era=icd10_chapter                           # item 1: D76 chapters 1999-2020
-node --env-file=.env fetch.js --type=mortality --era=provisional_chapter --years=2021-2025   # item 1: D176 chapters
-SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
-cd .. && ./deploy.sh
-```
-
-**Always pass `--years` for the D176 (`provisional*`) eras** — their
-`yearMax` is a generous clip ceiling (2030), and an omitted `--years`
-used to POST impossible future years (HTTP 500). `fetch.js` now clamps
-the nominal request to the current calendar year, but you still want an
-explicit `--years=2021-<last full year>` to drop the partial current year
-(a half-year point is a cliff on the annual chart). `icd10_chapter` is
-D76 (yearMax 2020) so it needs no `--years`.
-
-If `build-snapshots` warns about an unmapped chapter label, add it to
-`CHAPTER_CANON` in `src/api/causesOfDeath.js` and rebuild. Fertility rate
-(item 2) is **not** in this batch — D66 confirmed to return no rate past
-2020; needs D149 or a Census key.
+**Recurring-run gotcha (learned 2026-09):** the D176 `provisional*` eras
+carry `yearMax: 2030` as a clip ceiling. Run them with an explicit
+`--years=2021-<last full year>` — an omitted `--years` used to POST
+future years (HTTP 500); `fetch.js` now clamps to the current calendar
+year, but you still want `--years` to drop the partial current year (a
+half-year point is a cliff on the annual chart). `icd10_chapter` is D76
+(`yearMax: 2020`) so it needs no `--years`. If `build-snapshots` ever
+warns about an unmapped chapter label, add it to `CHAPTER_CANON` in
+`src/api/causesOfDeath.js` (one line) and rebuild.
 
 **On the 1909 / 1968 / 1999 start dates** (from a review question):
 
