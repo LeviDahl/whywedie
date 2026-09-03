@@ -441,17 +441,30 @@ caption reworded off the old "since 1999" framing.
    pre-1999 decades (so the *ranked* view works back to 1968) is the bigger
    "Future effort" below.
 2. **General fertility rate stops at 2020.** No rate past 2020 (D66 returned
-   none for 2021–22; D192 has no rate measure). Needs a women-15–44
-   population series (Census PEP) to compute births ÷ population — the same
-   move `natality.js` already makes for the crude birth rate — or try D149
-   ("Natality, 2016–2022 expanded").
+   none for 2021–22; D192 has no rate measure). To compute births ÷
+   women-15–44 (the move `natality.js` already makes for the crude rate)
+   you need that population series, and **there's no browser-direct
+   no-key source**: the Census PEP API now 302s to `missing_key.html`
+   without an API key (a credential we don't want client-side), and no
+   data.cdc.gov Socrata set carries US female population by single age /
+   5-year band by year (`b2jx-uyck` is age `Total/<18/18+` only, US =
+   2019 only). So this needs either a Census key on a build/pipeline step,
+   or WONDER **D149** ("Natality, 2016–2022 expanded", has GFR) as a new
+   pipeline era. Both need a run — not a no-action fix.
 3. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
    only the `provisional*` / `monthly` / `current` eras recur; D76 / D66 /
    D27 / D16 / D74 are finalized, run once. `./deploy.sh` (or commit + a
    later pull) is the publish step.
 4. Periodically re-check `hmz2-vwda`'s data currency (see ⚠️ above) — only
    still used for the pre-1960 birth history and as the By-the-Numbers /
-   monthly-births fallback.
+   monthly-births fallback. **Re-checked 2026-09: still ends June 2024, no
+   CDC refresh — the ⚠️ note stands.**
+5. Re-run the `provisional` mortality era once — its template now enables
+   `O_aar_enable`, so the run backfills the all-cause **age-adjusted rate
+   for 2021–2025** from D176 (today 2021–22 are blank and 2023–24 come
+   from the VSRR splice). After that, `datasets.js`'s `provisional` era
+   parses a 5th column; a stale 4-column run would misalign — run the
+   fetch and rebuild the snapshot together.
 
 **On the 1909 / 1968 / 1999 start dates** (from a review question):
 
