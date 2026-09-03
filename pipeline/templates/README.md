@@ -26,9 +26,8 @@ natality_monthly.xml           -> D192   ... Year x Month = monthly births  -> n
 ```
 
 All of the above have been run against live WONDER and return
-correctly-shaped data, except `mortality_provisional_sex.xml` /
-`_race.xml`, which are built but still need one confirming `--dump` each.
-Commit them — they contain no secrets and make the pipeline reproducible.
+correctly-shaped data. Commit them — they contain no secrets and make the
+pipeline reproducible.
 
 ---
 
