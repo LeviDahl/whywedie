@@ -9,7 +9,7 @@ function esc(v) {
  * @param {string[]} columns
  * @param {Array<Array|Object>} rows  array-of-arrays, or objects keyed by column name
  */
-export function toCsv(columns, rows) {
+function toCsv(columns, rows) {
   const head = columns.map(esc).join(',')
   const body = rows
     .map((r) =>

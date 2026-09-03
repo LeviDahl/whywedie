@@ -42,13 +42,9 @@ const DECADES = [1960, 1970, 1980, 1990, 2000, 2010, 2020]
 // deaths / age-adjusted rate / crude rate — keys match the row field names
 // so charts can index rows with row[metric] directly.
 const METRICS = {
-  deaths: { label: 'Deaths', axis: 'Deaths (mean/yr)', unit: 'deaths/yr' },
-  ageAdjustedRate: {
-    label: 'Age-adjusted rate',
-    axis: 'Age-adjusted rate (per 100,000)',
-    unit: 'per 100,000 (age-adjusted)'
-  },
-  crudeRate: { label: 'Crude rate', axis: 'Crude rate (per 100,000)', unit: 'per 100,000' }
+  deaths: { label: 'Deaths', unit: 'deaths/yr' },
+  ageAdjustedRate: { label: 'Age-adjusted rate', unit: 'per 100,000 (age-adjusted)' },
+  crudeRate: { label: 'Crude rate', unit: 'per 100,000' }
 }
 const metric = ref(METRICS[route.query.metric] ? route.query.metric : 'deaths')
 if (route.query.names === 'friendly' || route.query.names === 'official') {
@@ -188,7 +184,6 @@ const rateFormatter = (v) => (v == null ? '—' : v.toFixed(1))
 const valueFormatter = computed(() =>
   metric.value === 'deaths' ? integerFormatter : rateFormatter
 )
-const metricAxisLabel = computed(() => METRICS[metric.value].axis)
 const metricUnit = computed(() => METRICS[metric.value].unit)
 
 // --- periods ---------------------------------------------------------
@@ -652,7 +647,11 @@ function onAddChapterSelect(event) {
                     : 'cursor-not-allowed opacity-40'
                 "
                 :disabled="!b.available || periods.length >= MAX_PERIODS"
-                :title="b.available ? '' : 'Needs the ICD-9 / ICD-8 pipeline (pre-1999)'"
+                :title="
+                  b.available
+                    ? ''
+                    : 'Ranked causes only go back to 1999 (the 113-cause list) — see Broad Chapters below for earlier trends'
+                "
                 @click="addPeriodFromDecade(b)"
               >
                 {{ b.label }}

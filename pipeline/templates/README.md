@@ -17,8 +17,8 @@ mortality_provisional_race.xml   -> D176   ... x Race (V42)  -> mortality_demogr
 mortality_monthly.xml          -> D176   ... Year x Month = monthly all-cause
 mortality_icd9_chapter.xml     -> D16    Compressed Mortality, 1979-1998  (Year x ICD Chapter)
 mortality_icd8_chapter.xml     -> D74    Compressed Mortality, 1968-1978  (Year x ICD Chapter)
-mortality_icd10_chapter.xml    -> D76    Underlying Cause of Death 1999-2020  (Year x ICD-10 Chapter; B_2=D76.V2-level1, O_ucd=D76.V2)  [DRAFT]
-mortality_provisional_chapter.xml -> D176 Provisional Mortality 2021+       (Year x ICD-10 Chapter; B_2=D176.V2-level1, O_ucd=D176.V2)  [DRAFT]
+mortality_icd10_chapter.xml    -> D76    Underlying Cause of Death 1999-2020  (Year x ICD-10 Chapter; B_2=D76.V2-level1, O_ucd=D76.V2)
+mortality_provisional_chapter.xml -> D176 Provisional Mortality 2021+       (Year x ICD-10 Chapter; B_2=D176.V2-level1, O_ucd=D176.V2)
 natality_mid.xml               -> D66    Natality, 2007-2022        (Year: births + fertility rate)
 natality_gap.xml               -> D27    Natality, 2003-2006        (Year: births + fertility rate)
 natality_current.xml           -> D192   Provisional Natality, 2023->now  (Year: births ONLY)
@@ -26,15 +26,9 @@ natality_monthly.xml           -> D192   ... Year x Month = monthly births  -> n
 ```
 
 All of the above have been run against live WONDER and return
-correctly-shaped data, except: `mortality_provisional_sex.xml` /
-`_race.xml` still need one confirming `--dump` each; and
-`mortality_icd10_chapter.xml` / `mortality_provisional_chapter.xml` are
-**drafts** — adapted from the working 113-list templates by swapping the
-Group By to `<db>.V2-level1` (ICD Chapter) and `O_ucd` to `<db>.V2`, but
-not yet run. `--dump`-validate the row shape AND the chapter label
-strings before wiring the frontend (`CHAPTER_CANON` in
-`src/api/causesOfDeath.js` matches on those). Commit all of them — they
-contain no secrets and make the pipeline reproducible.
+correctly-shaped data, except `mortality_provisional_sex.xml` /
+`_race.xml`, which are built but still need one confirming `--dump` each.
+Commit them — they contain no secrets and make the pipeline reproducible.
 
 ---
 

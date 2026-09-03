@@ -1,7 +1,7 @@
 <request-parameters>
 <!--
-  DRAFT — validate with `--dump` before a real run (see pipeline/README.md
-  step 4). D76 = "Underlying Cause of Death, 1999-2020".
+  D76 = "Underlying Cause of Death, 1999-2020". Run against live WONDER
+  2026-09 — 19 ICD-10 chapters/year, 6-col `coded` contract as expected.
 
   Adapted from mortality_icd10.xml (the 113-list era) with two edits:
     B_2   D76.V4        -> D76.V2-level1  (group by ICD-10 CHAPTER, the
@@ -18,14 +18,10 @@
   `coded` contract): year, chapter_code, chapter_label, deaths, population,
   crude_rate, age_adjusted_rate.
 
-  THINGS THE DUMP MUST CONFIRM:
-    - the row shape is 7 cells as above (not shifted / no extra total row)
-    - the chapter LABEL strings D76 returns — the frontend's CHAPTER_CANON
-      matching in src/api/causesOfDeath.js keys off these. D16/D74 return
-      e.g. "Diseases of the circulatory system"; D76 may append a code
-      range, e.g. "Diseases of the circulatory system (I00-I99)". The
-      frontend strips a trailing " (X00-X99)" so either form maps, but the
-      dump is what tells us which.
+  Confirmed by the 2026-09 dump: D76 returns the chapter label with NO code
+  range (the code is a separate `cd=` attribute), e.g.
+  "Diseases of the circulatory system" — matches the CHAPTER_CANON keys in
+  src/api/causesOfDeath.js directly.
 -->
 <parameter><name>accept_datause_restrictions</name><value>true</value></parameter>
 

@@ -127,9 +127,9 @@ SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
 
 (`icd9` = D16 1979-1998, `icd8` = D74 1968-1978 — both ICD-chapter grain;
 pass `--years=` to slice them. `natality current` = D192 births-only.
-`icd10_chapter` / `provisional_chapter` = the ICD-10 chapter roll-up
-(D76 1999-2020 / D176 2021+) that extends "Broad Chapters" past 1998 —
-**DRAFT templates, `--dump`-validate first**, see step 4.)
+`icd10_chapter` (D76 1999-2020) / `provisional_chapter` (D176 2021+) =
+the ICD-10 chapter roll-up that extends "Broad Chapters" past 1998; pass
+`--years` to `provisional_chapter` like the other D176 eras.)
 
 `ON DUPLICATE KEY UPDATE` makes every run re-runnable. If a mortality era
 errors on size/timeout, slice it (needs the `{{YEAR_LIST}}` token in that

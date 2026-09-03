@@ -471,8 +471,9 @@ const annualTable = computed(() => {
         <div class="card">
           <h2 class="text-base font-semibold text-ink">Births vs. deaths</h2>
           <p class="mt-2 text-sm text-muted">
-            The US still records well over a million more births than deaths a year — but that margin
-            has shrunk by roughly a third since 1999, and in 2021 deaths briefly won. The
+            The US still records more births than deaths — but the surplus has fallen from well over
+            a million a year in the 2000s to around half a million now, and in 2021 deaths briefly
+            won. The
             <RouterLink to="/population-change" class="link-underline">Population Decline / Gain</RouterLink>
             page tracks that gap.
           </p>

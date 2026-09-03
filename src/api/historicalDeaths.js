@@ -17,15 +17,14 @@
 // standard population, so the joins are seamless (overlap years match to
 // ~0.1 per 100,000):
 //   - back to 1900   w9j2-ggv5 "Death rates and life expectancy at birth"
-//                    (All Races / Both Sexes)
-//   - forward past   489q-934x "VSRR Quarterly provisional estimates for
-//     the snapshot   selected indicators of mortality" — All causes,
+//                    (All Races / Both Sexes) — the only pre-1968 source.
+//   - forward        489q-934x "VSRR Quarterly provisional estimates for
+//                    selected indicators of mortality" — All causes,
 //                    Age-adjusted, "12 months ending with quarter", Q4 row
-//                    = the calendar-year provisional rate. Fills 2023+
-//                    until a WONDER D176 pipeline run carries an
-//                    age-adjusted rate on the all-cause row (today it
-//                    carries deaths + crude rate only, so 2021–2022 have
-//                    no rate yet).
+//                    = the calendar-year provisional rate. A FALLBACK only:
+//                    the D176 `provisional` era now carries an age-adjusted
+//                    rate on the all-cause row, so this fills a year only
+//                    if a stale snapshot is missing it.
 // Death COUNTS (and the crude rate) still start at 1968: WONDER has no
 // earlier count, and you can't recover a count from an age-adjusted rate.
 // Pre-1933 the figure covers the expanding US death-registration area
@@ -38,7 +37,7 @@ const HIST_RATE_ID = 'w9j2-ggv5'
 const VSRR_RATE_ID = '489q-934x'
 
 // Named by which sources actually contributed years to each series.
-function sourceLabel(firstRateYear, firstCountYear, lastRateYear) {
+function sourceLabel(firstRateYear, firstCountYear, vsrrUsed) {
   const parts = []
   if (firstRateYear <= 1967) {
     parts.push('Death rates & life expectancy since 1900 (NCHS/Socrata w9j2-ggv5, age-adjusted rate)')
@@ -46,8 +45,8 @@ function sourceLabel(firstRateYear, firstCountYear, lastRateYear) {
   if (firstCountYear <= 1998) parts.push('Compressed Mortality (D74/D16, 1968–1998)')
   parts.push('Underlying Cause of Death (D76, 1999–2020)')
   parts.push('Provisional Mortality Statistics (D176, 2021–present)')
-  if (lastRateYear >= 2023) {
-    parts.push('VSRR quarterly provisional age-adjusted rate (NCHS/Socrata 489q-934x, 2023+)')
+  if (vsrrUsed) {
+    parts.push('VSRR quarterly provisional age-adjusted rate (NCHS/Socrata 489q-934x)')
   }
   return `CDC WONDER + CDC Socrata — ${parts.join(' + ')}, national`
 }
@@ -121,20 +120,25 @@ export async function fetchHistoricalAnnualDeaths() {
   const years = [...new Set([...histRate.keys(), ...wonder.keys(), ...vsrrRate.keys()])].sort(
     (a, b) => a - b
   )
+  let vsrrUsed = false
   const rows = years.map((y) => {
     const w = wonder.get(y)
+    let aar = w?.ageAdjustedRate ?? histRate.get(y) ?? null
+    if (aar == null && vsrrRate.has(y)) {
+      aar = vsrrRate.get(y)
+      vsrrUsed = true
+    }
     return {
       year: y,
       deaths: w?.deaths ?? null,
       crudeRate: w?.crudeRate ?? null,
-      ageAdjustedRate: w?.ageAdjustedRate ?? histRate.get(y) ?? vsrrRate.get(y) ?? null
+      ageAdjustedRate: aar
     }
   })
 
   const firstCountYear = rows.find((r) => r.deaths != null)?.year ?? 1999
-  const lastRateYear = [...rows].reverse().find((r) => r.ageAdjustedRate != null)?.year ?? 2020
   return {
-    source: sourceLabel(rows[0]?.year ?? 1968, firstCountYear, lastRateYear),
+    source: sourceLabel(rows[0]?.year ?? 1968, firstCountYear, vsrrUsed),
     fetchedAt: raw.fetchedAt,
     years: rows.map((r) => r.year),
     totalDeaths: rows.map((r) => r.deaths),

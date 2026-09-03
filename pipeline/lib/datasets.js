@@ -48,8 +48,7 @@ export const DATASETS = {
     // 1998 edge to 2020. Chapter labels are NOT '#'-prefixed, so the
     // ranked view ignores them; causesOfDeath.js `buildChapters` picks
     // them up via CHAPTER_CANON. Same 6-col `coded` contract + `mortality`
-    // table as `icd10`. DRAFT — dump-validate the row shape + chapter
-    // label strings before a real run (see the template comment).
+    // table as `icd10`. Run against live WONDER 2026-09 (19 chapters/year).
     icd10_chapter: {
       databaseId: 'D76',
       templateFile: 'mortality_icd10_chapter.xml',
@@ -323,8 +322,9 @@ export const DATASETS = {
     // D176 continuation of `icd10_chapter` for 2021+ (D76 stops at 2020).
     // B_2 = D176.V2-level1, O_ucd = D176.V2. Same 6-col `coded` contract +
     // `mortality` table; runs alongside `provisional` / `provisional_causes`
-    // (different cause_code grain, no key collision). DRAFT — dump-validate
-    // before a real run.
+    // (different cause_code grain, no key collision). Run against live
+    // WONDER 2026-09 — 20 chapters (D176 adds "Codes for special purposes"
+    // = COVID-19). Pass --years (yearMax is a 2030 ceiling).
     provisional_chapter: {
       databaseId: 'D176',
       templateFile: 'mortality_provisional_chapter.xml',

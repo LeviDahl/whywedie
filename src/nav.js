@@ -17,7 +17,7 @@ export const sections = [
     label: 'Death Statistics Over Time',
     shortLabel: 'Death Statistics',
     description:
-      'Annual US death totals (1999–present) plus the most current monthly figures CDC has published.'
+      'Annual US deaths back to 1968 — with the age-adjusted rate spliced to 1900 — plus the most current monthly figures CDC has published.'
   },
   {
     path: '/causes-of-death',
@@ -25,7 +25,7 @@ export const sections = [
     label: 'Causes of Death',
     shortLabel: 'Causes of Death',
     description:
-      'Leading causes of death, ranked by year (1999–present), plus how each cause has trended over time — with deaths, crude rate, and age-adjusted rate.'
+      'Leading causes of death ranked by year (1999–present) with deaths, crude rate, and age-adjusted rate — plus trends over time, a sex/race breakdown, and broad ICD chapters back to 1968.'
   },
   {
     path: '/birth-statistics',
@@ -33,7 +33,7 @@ export const sections = [
     label: 'Birth Statistics',
     shortLabel: 'Birth Statistics',
     description:
-      "CDC's most current provisional monthly US birth counts. Calendar-year history and the fertility rate are coming from the WONDER natality pipeline."
+      'Annual US births back to 1960 with the birth and fertility rates, Pew generation bands, and CDC\'s most current provisional monthly counts.'
   },
   {
     path: '/population-change',

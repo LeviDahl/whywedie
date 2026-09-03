@@ -8,10 +8,10 @@ sourced from CDC data.
 | section | data | notes |
 |---|---|---|
 | Home | — | project overview + "pick a year" cross-section lookup |
-| Death Statistics Over Time | CDC WONDER → `/data/mortality.json`, `/data/mortality_monthly.json` | annual all-cause deaths **1968–present** (D74/D16/D76/D176) + monthly all-cause deaths (D176, 2018–present), each with time-range tabs |
-| Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | ranked bars + trend; overlay multiple periods (years or decade ranges) and causes; friendly ↔ official cause names; per-cause 1999–2025 (113 list), ICD-chapter grain 1968–1998; optional Sex / Race breakdown 1999–2020 (`/data/mortality_demographic.json`) |
+| Death Statistics Over Time | CDC WONDER → `/data/mortality.json`, `/data/mortality_monthly.json` | annual all-cause deaths **1968–present** (D74/D16/D76/D176) with a Total-deaths / Age-adjusted-rate toggle (the rate spliced to **1900** from Socrata `w9j2-ggv5`) + monthly all-cause deaths (D176, 2018–present), each with time-range tabs |
+| Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | ranked bars + trend; overlay multiple periods (years or decade ranges) and causes; friendly ↔ official cause names; per-cause 1999–2025 (113 list), ICD-chapter grain **1968–2025** ("Broad Chapters"); optional Sex / Race breakdown **1999–2025** (`/data/mortality_demographic.json`) |
 | Birth Statistics | CDC WONDER + Socrata | annual births 1960–present + fertility/birth-rate toggle (`/data/natality.json`), Pew generation bands with drill-down, `(i)` field explainer; monthly births (D192 `/data/natality_monthly.json`, Socrata fallback) |
-| Population Decline / Gain | CDC WONDER + Socrata | births vs. deaths + the shrinking natural increase (1999–2022), century-long birth history |
+| Population Decline / Gain | CDC WONDER + Socrata | births vs. deaths + the shrinking natural increase (**1968–2025**), century-long birth history |
 | By the Numbers | Socrata + public estimates | births/deaths as a daily average + rotating scale-comparison facts |
 
 ## Tech stack
@@ -52,18 +52,19 @@ npm run preview    # locally preview the production build
 
 Most of the data comes from **committed JSON snapshots** in `public/data/`,
 built out-of-band from CDC WONDER by [`pipeline/`](pipeline/):
-`mortality.json` (all-cause + per-cause deaths, 1968–present),
-`mortality_demographic.json` (deaths by sex / race, 1999–2020),
+`mortality.json` (all-cause + per-cause deaths + ICD chapters, 1968–present),
+`mortality_demographic.json` (deaths by sex / race, 1999–2025),
 `mortality_monthly.json` (all-cause deaths by month), `natality.json`
 (births + fertility rate, 1960–present), `natality_monthly.json` (births by
 month, D192). The frontend just `fetch()`es them.
 
 The **data.cdc.gov Socrata (SODA) API** — plain JSON GET + CORS, called
-straight from the browser via `src/api/socrata.js`, no backend — now only
-backs the By-the-Numbers daily pace (`hmz2-vwda` 12-month-ending), the
-pre-1960 birth history (`e6fc-ccez`), and is the **fallback** source for the
-monthly-births chart when the D192 snapshot is empty. Every Socrata query
-below was tested against the live API, and each module has comments on the
+straight from the browser via `src/api/socrata.js`, no backend — now backs
+the pre-1960 birth history (`e6fc-ccez`), the pre-1968 age-adjusted death
+rate (`w9j2-ggv5`, plus `489q-934x` as a fallback), and is the
+**fallback** for the monthly-births and By-the-Numbers charts when a
+WONDER snapshot is still a stub (`hmz2-vwda`). Every Socrata query below
+was tested against the live API, and each module has comments on the
 quirks found doing that.
 
 ### 1. Monthly births
@@ -85,8 +86,13 @@ tail renders dashed.
 out of `/data/mortality.json` into one continuous national series with
 crude and age-adjusted rate: **1968–1978** (D74) + **1979–1998** (D16),
 both ICD-chapter-grouped year-only totals; **1999–2020** (D76); **2021+**
-(D176 provisional, flagged dashed + grey). The source label names only the
-databases that actually contributed years.
+(D176 provisional, flagged dashed + grey). The Death Statistics chart has
+a Total-deaths / Age-adjusted-rate toggle; on the rate, the series is
+spliced back to **1900** from Socrata `w9j2-ggv5` (2000-standard, matches
+WONDER at the 1968 seam) — counts have no pre-1968 source. Socrata
+`489q-934x` (VSRR) is wired as a rate fallback for any year the snapshot
+lacks. The source label names only the databases that actually
+contributed years.
 
 ### 3. Leading causes of death (CDC WONDER, not Socrata)
 
@@ -108,8 +114,11 @@ and sub-detail that would double-count in a ranking, and the pre-1999
 chapter rows are non-`#` so the ranked view ignores them — and aligns each
 cause's series to the full year axis so several can be overlaid. The
 ranked/trend UI covers **1999–2025**; a separate **"Broad Chapters"**
-section shows the 1968–1998 ICD-chapter data as a multi-line trend (ICD-8/9
-labels unified via a small crosswalk in `causesOfDeath.js`).
+section shows the ICD-chapter data (D74/D16/D76/D176) as a multi-line
+trend **1968–2025**, with ICD-8/9/10 labels unified via a small crosswalk
+in `causesOfDeath.js` (seams at 1979 and 1999; ICD-10's split-out eye/ear
+chapters folded back into "Nervous system & sense organs"; COVID-19's
+U07.1 shows as a "Special-purpose codes" line from 2020).
 
 ⚠️ **The WONDER API is national-only for vital statistics** — it refuses any
 State / County / Region grouping or filter. Every row is US-wide.
@@ -128,8 +137,10 @@ fresh deploy; the pipeline's publish step overwrites it in production.
   the baseline. D192 has **no rate measure**; `natality.js` backfills the
   crude birth rate for 2019+ from births ÷ the resident-population figure in
   `mortality.json` (flagged `birthRateDerived`), so that toggle runs to
-  2024. The general fertility rate still stops at 2020 (needs a women-15–44
-  population). A partial trailing calendar year is dropped from the plotted
+  2025. The general fertility rate still stops at 2020 (needs a women-15–44
+  population series — Census PEP now requires an API key, so this waits on
+  a WONDER D149 era or a keyed build step). A partial trailing calendar
+  year is dropped from the plotted
   line and shown as a caption. The Births view carries the Pew Research
   generation cohorts as clickable, drill-downable bands.
 - **Monthly births** — `src/api/monthlyBirths.js` (see §1), plus a rough
@@ -140,18 +151,22 @@ fresh deploy; the pipeline's publish step overwrites it in production.
 `src/api/populationChange.js` reads births from `/data/natality.json` (via
 `natality.js`, so it inherits the D192 provisional years) and deaths from
 `/data/mortality.json` `"All causes"`. `fetchBirthsVsDeaths()` returns the
-1999–2022 overlap with natural increase; `fetchBirthHistory()` prepends the
-Socrata `e6fc-ccez` series for pre-1960 birth history. Deaths 2021+ and any
-partial trailing birth year are flagged provisional.
+births/deaths overlap (currently ~1968–2025) with natural increase;
+`fetchBirthHistory()` prepends the Socrata `e6fc-ccez` series for the
+pre-1960 birth history (the long view runs 1909–present, with Pew
+generation bands + drill-down). Deaths 2021+ and any partial trailing
+birth year are flagged provisional.
 
 ### 6. By the Numbers (daily pace)
 
-`src/api/dailyStats.js` reads `hmz2-vwda`'s `period='12 Month-ending'` rows
-(most recent month with both births and deaths, ÷ 365) for a "typical day"
-figure — more current than the annual files (reaches ~mid-2024).
-`src/data/dailyFacts.js` is a small hand-curated list of rough public "N per
-year" estimates (pizzas, coffee, lightning, …) shown as annual ÷ 365 for
-scale, clearly labelled as estimates.
+`src/api/dailyStats.js` sums the last 12 months that both
+`/data/mortality_monthly.json` (D176) and `/data/natality_monthly.json`
+(D192) cover — dropping a clearly-incomplete trailing month — and divides
+by 365 for a "typical day" figure. It falls back to the Socrata rolling
+table (`hmz2-vwda`, `period='12 Month-ending'`) only if either snapshot is
+still a stub. `src/data/dailyFacts.js` is a small hand-curated list of
+rough public "N per year" estimates (pizzas, coffee, lightning, …) shown
+as annual ÷ 365 for scale, clearly labelled as estimates.
 
 ### Socrata vs. CDC WONDER
 
@@ -159,8 +174,10 @@ Two data strategies coexist on purpose:
 
 - **Socrata** (`data.cdc.gov`) — plain JSON + CORS, browser-direct, no
   infrastructure. Downside: CDC trims and stalls the datasets. Now only the
-  By-the-Numbers daily pace, the pre-1960 birth history, and a fallback for
-  the monthly-births chart.
+  pre-1960 birth history (`e6fc-ccez`), the pre-1968 age-adjusted death
+  rate (`w9j2-ggv5`) and its VSRR fallback (`489q-934x`), and a `hmz2-vwda`
+  fallback for the monthly-births and By-the-Numbers charts when a WONDER
+  snapshot is still a stub.
 - **CDC WONDER** — XML/POST, no CORS, national-only. Needs the out-of-band
   [`pipeline/`](pipeline/) (an earlier version was an always-on Node proxy;
   that's gone — it's a scheduled batch job that writes static files).
@@ -211,7 +228,7 @@ src/
     causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
     causeBreakdown.js         # reads /data/mortality_demographic.json — Sex/Race breakdown
     populationChange.js       # births (natality.json) vs deaths (mortality.json) + natural increase
-    dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
+    dailyStats.js             # 12-month sum of the monthly WONDER snapshots ÷ 365 (hmz2-vwda fallback)
     yearFacts.js              # per-year births/deaths/leading-cause for the Home "pick a year" panel
     natality.js               # annual births + fertility rate from /data/natality.json
   lib/
@@ -239,11 +256,11 @@ src/
 public/
   .htaccess                   # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/                       # committed snapshots; pipeline/ refreshes them in prod
-    mortality.json            #   all-cause + per-cause deaths, 1968-present
-    mortality_demographic.json #  deaths by sex / race, 1999-2020
+    mortality.json            #   all-cause + per-cause deaths + ICD chapters, 1968-present
+    mortality_demographic.json #  deaths by sex / race, 1999-2025
     mortality_monthly.json    #   all-cause deaths by month, 2018-present
     natality.json             #   births + fertility rate, 1960-present
-    natality_monthly.json     #   births by month, 2023-present (stub until D192 era runs)
+    natality_monthly.json     #   births by month, D192, 2023-present
 pipeline/                     # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
                               #   (own package.json; see pipeline/README.md)
 ```
@@ -281,24 +298,27 @@ drawer on mobile, toggled from a top bar.
 
 ## What's next
 
-**Done + committed:** D76 causes (1999–2020), D176 provisional all-cause +
-per-cause (2021–2025), D176 monthly deaths, D74/D16 chapter mortality
-(1968–1998) + all-cause year-only totals, D27/D66 natality (1960–2022),
-D192 provisional births (annual + monthly), Sex/Race breakdown (1999–2020).
-The frontend surfaces all of it except the pre-1999 per-chapter causes.
+**Done + deployed:** D76 causes (1999–2020) + D176 provisional all-cause
+and per-cause (2021–2025); D176 monthly deaths; D74/D16/D76/D176 ICD
+chapter mortality **1968–2025** ("Broad Chapters"); D74/D16 all-cause
+year-only totals; the age-adjusted death rate spliced to **1900**
+(`w9j2-ggv5`); D27/D66 natality (1960–2022) + D192 provisional births
+(annual + monthly); Sex/Race breakdown **1999–2025**; Pew generation
+bands + drill-down on the births charts and the Home year lookup;
+By-the-Numbers off the monthly WONDER snapshots.
 
-- [ ] **ICD-10 chapter grain for 1999+** — the "Broad Chapters" section
-      stops at 1998; extending it needs a chapter-grouped D76/D176 pipeline
-      era (the 113-list snapshot has no ICD-10 chapter roll-up).
-- [ ] **Sex / Race breakdown → 2021+** — the D176 eras `provisional_sex` /
-      `provisional_race` are built; need one `--dump` each, then a run +
-      snapshot rebuild. (Race categories change at the 2020/2021 seam:
-      bridged-race → single-race.)
 - [ ] **General fertility rate stops at 2020** — the crude birth rate is
-      now reconstructed from births ÷ resident population, but the fertility
-      rate needs a women-aged-15–44 population series (Census PEP) that
-      isn't wired in.
+      reconstructed from births ÷ resident population, but the fertility
+      rate needs a women-aged-15–44 population series. D66 returns no rate
+      past 2020 and Census PEP now requires an API key, so this waits on a
+      WONDER **D149** era (form capture) or a keyed build step. *This is
+      the only remaining data gap.*
 - [ ] Stand the pipeline up on a schedule (host + cron + publish, see
-      `pipeline/README.md`) — only the D176/D192 provisional eras recur;
-      the finalized databases run once.
-- [ ] Periodically re-check whether `hmz2-vwda` has resumed updating.
+      `pipeline/README.md`) — only the D176/D192 provisional eras recur
+      (pass `--years=2021-<last full year>`); the finalized databases run
+      once.
+- [ ] **Future effort:** a 113-list-equivalent ICD-9/8 cause breakdown
+      (finer than the chapter grain) — needs the NCHS comparability-ratio
+      crosswalk applied per cause.
+- [ ] Periodically re-check whether `hmz2-vwda` has resumed updating
+      (still ends June 2024 as of 2026-09).

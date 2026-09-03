@@ -95,7 +95,7 @@ const dataSections = sections.filter((s) => s.path !== '/')
           </div>
           <div>
             <dt class="text-xs font-medium uppercase tracking-wide text-muted">Coverage</dt>
-            <dd class="mt-1.5 text-sm text-ink">National (US); 1909–present depending on the series</dd>
+            <dd class="mt-1.5 text-sm text-ink">National (US); 1900–present depending on the series</dd>
           </div>
           <div>
             <dt class="text-xs font-medium uppercase tracking-wide text-muted">Access</dt>

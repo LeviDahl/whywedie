@@ -5,8 +5,9 @@
 // "Underlying Cause of Death" D76 (1999–2020) + "Provisional Mortality" D176
 // (2021+), national, grouped by year × the NCHS 113 Selected Causes list,
 // with deaths, population, crude rate and age-adjusted rate. Coarser ICD
-// chapter rows for 1968–1998 (D74/D16) may also be present but are non-'#'
-// and so ignored by the rankable-cause views below.
+// *chapter* rows (D74/D16 1968–1998, D76/D176 1999–present) are also
+// present — non-'#', so the rankable-cause views below ignore them; the
+// "Broad Chapters" section reads them via buildChapters().
 //
 // The snapshot is served same-origin as a plain file — no API call, no
 // CORS, no key.

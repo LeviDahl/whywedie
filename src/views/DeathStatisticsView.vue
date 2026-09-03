@@ -250,9 +250,7 @@ const monthlyTable = computed(() => {
             Age-adjusted to the 2000 US standard population, so years are comparable despite the
             population aging. Pre-1968 comes from CDC's historical series; before 1933 it covers the
             expanding death-registration area rather than every state. Raw death <em>counts</em> only
-            go back to 1968 (no earlier source). 2021–2022 have no age-adjusted rate here yet — CDC's
-            provisional all-cause row carries only a crude rate, and the rapid-release quarterly rate
-            starts in 2023.
+            go back to 1968 (no earlier source).
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ historical.data.value.source }}.</p>
         </template>

@@ -65,7 +65,7 @@ function stripCodes(name) {
   return name.replace(/\s*\([^()]*\)\s*$/, '').trim()
 }
 
-export function friendlyName(officialName) {
+function friendlyName(officialName) {
   return FRIENDLY[officialName] ?? stripCodes(officialName)
 }
 

@@ -1,23 +1,23 @@
 <request-parameters>
 <!--
-  DRAFT — validate with `--dump` before a real run. D176 provisional,
-  grouped by Year x ICD-10 CHAPTER (the coarse ~17-chapter roll-up).
-  Carries the D176 chapter view past D76's 2020 edge, alongside the
-  D76 `icd10_chapter` era.
+  D176 provisional, grouped by Year x ICD-10 CHAPTER. Carries the chapter
+  view past D76's 2020 edge, alongside the D76 `icd10_chapter` era. Run
+  against live WONDER 2026-09.
 
   Built from mortality_provisional_causes.xml with two edits (the AAR
   knob + O_PR/O_show_totals are carried over unchanged):
     B_2    D176.V4   -> D176.V2-level1   (Group Results By = ICD Chapter)
     O_ucd  D176.V4   -> D176.V2          (Step 6 radio = the ICD-10 code
                                           hierarchy whose level-1 is Chapter)
-  Expected response cells: year, chapter(label, h=depth), Deaths,
-  Population, Crude Rate, Age-Adjusted Rate -> same 6-col `coded` contract
-  as the icd10 / icd9 / icd8 eras.
+  Response cells: year, chapter(label, h=depth), Deaths, Population,
+  Crude Rate, Age-Adjusted Rate -> same 6-col `coded` contract as the
+  icd10 / icd9 / icd8 eras.
 
-  THE DUMP MUST CONFIRM: 7-cell rows as above, and the exact chapter LABEL
-  strings (the frontend CHAPTER_CANON match in src/api/causesOfDeath.js
-  keys off these; it strips a trailing " (X00-X99)" so either form maps).
-  Test: node --env-file=.env fetch.js --type=mortality --era=provisional_chapter --years=2021 --out=rows.json --dump
+  The 2026-09 dump returned 20 chapters for 2021 — one more than D76's 19:
+  D176 has a "Codes for special purposes" (U00-U99) chapter, which is
+  where COVID-19 (U07.1) lands. Chapter labels carry no code range, so
+  they match the CHAPTER_CANON keys in src/api/causesOfDeath.js directly.
+  ALWAYS pass --years=2021-<last full year> (yearMax is a 2030 ceiling).
 -->
 <parameter>
 <name>accept_datause_restrictions</name>
