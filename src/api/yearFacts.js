@@ -54,6 +54,18 @@ export async function fetchYearFacts() {
     }
   }
 
+  // Drop the trailing run of partial years — natality.json's newest row is
+  // a part-year (D192 "through <month>"), and a half-year birth count in a
+  // year lookup reads as a real annual figure. Same 70%-of-prior rule the
+  // other natality consumers use.
+  const natYears = [...byYear.keys()].sort((a, b) => a - b)
+  for (let i = natYears.length - 1; i > 0; i--) {
+    const cur = byYear.get(natYears[i])?.births
+    const prev = byYear.get(natYears[i - 1])?.births
+    if (cur != null && prev > 0 && cur < prev * 0.7) byYear.delete(natYears[i])
+    else break
+  }
+
   // Deaths + leading cause from the mortality snapshot.
   if (mortality?.byYear) {
     for (const [y, rows] of Object.entries(mortality.byYear)) {

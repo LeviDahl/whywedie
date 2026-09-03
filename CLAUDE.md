@@ -415,7 +415,7 @@ caption reworded off the old "since 1999" framing.
 
 | page / chart | span | notes |
 |---|---|---|
-| Home "pick a year" | births 1909–, deaths 1968–, **leading cause 1999–** | leading-cause field only exists for the 113-list era |
+| Home "pick a year" | births 1909–2025, deaths 1968–2025, **leading cause 1999–2025** | leading cause works to 2025 now (provisional_causes rows carry the `leading` flag); partial trailing natality year dropped; shows the Pew generation for the year |
 | Death Statistics — annual, **counts** | 1968–2025 | monthly 2018–present |
 | Death Statistics — annual, **age-adjusted rate** | **1900–2024** (gap at 2021–22) | pre-1968 from Socrata `w9j2-ggv5`; 1968–2020 WONDER; **2023–24 from Socrata `489q-934x`** (VSRR quarterly provisional, Q4 12-mo-ending). 2021–22 have no rate until the `provisional` era re-runs with the new `O_aar_enable` knob (template + `datasets.js` updated, needs a fetch). All 2000-std, match at the seams. Metric toggle on the chart |
 | Causes of Death — ranked + trend | **1999–2025** | 113 list; pre-1999 is chapter grain only (see below) |
@@ -471,9 +471,13 @@ caption reworded off the old "since 1999" framing.
   `D74.V4-level1`) — a `--dump` away. A *continuous* ranked view across the
   ICD-8/9/10 seam still needs the comparability crosswalk (Future effort).
 
-**Enhancement noted in review:** show which Pew generation a looked-up
-birth year falls in, on the Home "pick a year" panel (it's a text lookup,
-not a chart — no bands, just a label).
+**Enhancement noted in review — done:** the Home "pick a year" panel now
+shows the Pew generation a birth year falls in (a text label under the
+birth count, via `generationForYear()` in `src/data/generations.js`; blank
+for pre-1928 years Pew doesn't name). Same pass: `yearFacts.js` drops the
+trailing partial natality year (D192 "through <month>") so a half-year
+birth count no longer shows as an annual figure, and its caption was
+corrected (deaths 1968–, leading cause 1999–, births to the real max).
 
 **Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
 ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).

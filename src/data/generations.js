@@ -16,3 +16,9 @@ export const PEW_GENERATIONS = [
 export function generationChoices(minYear, maxYear) {
   return PEW_GENERATIONS.filter((g) => g.to >= minYear && g.from <= maxYear)
 }
+
+// The Pew generation a birth year falls in, or null for years Pew doesn't
+// name (before 1928 — the "Greatest"/"Lost" generations have no Pew cutoff).
+export function generationForYear(year) {
+  return PEW_GENERATIONS.find((g) => year >= g.from && year <= g.to)?.label ?? null
+}

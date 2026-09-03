@@ -5,6 +5,7 @@ import { useAsyncData } from '@/composables/useAsyncData.js'
 import { useNamePreference } from '@/composables/useNamePreference.js'
 import { fetchYearFacts } from '@/api/yearFacts.js'
 import { displayName } from '@/data/causeNames.js'
+import { generationForYear } from '@/data/generations.js'
 import ChartToolbar from '@/components/ChartToolbar.vue'
 
 const route = useRoute()
@@ -43,6 +44,7 @@ const yearTable = computed(() => {
 })
 
 const facts = computed(() => data.value?.byYear.get(year.value) ?? null)
+const generation = computed(() => generationForYear(year.value))
 const int = (v) => (v == null ? null : v.toLocaleString())
 const signed = (v) => (v == null ? null : (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString())
 </script>
@@ -57,7 +59,7 @@ const signed = (v) => (v == null ? null : (v >= 0 ? '+' : '−') + Math.abs(v).t
         v-model.number="year"
         type="number"
         :min="data?.minYear ?? 1909"
-        :max="data?.maxYear ?? 2020"
+        :max="data?.maxYear ?? 2025"
         step="1"
         class="w-24 rounded-lg border border-line-strong bg-paper px-2.5 py-1 text-lg font-semibold text-ink"
       />
@@ -76,6 +78,9 @@ const signed = (v) => (v == null ? null : (v >= 0 ? '+' : '−') + Math.abs(v).t
           <dd class="mt-1 text-2xl font-semibold tracking-tight text-ink">{{ int(facts.births) }}</dd>
           <dd v-if="facts.birthRate != null" class="mt-0.5 text-xs text-muted">
             {{ facts.birthRate }} per 1,000 people
+          </dd>
+          <dd v-if="generation" class="mt-0.5 text-xs text-muted">
+            {{ generation }} generation (Pew)
           </dd>
         </div>
 
@@ -105,9 +110,11 @@ const signed = (v) => (v == null ? null : (v >= 0 ? '+' : '−') + Math.abs(v).t
       <p v-else class="mt-4 text-sm text-muted">No data for {{ year }} in these sources.</p>
 
       <p class="mt-5 text-xs text-muted">
-        Births {{ data.minYear }}–2022 · deaths &amp; population change 1999–{{ data.maxYear }} ·
-        leading cause 1999–2020 (2021+ is an all-cause total only).
-        Source: {{ data.source }}.
+        Births {{ data.minYear }}–{{ data.maxYear }} · deaths &amp; population change 1968–{{
+          data.maxYear
+        }}
+        · leading cause 1999 on (the NCHS 113-cause era) · generation labels from Pew's cutoffs
+        (Silent onward). Source: {{ data.source }}.
       </p>
 
       <ChartToolbar
