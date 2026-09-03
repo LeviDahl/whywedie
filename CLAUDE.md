@@ -486,12 +486,20 @@ rate) column; `icd10_chapter` / `provisional_chapter` return the 6-col
 `CHAPTER_CANON` already covers them). Then rebuild + deploy.
 
 ```
-node --env-file=.env fetch.js --type=mortality --era=provisional                              # item 5: all-cause AAR 2021-25
-node --env-file=.env fetch.js --type=mortality --era=icd10_chapter                            # item 1: D76 chapters 1999-2020
-node --env-file=.env fetch.js --type=mortality --era=provisional_chapter                      # item 1: D176 chapters 2021+
+node --env-file=.env fetch.js --type=mortality --era=provisional         --years=2021-2025   # item 5: all-cause AAR
+node --env-file=.env fetch.js --type=mortality --era=icd10_chapter                           # item 1: D76 chapters 1999-2020
+node --env-file=.env fetch.js --type=mortality --era=provisional_chapter --years=2021-2025   # item 1: D176 chapters
 SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
 cd .. && ./deploy.sh
 ```
+
+**Always pass `--years` for the D176 (`provisional*`) eras** — their
+`yearMax` is a generous clip ceiling (2030), and an omitted `--years`
+used to POST impossible future years (HTTP 500). `fetch.js` now clamps
+the nominal request to the current calendar year, but you still want an
+explicit `--years=2021-<last full year>` to drop the partial current year
+(a half-year point is a cliff on the annual chart). `icd10_chapter` is
+D76 (yearMax 2020) so it needs no `--years`.
 
 If `build-snapshots` warns about an unmapped chapter label, add it to
 `CHAPTER_CANON` in `src/api/causesOfDeath.js` and rebuild. Fertility rate

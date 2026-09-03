@@ -81,8 +81,14 @@ async function main() {
   // ---- template ---------------------------------------------------------
   // If a template carries a {{YEAR_LIST}} token, fill it with --years when
   // given, otherwise the dataset's full nominal span. --years on a template
-  // without the token is a no-op (warned below).
-  const yearsArg = values.years || `${dataset.yearMin}-${dataset.yearMax}`
+  // without the token is a no-op (warned below). Rolling eras (provisional*,
+  // monthly, current) carry a generous future yearMax as a clip ceiling —
+  // clamp the *request* to the current calendar year so an omitted --years
+  // doesn't ask WONDER for years that don't exist yet (HTTP 500). Pass an
+  // explicit --years to also drop the partial current year where that
+  // matters (e.g. the annual all-cause chart).
+  const nominalMax = Math.min(dataset.yearMax, new Date().getUTCFullYear())
+  const yearsArg = values.years || `${dataset.yearMin}-${nominalMax}`
   const { xml, path, meta } = await loadTemplate(dataset.templateFile, {
     years: yearsArg,
   })
