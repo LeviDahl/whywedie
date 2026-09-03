@@ -18,13 +18,18 @@
 
 const SNAPSHOT_URL = `${import.meta.env.BASE_URL}data/mortality.json`
 
-// The pre-1999 Compressed Mortality data (D74 ICD-8 1968–1978, D16 ICD-9
-// 1979–1998) is grouped by ICD *chapter*, not the 113-cause list. The two
-// revisions label a few chapters differently — this maps both onto one
-// canonical name so a chapter's line is continuous across the 1979 seam.
-// (ICD-10 has no equivalent chapter row in the 113-list snapshot, so the
-// chapter view stops at 1998 until a chapter-grouped D76/D176 era is added.)
+// The chapter-grain mortality data (D74 ICD-8 1968–1978, D16 ICD-9
+// 1979–1998, D76 ICD-10 1999–2020, D176 ICD-10 2021+) is grouped by ICD
+// *chapter*, not the 113-cause list. The revisions label the same chapter
+// differently — this maps every label onto one canonical name so a
+// chapter's line is continuous across the 1979 and 1999 seams. ICD-10
+// splits the old "nervous system & sense organs" chapter into three
+// (nervous system / eye / ear), so several labels share a canonical slot
+// and `buildChapters` SUMS them. ICD-10 also adds "Codes for special
+// purposes" (U00-U99) — that's where COVID-19 (U07.1) lands from 2020 on,
+// so it gets its own slot rather than being folded into infectious.
 const CHAPTER_CANON = {
+  // ICD-8 / ICD-9 (Compressed Mortality)
   'Diseases of the circulatory system': 'Circulatory system',
   Neoplasms: 'Neoplasms (cancers)',
   'Accidents, poisonings, and violence (external cause)': 'External causes (injury, poisoning)',
@@ -48,7 +53,22 @@ const CHAPTER_CANON = {
   'Diseases of the musculoskeletal system and connective tissue':
     'Musculoskeletal & connective tissue',
   'Diseases of the skin and subcutaneous tissue': 'Skin & subcutaneous tissue',
-  'Complications of pregnancy, childbirth, and the puerperium': 'Pregnancy & childbirth'
+  'Complications of pregnancy, childbirth, and the puerperium': 'Pregnancy & childbirth',
+  // ICD-10 (D76 / D176) — exact label strings confirmed from a WONDER dump
+  'Certain infectious and parasitic diseases': 'Infectious & parasitic diseases',
+  'Diseases of the blood and blood-forming organs and certain disorders involving the immune mechanism':
+    'Blood & blood-forming organs',
+  'Endocrine, nutritional and metabolic diseases': 'Endocrine, nutritional & metabolic',
+  'Mental and behavioural disorders': 'Mental disorders',
+  'Diseases of the nervous system': 'Nervous system & sense organs',
+  'Diseases of the eye and adnexa': 'Nervous system & sense organs',
+  'Diseases of the ear and mastoid process': 'Nervous system & sense organs',
+  'Pregnancy, childbirth and the puerperium': 'Pregnancy & childbirth',
+  'Congenital malformations, deformations and chromosomal abnormalities': 'Congenital anomalies',
+  'Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified':
+    'Symptoms & ill-defined conditions',
+  'External causes of morbidity and mortality': 'External causes (injury, poisoning)',
+  'Codes for special purposes': 'Special-purpose codes (incl. COVID-19)'
 }
 
 // Build the by-chapter time series from the non-'#' chapter rows. Returns
@@ -61,6 +81,14 @@ function buildChapters(raw) {
 
   const idx = new Map(chapterYears.map((y, i) => [Number(y), i]))
   const byChapter = {}
+  // Add (not overwrite): ICD-10 splits one canonical slot ("Nervous system
+  // & sense organs") across three source chapters, so >1 row can land on
+  // the same slot in a year. Crude rates share the year's population base
+  // so they add exactly; age-adjusted rates add near-exactly (same
+  // standard weights) and the split-off pieces (eye, ear) are ~0.02.
+  const add = (arr, i, v) => {
+    if (v != null) arr[i] = (arr[i] ?? 0) + v
+  }
   for (const y of chapterYears) {
     for (const r of raw.byYear[y] ?? []) {
       const canon = CHAPTER_CANON[r.name]
@@ -73,9 +101,9 @@ function buildChapters(raw) {
           ageAdjustedRate: chapterYears.map(() => null)
         })
       const i = idx.get(Number(y))
-      s.deaths[i] = r.deaths
-      s.crudeRate[i] = r.crudeRate ?? null
-      s.ageAdjustedRate[i] = r.ageAdjustedRate ?? null
+      add(s.deaths, i, r.deaths)
+      add(s.crudeRate, i, r.crudeRate)
+      add(s.ageAdjustedRate, i, r.ageAdjustedRate)
     }
   }
 
@@ -83,7 +111,11 @@ function buildChapters(raw) {
   const names = Object.keys(byChapter).sort(
     (a, b) => (lastNonNull(byChapter[b].deaths) ?? 0) - (lastNonNull(byChapter[a].deaths) ?? 0)
   )
-  return { years: chapterYears.map(Number), names, byChapter, seam: 1979 }
+  const years = chapterYears.map(Number)
+  // Classification seams that actually fall inside the data: ICD-8→9 (1979)
+  // and ICD-9→10 (1999).
+  const seams = [1979, 1999].filter((s) => s > years[0] && s <= years[years.length - 1])
+  return { years, names, byChapter, seams }
 }
 
 function lastNonNull(arr) {

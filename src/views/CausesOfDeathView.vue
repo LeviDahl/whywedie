@@ -460,10 +460,18 @@ function removeTrendCause(i) {
   trendCauses.value.splice(i, 1)
 }
 
-// --- broad ICD chapters, pre-1999 (D74/D16) -----------------------
+// --- broad ICD chapters (D74/D16 pre-1999 + D76/D176 1999+) --------
 const MAX_CHAPTERS = 4
 const chapters = computed(() => data.value?.chapters ?? null)
 const chapterYearLabels = computed(() => (chapters.value?.years ?? []).map(String))
+const chapterSpan = computed(() => {
+  const ys = chapters.value?.years ?? []
+  return ys.length ? `${ys[0]}–${ys[ys.length - 1]}` : ''
+})
+const chapterSeamText = computed(() => {
+  const s = chapters.value?.seams ?? []
+  return s.length === 1 ? `a small classification seam at ${s[0]}` : `small classification seams at ${s.join(' and ')}`
+})
 const activeChapters = ref([])
 watch(
   chapters,
@@ -842,14 +850,15 @@ function onAddChapterSelect(event) {
           <p class="mt-1 text-xs text-muted">Source: {{ data.source }}.</p>
         </section>
 
-        <!-- Broad ICD chapters, 1968–1998 (pre-113-list era) -->
+        <!-- Broad ICD chapters — the full run, coarser than the 113 list -->
         <section v-if="chapters">
-          <h2 class="mb-1 text-base font-semibold text-ink">Broad Chapters, 1968–1998</h2>
+          <h2 class="mb-1 text-base font-semibold text-ink">Broad Chapters, {{ chapterSpan }}</h2>
           <p class="mb-4 text-xs text-muted">
-            Before the NCHS 113-cause list, mortality is grouped by ICD <em>chapter</em> — ~17 broad
-            buckets. This is coarser than the ranked view above and covers only the ICD-8 (1968–1978)
-            and ICD-9 (1979–1998) eras; there's a small classification seam at
-            {{ chapters.seam }}. Uses the metric selected above.
+            The same deaths as the ranked view, rolled all the way up to the ~19 ICD
+            <em>chapters</em> — the one grouping that runs unbroken across every ICD revision
+            (ICD-8 1968–1978, ICD-9 1979–1998, ICD-10 1999 on), so a chapter's line is continuous
+            where the 113-cause list only reaches back to 1999 — with {{ chapterSeamText }} where the
+            revisions change. Uses the metric selected above.
           </p>
 
           <div class="mb-5 flex flex-wrap items-center gap-2">
@@ -900,9 +909,12 @@ function onAddChapterSelect(event) {
             />
           </div>
           <p class="mt-3 text-xs text-muted">
-            Chapter labels are normalised across ICD-8/9 (e.g. "External causes" covers ICD-8
-            "Accidents, poisonings, and violence" and ICD-9 "External causes of injury and
-            poisoning"). Compare trends, not exact levels, across the {{ chapters.seam }} seam.
+            Chapter labels are normalised across ICD revisions (e.g. "External causes" covers ICD-8
+            "Accidents, poisonings, and violence", ICD-9 "External causes of injury and poisoning"
+            and ICD-10 "External causes of morbidity and mortality"). ICD-10's separate eye and ear
+            chapters are folded back into "Nervous system &amp; sense organs"; "Special-purpose
+            codes" is mostly COVID-19 (U07.1), which is why that line appears in 2020. Compare
+            trends, not exact levels, across a seam.
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ data.source }}.</p>
         </section>
