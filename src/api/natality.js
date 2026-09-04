@@ -15,8 +15,12 @@
 // The crude birth rate (per 1,000 residents) is backfilled from
 // births ÷ mortality.json population wherever the natality snapshot lacks it
 // (WONDER stopped supplying it after 2018) — flagged `birthRateDerived`. The
-// general fertility rate (per 1,000 women 15-44) can't be reconstructed the
-// same way and stops at 2020.
+// general fertility rate (per 1,000 women 15-44) stops wherever the
+// snapshot's `fertilityRate` runs out — WONDER supplies it through 2020;
+// past that, pipeline/fetch-census-fertility.js backfills it from the
+// Census Bureau's population estimates (women 15-44) for whatever years
+// that program has published so far (currently through 2023 — its
+// single-year-age/sex release lags the current year by ~2).
 //
 // Shape:  { source, fetchedAt, coverage:{yearMin,yearMax,note},
 //           years:[int], partial:[bool],

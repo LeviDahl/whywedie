@@ -13,10 +13,12 @@ pipeline/
   apply-schema.js       runs schema.sql (or just paste it into phpMyAdmin)
   fetch.js              one (type, era) chunk: WONDER -> parse -> upsert
   build-snapshots.js    DB -> mortality{,_demographic,_monthly}.json / natality{,_monthly}.json / meta.json
+  fetch-census-fertility.js  Census PEP -> backfills natality.fertility_rate
+                        past 2020 (NOT a WONDER dataset — see its own header)
   app.js                placeholder HTTP listener — ONLY needed if you deploy
                         this to a Passenger/PaaS host that requires a server
   lib/                  config, dataset registry, template loader, WONDER
-                        client, XML table parser, row mapper, DB
+                        client, Census client, XML table parser, row mapper, DB
   templates/            WONDER request XMLs, one+ per era (see its README)
   .env.example          copy to .env, fill in, never commit
 ```
@@ -122,6 +124,7 @@ for chunk in \
   node --env-file=.env fetch.js --type=$1 --era=$2 || exit 1
   sleep 16
 done
+node --env-file=.env fetch-census-fertility.js   # not WONDER — no sleep needed, needs CENSUS_API_KEY
 SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
 ```
 
@@ -185,9 +188,17 @@ line if it's a venv); `DIR` = the pipeline directory.
 35 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=mortality --era=monthly            >> logs/cron.log 2>&1
 50 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=current            >> logs/cron.log 2>&1
 52 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=monthly            >> logs/cron.log 2>&1
+54 3 1 1 *  cd DIR && NODE --env-file=.env fetch-census-fertility.js                          >> logs/cron.log 2>&1
 40 4 1 * *  cd DIR && NODE --env-file=.env build-snapshots.js >> logs/cron.log 2>&1
 # 55 4 1 * *  ...then the snapshot-publish step from section 6
 ```
+
+`fetch-census-fertility.js` isn't a WONDER dataset — no rate limit, so it
+doesn't need staggering — but Census only publishes one new
+single-year-age/sex vintage a year, so running it monthly is wasted work;
+`1 1 *` (once, every January) is plenty. It's a no-op once a year's rate
+is already filled (it only writes rows where `fertility_rate IS NULL`),
+so it's also safe to just run by hand whenever you remember.
 
 On GitHub Actions, one workflow with `on: schedule: - cron: '0 3 1 * *'`
 running the same commands in sequence, DB_* and FTP_* from Actions secrets.

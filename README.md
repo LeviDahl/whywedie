@@ -137,10 +137,16 @@ fresh deploy; the pipeline's publish step overwrites it in production.
   the baseline. D192 has **no rate measure**; `natality.js` backfills the
   crude birth rate for 2019+ from births ÷ the resident-population figure in
   `mortality.json` (flagged `birthRateDerived`), so that toggle runs to
-  2025. The general fertility rate still stops at 2020 (needs a women-15–44
-  population series — Census PEP now requires an API key, so this waits on
-  a WONDER D149 era or a keyed build step). A partial trailing calendar
-  year is dropped from the plotted
+  2025. The general fertility rate runs to **2023**: WONDER supplies it
+  through 2020, and [`pipeline/fetch-census-fertility.js`](pipeline/fetch-census-fertility.js)
+  backfills the rest from the Census Bureau's Population Estimates Program
+  (women aged 15–44, national) — not a WONDER dataset, needs a free
+  `CENSUS_API_KEY`. It only fills years that have a birth count but no
+  rate yet, so it never overwrites WONDER's own figures, and re-running it
+  is a no-op until Census publishes a newer vintage (currently 2023 is the
+  newest with an age/sex breakdown). Those years render dashed/grey — a
+  different source than WONDER's own published rate. A partial trailing
+  calendar year is dropped from the plotted
   line and shown as a caption. The Births view carries the Pew Research
   generation cohorts as clickable, drill-downable bands.
 - **Monthly births** — `src/api/monthlyBirths.js` (see §1), plus a rough
@@ -307,12 +313,11 @@ year-only totals; the age-adjusted death rate spliced to **1900**
 bands + drill-down on the births charts and the Home year lookup;
 By-the-Numbers off the monthly WONDER snapshots.
 
-- [ ] **General fertility rate stops at 2020** — the crude birth rate is
-      reconstructed from births ÷ resident population, but the fertility
-      rate needs a women-aged-15–44 population series. D66 returns no rate
-      past 2020 and Census PEP now requires an API key, so this waits on a
-      WONDER **D149** era (form capture) or a keyed build step. *This is
-      the only remaining data gap.*
+**Done, committed, not yet deployed:** general fertility rate extended to
+**2023** via `pipeline/fetch-census-fertility.js` (Census PEP women-15–44
+population, not a WONDER dataset — needs `CENSUS_API_KEY`). Run
+`./deploy.sh` to publish.
+
 - [ ] Stand the pipeline up on a schedule (host + cron + publish, see
       `pipeline/README.md`) — only the D176/D192 provisional eras recur
       (pass `--years=2021-<last full year>`); the finalized databases run

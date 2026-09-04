@@ -378,8 +378,9 @@ decades onto one bar chart.
   (2023 = 3,596,017, exact NCHS match; 2024/2025/2026 also returned). **D192
   has no fertility/birth-rate measure** — provisional natality is Births +
   "Average X" only — so the era is a **2-col** `[year, birth_count]`
-  contract and the fertility rate past 2022 is unavailable until CDC
-  finalizes those years into the Natality series. D192's newest year is a
+  contract; the fertility rate for these years now comes from
+  `fetch-census-fertility.js` (Census PEP) instead of waiting on CDC to
+  finalize them into the Natality series — see Remaining #2. D192's newest year is a
   partial (e.g. "2026 through June 30") — must render flagged. Key params
   the D149 skeleton was missing: `O_PR=false`, `dataset_id=D192`,
   `V_D192.V21=*All*` (blank is rejected).
@@ -428,7 +429,7 @@ codes" line.
 | Causes of Death — Sex/Race breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race) |
 | Causes of Death — Broad Chapters | **1968–2025** | ICD-8/9/10 chapters (D74/D16/D76/D176); seams at 1979 and 1999; ICD-10 eye/ear folded into "Nervous system & sense organs"; "Special-purpose codes" line = COVID-19 (U07.1), from 2020 |
 | Birth Statistics — annual births | 1960–2025 | + generation bands |
-| Birth Statistics — fertility rate | **1960–2020** | gap 2021+ — see Remaining #2 |
+| Birth Statistics — fertility rate | **1960–2023** | 2021–2023 from Census PEP (see Remaining #2) — committed, not yet deployed |
 | Birth Statistics — crude birth rate | 1960–2025 | 2019+ derived from births ÷ resident population |
 | Birth Statistics — monthly births | 2023–2026 | D192 |
 | Population Change — births vs deaths / natural increase | 1968–2025 | |
@@ -447,16 +448,29 @@ codes" line.
    U07.1) shows as its own line from 2020. A true 113-list-equivalent for
    pre-1999 (so the *ranked* view works back to 1968) is still the
    "Future effort" below.
-2. **General fertility rate stops at 2020 — no path without a run.**
-   Confirmed by dump 2026-09: **D66 returns births for 2021–2024 but
-   `population` and `fertility_rate` are "Not Available"** past 2020, so
-   the `mid` era can't help. D192 has no rate measure. No browser-direct
-   no-key women-15–44 population series exists (Census PEP now 302s to
-   `missing_key.html`; no data.cdc.gov Socrata set has US female pop by
-   age-band by year). Options, both needing a run: WONDER **D149**
-   ("Natality, 2016–2022 expanded", has GFR) as a new era (needs a
-   `stage=request` form capture), or a Census API key on a build step.
-   **This is the only remaining data gap.**
+2. ~~General fertility rate stops at 2020~~ **DONE for 2021–2023
+   (2026-09), committed but not deployed** — run `./deploy.sh` to publish.
+   D66 confirmed dead for this (births yes, `population`/`fertility_rate`
+   "Not Available" past 2020) and Census PEP has no key-free path, so a
+   Census API key was the move: `pipeline/fetch-census-fertility.js` (new,
+   not a WONDER dataset — see its header) sums women aged 15–44 from the
+   Census PEP `pep/charv` dataset (vintage 2023, the newest with an
+   age/sex breakdown — vintages 2024/2025 don't exist yet, Census lags
+   ~2yr) and writes `population`/`fertility_rate` into `natality` only for
+   rows that have a `birth_count` but no rate yet — never overwrites
+   WONDER's own finalized figures. Verified against the known 2019/2020
+   WONDER values and the trend continues smoothly (56.27 / 55.97 / 54.51
+   for 2021–2023, consistent with the documented COVID-era birth dip +
+   rebound). `CENSUS_API_KEY` lives in `pipeline/.env` only (gitignored;
+   template comment + `.env.example` entry added) — **never put a Census
+   key in browser-side code**; this stays a pipeline-only credential.
+   Frontend: `BirthStatisticsView.vue`'s fertility-rate line now trims
+   trailing nulls (same fix as the Death Statistics rate chart) and marks
+   2021+ dashed/grey (`FERTILITY_RATE_FINAL_THROUGH = 2020`) since it's
+   Census-derived, not WONDER-published. Re-run
+   `fetch-census-fertility.js` whenever — it's a no-op once a year is
+   filled, and picks up new years automatically as Census publishes new
+   vintages (next check: does vintage 2024 exist yet?).
 3. Schedule the pipeline (host + cron + publish, `pipeline/README.md`) —
    only the `provisional*` / `monthly` / `current` eras recur (they now
    need `--years=2021-<last full year>` — see below); D76 / D66 / D27 /

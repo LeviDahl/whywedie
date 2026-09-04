@@ -151,6 +151,10 @@ const partialYears = computed(() => {
 // A plotted year is "don't over-read this" (dashed/grey) when the value for
 // the CURRENT metric is provisional or reconstructed rather than a finalized
 // published figure.
+// WONDER's own fertility-rate measure is finalized through 2020; any year
+// after that with a value came from pipeline/fetch-census-fertility.js
+// (Census PEP population ÷ births) rather than a WONDER-published figure.
+const FERTILITY_RATE_FINAL_THROUGH = 2020
 const annualMuted = computed(() => {
   const d = annual.data.value
   if (!d) return []
@@ -158,8 +162,10 @@ const annualMuted = computed(() => {
     const rec = d.byYear[y]
     if (!rec || rec.births == null) return false
     if (annualMetric.value === 'birthRate') return !!rec.birthRateDerived
-    // births + fertilityRate: flag the years past finalized natality
-    return rec.fertilityRate == null
+    if (annualMetric.value === 'fertilityRate') {
+      return rec.fertilityRate == null || y > FERTILITY_RATE_FINAL_THROUGH
+    }
+    return false
   })
 })
 const hasProvisional = computed(() => annualMuted.value.some(Boolean))
@@ -178,8 +184,17 @@ watch(genActive, (on) => {
 const annualView = computed(() => {
   const d = annual.data.value
   if (!plottedYears.value.length) return null
-  const all = plottedYears.value
-  const vals = all.map((y) => d.byYear[y]?.[annualMetric.value] ?? null)
+  let all = plottedYears.value
+  let vals = all.map((y) => d.byYear[y]?.[annualMetric.value] ?? null)
+  let muted = annualMuted.value
+  // Trim a trailing run of nulls for metrics that don't cover every plotted
+  // year (the fertility rate currently ends earlier than births/birth rate)
+  // — otherwise the axis and range labels would stretch past the last point.
+  let end = vals.length
+  while (end > 0 && vals[end - 1] == null) end--
+  all = all.slice(0, end)
+  vals = vals.slice(0, end)
+  muted = muted.slice(0, end)
   const g = genActive.value ? selectedGen.value : null
   let keep
   if (g) {
@@ -191,7 +206,7 @@ const annualView = computed(() => {
   return {
     labels: all.filter((_, i) => keep[i]),
     values: vals.filter((_, i) => keep[i]),
-    muted: annualMuted.value.filter((_, i) => keep[i])
+    muted: muted.filter((_, i) => keep[i])
   }
 })
 
@@ -382,8 +397,9 @@ const annualTable = computed(() => {
           </p>
           <p v-if="hasProvisional" class="mt-3 text-xs text-muted">
             <template v-if="annualMetric === 'fertilityRate'">
-              The fertility rate isn't available past 2020 — WONDER's natality databases stopped
-              supplying it and it needs a finalized women-15–44 population figure.
+              WONDER's natality databases stop supplying the fertility rate after 2020; past that,
+              it's computed from births ÷ the Census Bureau's women-15–44 population estimate,
+              which currently runs a couple of years behind the calendar.
             </template>
             <template v-else-if="annualMetric === 'birthRate'">
               The dashed, greyed tail is provisional. From 2019 on, the birth rate is computed here
