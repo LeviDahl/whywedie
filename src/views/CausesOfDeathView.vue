@@ -37,7 +37,10 @@ onMounted(() => {
 const TOP_N = 15
 const MAX_PERIODS = 4
 const MAX_TREND_CAUSES = 4
-const DECADES = [1960, 1970, 1980, 1990, 2000, 2010, 2020]
+// Only decades the 113-cause list actually covers. Pre-1999 has no
+// rankable-cause data (see the note by the period controls), so those
+// buttons were permanently disabled — dropped rather than shown greyed.
+const DECADES = [2000, 2010, 2020]
 
 // deaths / age-adjusted rate / crude rate — keys match the row field names
 // so charts can index rows with row[metric] directly.
@@ -300,15 +303,16 @@ const primaryTop = computed(() => {
 const decadeButtons = computed(() => {
   const lo = data.value?.years[0] ?? Infinity
   const hi = data.value?.years.at(-1) ?? -Infinity
-  return DECADES.map((d) => {
-    const from = Math.max(d, lo)
-    const to = Math.min(d + 9, hi)
-    return { key: d, label: `${d}s`, from, to, available: from <= to }
-  })
+  return DECADES.map((d) => ({
+    key: d,
+    label: `${d}s`,
+    from: Math.max(d, lo),
+    to: Math.min(d + 9, hi)
+  })).filter((b) => b.from <= b.to)
 })
 
 function addPeriodFromDecade(b) {
-  if (!b.available || periods.value.length >= MAX_PERIODS) return
+  if (periods.value.length >= MAX_PERIODS) return
   if (periods.value.some((p) => p.from === b.from && p.to === b.to)) return
   periods.value.push({ from: b.from, to: b.to })
 }
@@ -676,23 +680,18 @@ function onAddChapterSelect(event) {
                 v-for="b in decadeButtons"
                 :key="b.key"
                 type="button"
-                class="badge min-h-[34px] px-3.5 py-1.5 transition-colors duration-150"
-                :class="
-                  b.available
-                    ? 'cursor-pointer text-ink hover:border-ink'
-                    : 'cursor-not-allowed opacity-40'
-                "
-                :disabled="!b.available || periods.length >= MAX_PERIODS"
-                :title="
-                  b.available
-                    ? ''
-                    : 'Ranked causes only go back to 1999 (the 113-cause list) — see Broad Chapters below for earlier trends'
-                "
+                class="badge min-h-[34px] cursor-pointer px-3.5 py-1.5 text-ink transition-colors duration-150 hover:border-ink"
+                :disabled="periods.length >= MAX_PERIODS"
                 @click="addPeriodFromDecade(b)"
               >
                 {{ b.label }}
               </button>
             </div>
+            <p v-if="!breakdownActive" class="text-xs text-muted">
+              Period comparison starts at 1999 — the 113-cause list doesn't exist earlier. For
+              pre-1999, the Trend chart takes 11 major causes back to 1968, and "Broad Chapters"
+              covers every chapter from 1968.
+            </p>
 
             <div class="flex flex-wrap items-center gap-2">
               <span class="text-xs font-medium uppercase tracking-wide text-muted">
@@ -811,9 +810,9 @@ function onAddChapterSelect(event) {
           </p>
           <p v-else class="mt-3 text-xs text-muted">
             Top {{ TOP_N }} rankable ("113 Selected Causes") categories by {{ periodLabel(periods[0]) }},
-            shown as the mean annual value for each period. National,
-            {{ data.coverage.yearMin }}–{{ data.coverage.yearMax }}. The pre-1999 decades run at
-            coarser ICD-chapter grain — see "Broad Chapters" below.
+            shown as the mean annual value for each period. National, {{ data.years[0] }}–{{
+              data.years.at(-1)
+            }}.
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ data.source }}.</p>
         </section>
