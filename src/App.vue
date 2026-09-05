@@ -70,6 +70,23 @@ watch(
       <router-view v-slot="{ Component, route: currentRoute }">
         <component :is="Component" :key="currentRoute.path" />
       </router-view>
+
+      <footer class="border-t border-line px-6 py-8 text-xs text-muted sm:px-10">
+        <div class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2">
+          <span>Why We Die — an independent open-data project, not affiliated with the CDC.</span>
+          <span class="flex flex-wrap gap-x-4 gap-y-2">
+            <router-link to="/api" class="link-underline">API</router-link>
+            <router-link to="/privacy" class="link-underline">Privacy</router-link>
+            <a
+              href="https://data.cdc.gov/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="link-underline"
+              >Data source</a
+            >
+          </span>
+        </div>
+      </footer>
     </main>
   </div>
 </template>

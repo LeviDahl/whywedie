@@ -17,6 +17,22 @@ const routes = sections.map((section) => ({
   meta: { title: section.label }
 }))
 
+// Standalone pages — not sidebar sections, linked from the footer.
+routes.push(
+  {
+    path: '/api',
+    name: 'api',
+    component: () => import('@/views/ApiView.vue'),
+    meta: { title: 'Open Data API' }
+  },
+  {
+    path: '/privacy',
+    name: 'privacy',
+    component: () => import('@/views/PrivacyView.vue'),
+    meta: { title: 'Privacy' }
+  }
+)
+
 // Fallback: unknown paths go home rather than showing a dead end.
 routes.push({ path: '/:pathMatch(.*)*', redirect: '/' })
 
