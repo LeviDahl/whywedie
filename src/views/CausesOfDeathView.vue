@@ -912,8 +912,10 @@ function onAddChapterSelect(event) {
             "Accidents, poisonings, and violence", ICD-9 "External causes of injury and poisoning"
             and ICD-10 "External causes of morbidity and mortality"). ICD-10's separate eye and ear
             chapters are folded back into "Nervous system &amp; sense organs"; "Special-purpose
-            codes" is mostly COVID-19 (U07.1), which is why that line appears in 2020. Compare
-            trends, not exact levels, across a seam.
+            codes" is mostly COVID-19 (U07.1), which is why that line appears in 2020. The rules for
+            assigning a death to a category changed at each revision, so pre-1999 figures aren't a
+            strict 1:1 match to the ICD-10 ones — read the shape of a line, not the exact step at
+            the 1979 or 1999 seam.
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ data.source }}.</p>
         </section>
