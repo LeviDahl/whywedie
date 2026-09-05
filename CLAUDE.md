@@ -425,7 +425,8 @@ codes" line.
 | Home "pick a year" | births 1909–2025, deaths 1968–2025, **leading cause 1999–2025** | leading cause works to 2025 now (provisional_causes rows carry the `leading` flag); partial trailing natality year dropped; shows the Pew generation for the year |
 | Death Statistics — annual, **counts** | 1968–2025 | monthly 2018–present |
 | Death Statistics — annual, **age-adjusted rate** | **1900–2025** | pre-1968 from Socrata `w9j2-ggv5`; 1968–2025 WONDER (D176 provisional 2021+ now carries the age-adjusted rate — the `O_aar_enable` fetch ran). Socrata `489q-934x` (VSRR) stays wired as a fallback for years the snapshot lacks. All 2000-std, match at the seams. Metric toggle on the chart |
-| Causes of Death — ranked + trend | **1999–2025** | 113 list; pre-1999 is chapter grain only (see below) |
+| Causes of Death — ranked | **1999–2025** | 113 list; a bar is a snapshot so no pre-1999 |
+| Causes of Death — trend | ranked causes 1999–2025; **11 of them back to 1968** | pre-1999 = the ICD sub-chapter approximation (`PREHISTORY_MAP`), grey + flagged; committed, not deployed (needs the `icd9_sub`/`icd8_sub` fetches) |
 | Causes of Death — Sex/Race breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race) |
 | Causes of Death — Broad Chapters | **1968–2025** | ICD-8/9/10 chapters (D74/D16/D76/D176); seams at 1979 and 1999; ICD-10 eye/ear folded into "Nervous system & sense organs"; "Special-purpose codes" line = COVID-19 (U07.1), from 2020 |
 | Birth Statistics — annual births | 1960–2025 | + generation bands |
@@ -521,12 +522,27 @@ trailing partial natality year (D192 "through <month>") so a half-year
 birth count no longer shows as an annual figure, and its caption was
 corrected (deaths 1968–, leading cause 1999–, births to the real max).
 
-**Future effort — fine-grained pre-1999 causes:** a 113-list-equivalent
-ICD-9/ICD-8 cause breakdown (vs. the coarse chapter grain shipping first).
-Needs an ICD-9→ICD-10 and ICD-8→ICD-10 comparability-ratio crosswalk —
-NCHS publishes comparability studies, but applying them per cause is real
-work. Chapter-level answers "how did heart disease / cancer / accidents
-move since the 1970s" without it.
+**Pre-1999 rankable-cause trends (built 2026-09, committed, NOT deployed
+— needs the `icd9_sub` / `icd8_sub` fetches + rebuild + `./deploy.sh`):**
+WONDER's Compressed Mortality DBs (D16/D74) don't carry the 113-cause
+list, and there's no NCHS "72 causes" list on them either — the finest
+cause grain is the ICD *sub-chapter* (~130 code-range groups, eras
+`icd9_sub` / `icd8_sub`, `B_2 = <db>.V2-level2`). `PREHISTORY_MAP` in
+`src/api/causesOfDeath.js` maps the sub-chapters that line up with an
+ICD-10 113-list cause (single group or a clean sum) → `buildPrehistory`
+sums them per year → the Trend chart extends **11 rankable causes** back
+to 1968: heart disease, cancer, stroke, chronic lung disease, flu &
+pneumonia, accidents, suicide, homicide, kidney disease, TB, nutritional
+deficiencies. Rendered grey + a caption ("approximation … read the trend,
+not the step at 1979/1999"); the ranked BAR chart stays 1999+ (a bar is a
+snapshot). **Not a comparability-ratio crosswalk** — counts are raw, so a
+line can step at a seam. Heart disease runs slightly LOW pre-1999
+(hypertensive heart disease is bundled with hypertensive renal in one
+ICD-9/8 sub-chapter, unsplittable). Causes not in `PREHISTORY_MAP`
+(diabetes, cirrhosis, Alzheimer's, …) stay 1999+ — bundled too coarsely
+pre-1999. A true ratio-adjusted crosswalk is still possible but is a
+much bigger job and isn't needed for "how did heart disease / cancer /
+stroke move since the 1970s".
 
 WONDER API rate limit: ≥15 s between requests (429 otherwise); a manual
 loop needs `sleep 16` between `fetch.js` calls.

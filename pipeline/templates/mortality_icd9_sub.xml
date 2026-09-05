@@ -1,8 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <request-parameters>
 <!--
-  DRAFT -- validate with --dump before a real run. D16 = "Compressed
-  Mortality, 1979-1998" (ICD-9 era). The icd9_chapter twin, one level finer:
+  D16 = "Compressed Mortality, 1979-1998" (ICD-9 era). Dump-validated
+  2026-09 (V2-level2 accepted, ~130 sub-chapter groups, 6-col contract).
+  The icd9_chapter twin, one level finer:
     B_1  = D16.V1          (Year)
     B_2  = D16.V2-level2   (ICD Sub-Chapter -- ~70 groups, one level below
                             the ~17 Chapters)

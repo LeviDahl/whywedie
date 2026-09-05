@@ -339,6 +339,20 @@ const trendBreakdownCause = computed(() =>
   breakdownActive.value ? trendCauses.value[0] ?? null : null
 )
 
+// A few rankable causes can run back to 1968 via the ICD sub-chapter
+// approximation (src/api/causesOfDeath.js buildPrehistory) — but only when
+// at least one such cause is on the chart, and never in breakdown mode.
+const trendPrehistory = computed(() => {
+  const p = data.value?.prehistory
+  if (!p || breakdownActive.value) return null
+  return trendCauses.value.some((n) => p.byCause[n]) ? p : null
+})
+const trendPreYears = computed(() => trendPrehistory.value?.years ?? [])
+const trendAllYears = computed(() => {
+  const base = (breakdownActive.value ? bd.data.value.years : data.value?.years ?? []).map(String)
+  return [...trendPreYears.value.map(String), ...base]
+})
+
 const trendSeries = computed(() => {
   if (breakdownActive.value) {
     const name = trendBreakdownCause.value
@@ -355,11 +369,17 @@ const trendSeries = computed(() => {
   }
   return trendCauses.value
     .filter((name) => data.value?.byCause[name])
-    .map((name) => ({ label: label(name), values: data.value.byCause[name][metric.value] }))
+    .map((name) => {
+      const main = data.value.byCause[name][metric.value] ?? []
+      const pre = trendPrehistory.value?.byCause[name]?.[metric.value]
+      const preVals = trendPreYears.value.map((_, i) => (pre ? (pre[i] ?? null) : null))
+      return {
+        label: label(name),
+        values: [...preVals, ...main],
+        muted: [...trendPreYears.value.map(() => Boolean(pre)), ...main.map(() => false)]
+      }
+    })
 })
-const trendAllYears = computed(() =>
-  (breakdownActive.value ? bd.data.value.years : data.value?.years ?? []).map(String)
-)
 
 // Time-range window for the Trend chart. The cause series are aligned to the
 // full year axis, so windowing is just a tail slice of labels + every
@@ -377,7 +397,16 @@ const trendStart = computed(() => {
 })
 const trendYearLabels = computed(() => trendAllYears.value.slice(trendStart.value))
 const trendWindowSeries = computed(() =>
-  trendSeries.value.map((s) => ({ ...s, values: (s.values ?? []).slice(trendStart.value) }))
+  trendSeries.value.map((s) => ({
+    ...s,
+    values: (s.values ?? []).slice(trendStart.value),
+    muted: (s.muted ?? []).slice(trendStart.value)
+  }))
+)
+// True once the visible window actually includes a pre-1999 (approximate)
+// point — drives the caption below the chart.
+const trendShowsPrehistory = computed(
+  () => Boolean(trendPrehistory.value) && trendStart.value < trendPreYears.value.length
 )
 
 // --- tables behind the two charts ---
@@ -427,13 +456,20 @@ const trendTable = computed(() => {
     }
   }
   if (!data.value || !trendCauses.value.length) return null
+  const preLen = trendPreYears.value.length
   return {
     columns: ['Year', ...trendCauses.value.map(label)],
-    rows: data.value.years
+    rows: trendAllYears.value
       .map((y, i) => [
         y,
         ...trendCauses.value.map((name) => {
-          const v = data.value.byCause[name]?.[metric.value]?.[i]
+          const pre = trendPrehistory.value?.byCause[name]?.[metric.value]
+          const v =
+            i < preLen
+              ? pre
+                ? pre[i]
+                : null
+              : data.value.byCause[name]?.[metric.value]?.[i - preLen]
           return v == null ? '' : v
         })
       ])
@@ -837,6 +873,7 @@ function onAddChapterSelect(event) {
               :labels="trendYearLabels"
               :series="trendWindowSeries"
               :value-formatter="valueFormatter"
+              muted-label="pre-1999, approx."
             />
             <ChartToolbar
               v-if="trendTable"
@@ -846,6 +883,13 @@ function onAddChapterSelect(event) {
               filename="whywedie-cause-trend"
             />
           </div>
+          <p v-if="trendShowsPrehistory" class="mt-2 text-xs text-muted">
+            The grey segment before 1999 is an approximation: WONDER's pre-1999 data doesn't carry
+            the 113-cause list, so this sums the closest ICD-8/9 sub-chapters (no comparability
+            adjustment — see "Broad Chapters" below). Heart disease runs a little low pre-1999
+            (hypertensive heart disease can't be split out). Read the trend, not the exact step at
+            1979 or 1999.
+          </p>
           <p class="mt-1 text-xs text-muted">Source: {{ data.source }}.</p>
         </section>
 

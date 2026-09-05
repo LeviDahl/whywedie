@@ -119,6 +119,7 @@ for chunk in \
   "mortality provisional" "mortality provisional_causes" "mortality provisional_sex" "mortality provisional_race" "mortality monthly" \
   "mortality icd9" "mortality icd8" \
   "mortality icd10_chapter" "mortality provisional_chapter" \
+  "mortality icd9_sub" "mortality icd8_sub" \
   "natality mid" "natality gap" "natality current" "natality monthly" ; do
   set -- $chunk
   node --env-file=.env fetch.js --type=$1 --era=$2 || exit 1
@@ -132,7 +133,12 @@ SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
 pass `--years=` to slice them. `natality current` = D192 births-only.
 `icd10_chapter` (D76 1999-2020) / `provisional_chapter` (D176 2021+) =
 the ICD-10 chapter roll-up that extends "Broad Chapters" past 1998; pass
-`--years` to `provisional_chapter` like the other D176 eras.)
+`--years` to `provisional_chapter` like the other D176 eras.
+`icd9_sub` / `icd8_sub` = ICD *sub-chapter* grain (D16.V2-level2 /
+D74.V2-level2, ~130 groups); `src/api/causesOfDeath.js` `PREHISTORY_MAP`
+sums the ones that map to a 113-list cause so ~11 rankable causes' trend
+lines run back to 1968. Non-`#` codes, distinct from the chapter rows —
+no key collision.)
 
 `ON DUPLICATE KEY UPDATE` makes every run re-runnable. If a mortality era
 errors on size/timeout, slice it (needs the `{{YEAR_LIST}}` token in that

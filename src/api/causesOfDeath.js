@@ -7,7 +7,10 @@
 // with deaths, population, crude rate and age-adjusted rate. Coarser ICD
 // *chapter* rows (D74/D16 1968–1998, D76/D176 1999–present) are also
 // present — non-'#', so the rankable-cause views below ignore them; the
-// "Broad Chapters" section reads them via buildChapters().
+// "Broad Chapters" section reads them via buildChapters(). Finer ICD
+// *sub-chapter* rows (eras `icd9_sub` / `icd8_sub`, when run) let
+// buildPrehistory() extend a few rankable causes' trend lines back to
+// 1968 as an approximation — see its note.
 //
 // The snapshot is served same-origin as a plain file — no API call, no
 // CORS, no key.
@@ -124,6 +127,168 @@ function lastNonNull(arr) {
   return null
 }
 
+// ---------------------------------------------------------------------------
+// Pre-1999 extension for a HANDFUL of rankable causes.
+//
+// The 113-cause list only exists 1999+. WONDER's Compressed Mortality DBs
+// (D16 1979–1998, D74 1968–1978) don't carry it either — the finest cause
+// grain they offer is the ICD *sub-chapter* (~130 code-range groups, eras
+// `icd9_sub` / `icd8_sub`). This maps the sub-chapters that line up with an
+// ICD-10 113-list cause — as a single group or a clean sum — so those
+// causes' trend lines can run back to 1968.
+//
+// It is NOT a comparability-ratio crosswalk. Counts are raw, so a line's
+// LEVEL can step at the 1979 / 1999 seam even when the real trend is
+// smooth. `buildPrehistory` marks these years so the view greys them and
+// labels them approximate. Causes not listed here stay 1999+.
+//
+// Label strings are the exact `cause_name` values from D16 / D74 dumps.
+const PREHISTORY_MAP = {
+  // I00-I09,I11,I13,I20-I51 ~= rheumatic + ischemic + other heart. Omits
+  // hypertensive heart (ICD-9/8 bundle it with hypertensive *renal* in one
+  // sub-chapter, not separable), so this runs slightly LOW pre-1999.
+  'Diseases of heart (I00-I09,I11,I13,I20-I51)': {
+    icd9: ['Chronic rheumatic heart disease', 'Ischemic heart disease', 'Other forms of heart disease'],
+    icd8: ['Chronic rheumatic heart disease', 'Ischemic heart disease', 'Other forms of heart disease']
+  },
+  'Malignant neoplasms (C00-C97)': {
+    icd9: [
+      'Malignant neoplasm of lip, oral cavity, and pharynx',
+      'Malignant neoplasm of digestive organs and peritoneum',
+      'Malignant neoplasm of respiratory and intrathoracic organs',
+      'Malignant neoplasm of bone, connective tissue, skin, and breast',
+      'Malignant neoplasm of genitourinary organs',
+      'Malignant neoplasm of other and unspecified sites',
+      'Malignant neoplasm of lymphatic and hematopoietic tissue'
+    ],
+    icd8: [
+      'Malignant neoplasm of buccal cavity and pharynx',
+      'Malignant neoplasm of digestive organs and peritoneum',
+      'Malignant neoplasm of respiratory system',
+      'Malignant neoplasm of bone, connective tissue, skin, and breast',
+      'Malignant neoplasm of genitourinary organs',
+      'Malignant neoplasm of other and unspecified sites',
+      'Neoplasms of lymphatic and hematopoietic tissue'
+    ]
+  },
+  'Cerebrovascular diseases (I60-I69)': {
+    icd9: ['Cerebrovascular disease'],
+    icd8: ['Cerebrovascular disease']
+  },
+  'Chronic lower respiratory diseases (J40-J47)': {
+    icd9: ['Chronic obstructive pulmonary disease and allied conditions'],
+    icd8: ['Bronchitis, emphysema, and asthma']
+  },
+  'Influenza and pneumonia (J09-J18)': {
+    icd9: ['Pneumonia and influenza'],
+    icd8: ['Influenza', 'Pneumonia']
+  },
+  'Accidents (unintentional injuries) (V01-X59,Y85-Y86)': {
+    icd9: [
+      'Railway accidents',
+      'Motor vehicle traffic accidents',
+      'Motor vehicle nontraffic accidents',
+      'Other road vehicle accidents',
+      'Water transport accidents',
+      'Air and space transport accidents',
+      'Vehicle accidents, not elsewhere classifiable',
+      'Accidental poisoning by drugs, medicinal substances, and biologicals',
+      'Accidental poisoning by other solid and liquid substances, gases, and vapors',
+      'Accidental falls',
+      'Accidents caused by fire and flames',
+      'Accidents due to natural and environmental factors',
+      'Accidents caused by submersion, suffocation, and foreign bodies',
+      'Other accidents',
+      'Late effects of accidental injury'
+    ],
+    icd8: [
+      'Railway accidents',
+      'Motor vehicle traffic accidents',
+      'Motor vehicle nontraffic accidents',
+      'Other road vehicle accidents',
+      'Water transport accidents',
+      'Air and space transport accidents',
+      'Accidental poisoning by drugs and medicaments',
+      'Accidental poisoning by other solid and liquid substances',
+      'Accidental poisoning by gases and vapors',
+      'Accidental falls',
+      'Accidents caused by fires and flames',
+      'Accidents due to natural and environmental factors',
+      'Other accidents',
+      'Late effects of accidental injury'
+    ]
+  },
+  'Intentional self-harm (suicide) (*U03,X60-X84,Y87.0)': {
+    icd9: ['Suicide and self-inflicted injury'],
+    icd8: ['Suicide and self-inflicted injury']
+  },
+  'Assault (homicide) (*U01-*U02,X85-Y09,Y87.1)': {
+    icd9: ['Homicide and injury purposely inflicted by other persons'],
+    icd8: ['Homicide and injury purposely inflicted by other persons']
+  },
+  'Nephritis, nephrotic syndrome and nephrosis (N00-N07,N17-N19,N25-N27)': {
+    icd9: ['Nephritis, nephrotic syndrome, and nephrosis'],
+    icd8: ['Nephritis and nephrosis']
+  },
+  'Tuberculosis (A16-A19)': {
+    icd9: ['Tuberculosis'],
+    icd8: ['Tuberculosis']
+  },
+  'Nutritional deficiencies (E40-E64)': {
+    icd9: ['Nutritional deficiencies'],
+    icd8: ['Avitaminoses and other nutritional deficiency']
+  }
+}
+
+// Sum the mapped sub-chapters per pre-1999 year for each cause in
+// PREHISTORY_MAP. Crude rate is recomputed from summed deaths ÷ the year's
+// population (exact); the age-adjusted rate is summed (approximate — the
+// sub-chapters share the 2000 standard weights). Returns null if the
+// snapshot carries no sub-chapter rows yet (eras `icd9_sub` / `icd8_sub`
+// not run).
+function buildPrehistory(raw) {
+  const isSub = (r) => (r.icdVersion === 8 || r.icdVersion === 9) && !String(r.code ?? '').startsWith('#')
+  const preYears = raw.years
+    .map(Number)
+    .filter((y) => y < 1999 && (raw.byYear[y] ?? []).some(isSub))
+    .sort((a, b) => a - b)
+  if (!preYears.length) return null
+
+  const byCause = {}
+  for (const [name, m] of Object.entries(PREHISTORY_MAP)) {
+    const deaths = []
+    const crudeRate = []
+    const ageAdjustedRate = []
+    let anyData = false
+    for (const y of preYears) {
+      const rows = raw.byYear[y] ?? []
+      const want = new Set(y >= 1979 ? m.icd9 : m.icd8)
+      let d = null
+      let aar = null
+      let pop = null
+      for (const r of rows) {
+        if (pop == null && (r.icdVersion === 8 || r.icdVersion === 9) && r.population != null) {
+          pop = r.population
+        }
+        if (!want.has(r.name)) continue
+        if (r.deaths != null) {
+          d = (d ?? 0) + r.deaths
+          anyData = true
+        }
+        if (r.ageAdjustedRate != null) aar = (aar ?? 0) + r.ageAdjustedRate
+      }
+      deaths.push(d)
+      crudeRate.push(d != null && pop ? Math.round((d / pop) * 100000 * 10) / 10 : null)
+      ageAdjustedRate.push(aar == null ? null : Math.round(aar * 10) / 10)
+    }
+    if (anyData) byCause[name] = { deaths, crudeRate, ageAdjustedRate }
+  }
+  if (!Object.keys(byCause).length) return null
+
+  const seams = [1979, 1999].filter((s) => s > preYears[0] && s <= 1999)
+  return { years: preYears, byCause, seams }
+}
+
 export async function fetchCausesOfDeath() {
   let res
   try {
@@ -198,6 +363,7 @@ export async function fetchCausesOfDeath() {
     causes,
     byYear,
     byCause,
-    chapters: buildChapters(raw)
+    chapters: buildChapters(raw),
+    prehistory: buildPrehistory(raw)
   }
 }

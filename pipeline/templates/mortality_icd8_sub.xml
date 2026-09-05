@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <request-parameters>
 <!--
-  DRAFT -- validate with --dump before a real run. D74 = "Compressed
-  Mortality, 1968-1978" (ICD-8 era). The ICD-8 twin of
-  mortality_icd9_sub.xml, one level finer than mortality_icd8_chapter.xml:
+  D74 = "Compressed Mortality, 1968-1978" (ICD-8 era). Dump-validated
+  2026-09. The ICD-8 twin of mortality_icd9_sub.xml, one level finer than
+  mortality_icd8_chapter.xml:
     B_1  = D74.V1          (Year)
     B_2  = D74.V2-level2   (ICD Sub-Chapter -- ~70 groups)
     O_aar = aar_std + O_aar_enable = true   (age-adjusted; 2000 US std pop)

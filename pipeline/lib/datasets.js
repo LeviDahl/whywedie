@@ -140,7 +140,7 @@ export const DATASETS = {
     // back before 1999. Sub-chapter codes differ from `icd9`'s chapter
     // codes, so both eras coexist in `mortality` with no key collision.
     // The frontend maps only the sub-chapters that line up with an ICD-10
-    // 113-list cause; no comparability ratio. DRAFT — dump-validate.
+    // 113-list cause; no comparability ratio. Dump-validated 2026-09 (V2-level2 OK, ~130 groups).
     icd9_sub: {
       databaseId: 'D16',
       templateFile: 'mortality_icd9_sub.xml',
@@ -388,7 +388,7 @@ export const DATASETS = {
       ],
     },
     // ICD-8 twin of `icd9_sub`: Year x ICD-8 Sub-Chapter (D74.V2-level2).
-    // Same rationale + no-collision note. DRAFT — dump-validate.
+    // Same rationale + no-collision note. Dump-validated 2026-09.
     icd8_sub: {
       databaseId: 'D74',
       templateFile: 'mortality_icd8_sub.xml',
