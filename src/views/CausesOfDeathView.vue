@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useHead } from '@unhead/vue'
+import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import RankedBarChart from '@/components/RankedBarChart.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
@@ -19,6 +21,32 @@ const router = useRouter()
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
 const section = sections.find((s) => s.name === 'causes-of-death')
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(
+        datasetJsonLd({
+          name: 'Leading causes of death in the United States',
+          description:
+            'US deaths by cause and year — the NCHS 113-cause list 1999–present (deaths, crude ' +
+            'rate, age-adjusted rate), a sex and race breakdown, broad ICD chapters back to 1968, ' +
+            'and 11 major causes trended to 1968. National, from CDC WONDER.',
+          path: '/causes-of-death',
+          temporal: '1968/..',
+          keywords: [
+            'leading causes of death',
+            'heart disease deaths',
+            'cancer deaths by year',
+            'cause of death statistics United States',
+            'deaths by race and sex'
+          ]
+        })
+      )
+    }
+  ]
+})
 
 // Friendly vs official cause names (persisted, shared app-wide).
 const { nameStyle } = useNamePreference()

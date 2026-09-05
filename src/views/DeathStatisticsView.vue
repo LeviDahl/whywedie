@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
+import { useHead } from '@unhead/vue'
+import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
@@ -10,6 +12,31 @@ import { fetchMonthlyDeaths } from '@/api/monthlyDeaths.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'death-statistics')
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(
+        datasetJsonLd({
+          name: 'US death statistics over time',
+          description:
+            'Annual United States deaths since 1968 and the age-adjusted death rate back to ' +
+            '1900, plus the most recent monthly provisional counts. National, from CDC WONDER.',
+          path: '/death-statistics',
+          temporal: '1900/..',
+          keywords: [
+            'US death rate',
+            'deaths per year United States',
+            'age-adjusted death rate',
+            'mortality statistics',
+            'CDC deaths by year'
+          ]
+        })
+      )
+    }
+  ]
+})
 
 const historical = useAsyncData(fetchHistoricalAnnualDeaths)
 const monthly = useAsyncData(fetchMonthlyDeaths)

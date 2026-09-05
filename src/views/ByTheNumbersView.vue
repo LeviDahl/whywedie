@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
+import { useHead } from '@unhead/vue'
+import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchDailyPace } from '@/api/dailyStats.js'
@@ -8,6 +10,31 @@ import { downloadCsv } from '@/lib/csv.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'by-the-numbers')
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(
+        datasetJsonLd({
+          name: 'US births and deaths per day',
+          description:
+            'How many people are born and die in the United States on a typical day — a ' +
+            'rolling 12-month total divided by 365 — next to a few everyday things at the same ' +
+            'scale.',
+          path: '/by-the-numbers',
+          temporal: '2018/..',
+          keywords: [
+            'births per day United States',
+            'deaths per day United States',
+            'how many people die each day',
+            'how many babies born per day'
+          ]
+        })
+      )
+    }
+  ]
+})
 
 const { data, error, loading, load } = useAsyncData(fetchDailyPace)
 onMounted(load)

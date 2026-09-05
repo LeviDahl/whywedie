@@ -1,10 +1,47 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useHead } from '@unhead/vue'
 import AppSidebar from '@/components/AppSidebar.vue'
+import { SITE_NAME, SITE_URL, OG_IMAGE, DEFAULT_DESCRIPTION, siteJsonLd } from '@/seo.js'
 
 const sidebarOpen = ref(false)
 const route = useRoute()
+
+// One place sets the document head; views may add their own (e.g. a
+// Dataset JSON-LD block) on top. Title / description come from route meta
+// (src/router/index.js + src/nav.js + src/seo.js).
+const isHome = computed(() => route.path === '/')
+const pageTitle = computed(() =>
+  isHome.value || !route.meta?.title
+    ? `${SITE_NAME} — US Mortality & Population Statistics`
+    : `${route.meta.title} — ${SITE_NAME}`
+)
+const pageDescription = computed(() =>
+  isHome.value ? DEFAULT_DESCRIPTION : route.meta?.description || DEFAULT_DESCRIPTION
+)
+const canonical = computed(() => `${SITE_URL}${route.path === '/' ? '' : route.path}`)
+
+useHead(() => ({
+  title: pageTitle.value,
+  link: [{ rel: 'canonical', href: canonical.value }],
+  meta: [
+    { name: 'description', content: pageDescription.value },
+    { property: 'og:type', content: 'website' },
+    { property: 'og:site_name', content: SITE_NAME },
+    { property: 'og:title', content: pageTitle.value },
+    { property: 'og:description', content: pageDescription.value },
+    { property: 'og:url', content: canonical.value },
+    { property: 'og:image', content: OG_IMAGE },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: pageTitle.value },
+    { name: 'twitter:description', content: pageDescription.value },
+    { name: 'twitter:image', content: OG_IMAGE }
+  ],
+  script: [
+    { type: 'application/ld+json', innerHTML: JSON.stringify(siteJsonLd()) }
+  ]
+}))
 
 // Auto-close the mobile drawer whenever navigation happens.
 watch(

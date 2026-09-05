@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { sections } from '@/nav.js'
+import { STANDALONE_META } from '@/seo.js'
 
 const viewComponents = {
   home: () => import('@/views/HomeView.vue'),
@@ -14,7 +15,7 @@ const routes = sections.map((section) => ({
   path: section.path,
   name: section.name,
   component: viewComponents[section.name],
-  meta: { title: section.label }
+  meta: { title: section.label, description: section.description }
 }))
 
 // Standalone pages — not sidebar sections, linked from the footer.
@@ -23,13 +24,13 @@ routes.push(
     path: '/api',
     name: 'api',
     component: () => import('@/views/ApiView.vue'),
-    meta: { title: 'Open Data API' }
+    meta: { ...STANDALONE_META.api }
   },
   {
     path: '/privacy',
     name: 'privacy',
     component: () => import('@/views/PrivacyView.vue'),
-    meta: { title: 'Privacy' }
+    meta: { ...STANDALONE_META.privacy }
   }
 )
 
@@ -47,9 +48,7 @@ const router = createRouter({
   }
 })
 
-router.afterEach((to) => {
-  const base = 'Why We Die'
-  document.title = to.meta?.title ? `${to.meta.title} — ${base}` : base
-})
+// Title + the rest of the document head are set from route meta in
+// App.vue via @unhead/vue (useHead) — see src/seo.js.
 
 export default router

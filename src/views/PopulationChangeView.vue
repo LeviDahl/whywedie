@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
+import { useHead } from '@unhead/vue'
+import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
@@ -10,6 +12,32 @@ import { PEW_GENERATIONS, generationChoices } from '@/data/generations.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'population-change')
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(
+        datasetJsonLd({
+          name: 'US births vs deaths and natural increase',
+          description:
+            'United States births minus deaths — the natural increase — since 1968, plus a ' +
+            'century of annual births (1909–present) with Pew generation bands. National, from ' +
+            'CDC WONDER.',
+          path: '/population-change',
+          temporal: '1909/..',
+          keywords: [
+            'natural increase United States',
+            'births minus deaths',
+            'US population growth',
+            'natural decrease',
+            'births vs deaths by year'
+          ]
+        })
+      )
+    }
+  ]
+})
 
 const bvd = useAsyncData(fetchBirthsVsDeaths)
 const history = useAsyncData(fetchBirthHistory)

@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
+import { useHead } from '@unhead/vue'
+import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
@@ -11,6 +13,32 @@ import { PEW_GENERATIONS, generationChoices } from '@/data/generations.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'birth-statistics')
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(
+        datasetJsonLd({
+          name: 'US birth statistics and fertility rate',
+          description:
+            'Annual United States births since 1960, the general fertility rate (births per ' +
+            '1,000 women 15–44) and crude birth rate, Pew generation bands, and current monthly ' +
+            'provisional counts. National, from CDC WONDER + Census.',
+          path: '/birth-statistics',
+          temporal: '1909/..',
+          keywords: [
+            'US birth rate',
+            'US fertility rate by year',
+            'births per year United States',
+            'general fertility rate',
+            'declining birth rate'
+          ]
+        })
+      )
+    }
+  ]
+})
 
 // Two sources: provisional monthly counts (Socrata, browser-direct), and
 // the annual births + fertility-rate series (/data/natality.json — Socrata
