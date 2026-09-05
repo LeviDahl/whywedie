@@ -117,13 +117,23 @@ whether it would pass.
   clobber a newer pipeline-published file with the committed baseline —
   re-run the pipeline publish after a deploy, or exclude `data/` from the
   upload.
-- **Git:** this is a git repo (`git init -b main` already run), intended to
-  be pushed to a new public GitHub repo. Don't assume the current state —
-  check `git status` / `git log` / `git remote -v` directly (this
-  environment has real shell access, unlike some earlier sessions that
-  worked on this file through a broken remote-device bridge and could only
-  hand off manual commands). If there's anything uncommitted or unpushed,
-  finish that as part of picking up this project.
+- **Git:** this is a git repo (`git init -b main` already run), pushed to a
+  **public** GitHub repo. Don't assume the current state — check
+  `git status` / `git log` / `git remote -v` directly (this environment has
+  real shell access). If there's anything uncommitted or unpushed, finish
+  that as part of picking up this project.
+- **Stage explicitly — never `git add -A` / `git add .` / `git add -u`.**
+  List the exact paths you mean to commit (`git add src/foo.vue CLAUDE.md`).
+  Running `build-snapshots.js` rewrites all of `public/data/*.json` (even a
+  no-data run bumps `fetchedAt`), and a blanket add silently folds those —
+  or anything else stray in the tree — into an unrelated commit (happened
+  once: pipeline snapshots landed in a UI-only commit). Before every
+  commit run `git status` and `git diff --cached --stat`, and only commit
+  regenerated `public/data/*.json` when refreshing the data snapshot is
+  the actual intent (then say so in the message). The repo is public —
+  `git diff --cached` before pushing anything that touched a file that
+  could carry a secret; `.env`, `.env.deploy`, `pipeline/.env`,
+  `.secrets` are gitignored and must stay that way.
 
 ## Architecture & Code Conventions
 
@@ -426,11 +436,11 @@ codes" line.
 | Death Statistics — annual, **counts** | 1968–2025 | monthly 2018–present |
 | Death Statistics — annual, **age-adjusted rate** | **1900–2025** | pre-1968 from Socrata `w9j2-ggv5`; 1968–2025 WONDER (D176 provisional 2021+ now carries the age-adjusted rate — the `O_aar_enable` fetch ran). Socrata `489q-934x` (VSRR) stays wired as a fallback for years the snapshot lacks. All 2000-std, match at the seams. Metric toggle on the chart |
 | Causes of Death — ranked | **1999–2025** | 113 list; a bar is a snapshot so no pre-1999 |
-| Causes of Death — trend | ranked causes 1999–2025; **11 of them back to 1968** | pre-1999 = the ICD sub-chapter approximation (`PREHISTORY_MAP`), grey + flagged; committed, not deployed (needs the `icd9_sub`/`icd8_sub` fetches) |
+| Causes of Death — trend | ranked causes 1999–2025; **11 of them back to 1968** | pre-1999 = the ICD sub-chapter approximation (`PREHISTORY_MAP` in `causesOfDeath.js`), grey + flagged; `icd9_sub` / `icd8_sub` eras ran, deployed 2026-09 |
 | Causes of Death — Sex/Race breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race) |
 | Causes of Death — Broad Chapters | **1968–2025** | ICD-8/9/10 chapters (D74/D16/D76/D176); seams at 1979 and 1999; ICD-10 eye/ear folded into "Nervous system & sense organs"; "Special-purpose codes" line = COVID-19 (U07.1), from 2020 |
 | Birth Statistics — annual births | 1960–2025 | + generation bands |
-| Birth Statistics — fertility rate | **1960–2023** | 2021–2023 from Census PEP (see Remaining #2) — committed, not yet deployed |
+| Birth Statistics — fertility rate | **1960–2023** | 2021–2023 from Census PEP (`fetch-census-fertility.js`; see Remaining #2); deployed 2026-09 |
 | Birth Statistics — crude birth rate | 1960–2025 | 2019+ derived from births ÷ resident population |
 | Birth Statistics — monthly births | 2023–2026 | D192 |
 | Population Change — births vs deaths / natural increase | 1968–2025 | |
@@ -446,11 +456,13 @@ codes" line.
    `buildChapters` (sums the ICD-10 nervous/eye/ear split) +
    `seams: [1979, 1999]` in `src/api/causesOfDeath.js`; "Broad Chapters"
    heading/copy are dynamic. "Codes for special purposes" (COVID-19,
-   U07.1) shows as its own line from 2020. A true 113-list-equivalent for
-   pre-1999 (so the *ranked* view works back to 1968) is still the
-   "Future effort" below.
-2. ~~General fertility rate stops at 2020~~ **DONE for 2021–2023
-   (2026-09), committed but not deployed** — run `./deploy.sh` to publish.
+   U07.1) shows as its own line from 2020. The *trend* chart now also runs
+   11 rankable causes back to 1968 via the sub-chapter approximation
+   (`PREHISTORY_MAP`, deployed 2026-09 — see the block below); a
+   *continuous ranked-bar* view across the ICD seam is the remaining
+   "Future effort".
+2. ~~General fertility rate stops at 2020~~ **DONE for 2021–2023,
+   deployed 2026-09.**
    D66 confirmed dead for this (births yes, `population`/`fertility_rate`
    "Not Available" past 2020) and Census PEP has no key-free path, so a
    Census API key was the move: `pipeline/fetch-census-fertility.js` (new,
@@ -522,8 +534,7 @@ trailing partial natality year (D192 "through <month>") so a half-year
 birth count no longer shows as an annual figure, and its caption was
 corrected (deaths 1968–, leading cause 1999–, births to the real max).
 
-**Pre-1999 rankable-cause trends (built 2026-09, committed, NOT deployed
-— needs the `icd9_sub` / `icd8_sub` fetches + rebuild + `./deploy.sh`):**
+**Pre-1999 rankable-cause trends (shipped 2026-09):**
 WONDER's Compressed Mortality DBs (D16/D74) don't carry the 113-cause
 list, and there's no NCHS "72 causes" list on them either — the finest
 cause grain is the ICD *sub-chapter* (~130 code-range groups, eras

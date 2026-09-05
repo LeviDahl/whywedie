@@ -7,6 +7,13 @@ Self-contained: its own `package.json`, its own `node_modules`, three
 dependencies (`axios`, `mysql2`, `fast-xml-parser`). Nothing here is imported
 by the Vite frontend and vice-versa.
 
+> `npm audit` flags one moderate advisory on `fast-xml-parser@4` — an
+> `XMLBuilder` comment/CDATA-injection issue. **Not exploitable here:** the
+> pipeline only uses `XMLParser` (read), never `XMLBuilder`, and it parses
+> trusted CDC WONDER responses. The fix is a semver-major bump to v5 (API
+> changes, would need re-testing `lib/parseResponse.js` against live
+> WONDER) — deferred, not urgent.
+
 ```
 pipeline/
   schema.sql            tables: mortality{,_demographic,_monthly}, natality{,_monthly}  (apply once)

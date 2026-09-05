@@ -311,19 +311,19 @@ year-only totals; the age-adjusted death rate spliced to **1900**
 (`w9j2-ggv5`); D27/D66 natality (1960–2022) + D192 provisional births
 (annual + monthly); Sex/Race breakdown **1999–2025**; Pew generation
 bands + drill-down on the births charts and the Home year lookup;
-By-the-Numbers off the monthly WONDER snapshots.
-
-**Done, committed, not yet deployed:** general fertility rate extended to
-**2023** via `pipeline/fetch-census-fertility.js` (Census PEP women-15–44
-population, not a WONDER dataset — needs `CENSUS_API_KEY`). Run
-`./deploy.sh` to publish.
+By-the-Numbers off the monthly WONDER snapshots; general fertility rate
+to **2023** (`fetch-census-fertility.js`, Census PEP women-15–44 — not a
+WONDER dataset, needs `CENSUS_API_KEY`); **11 rankable causes' trend
+lines extended to 1968** via the ICD sub-chapter approximation
+(`icd9_sub` / `icd8_sub` → `PREHISTORY_MAP`, grey + flagged).
 
 - [ ] Stand the pipeline up on a schedule (host + cron + publish, see
       `pipeline/README.md`) — only the D176/D192 provisional eras recur
       (pass `--years=2021-<last full year>`); the finalized databases run
       once.
-- [ ] **Future effort:** a 113-list-equivalent ICD-9/8 cause breakdown
-      (finer than the chapter grain) — needs the NCHS comparability-ratio
-      crosswalk applied per cause.
+- [ ] **Future effort:** a *continuous ranked* view across the ICD seam
+      (the trend chart already covers 11 causes to 1968; a full ranked-bar
+      comparison for a pre-1999 decade would need the NCHS
+      comparability-ratio crosswalk applied per cause).
 - [ ] Periodically re-check whether `hmz2-vwda` has resumed updating
       (still ends June 2024 as of 2026-09).
