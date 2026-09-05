@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='utf-8'?>
+<request-parameters>
+<!--
+  DRAFT -- validate with --dump before a real run. D74 = "Compressed
+  Mortality, 1968-1978" (ICD-8 era). The ICD-8 twin of
+  mortality_icd9_sub.xml, one level finer than mortality_icd8_chapter.xml:
+    B_1  = D74.V1          (Year)
+    B_2  = D74.V2-level2   (ICD Sub-Chapter -- ~70 groups)
+    O_aar = aar_std + O_aar_enable = true   (age-adjusted; 2000 US std pop)
+
+  See mortality_icd9_sub.xml for the rationale: sub-chapter grain so a few
+  specific rankable causes can extend back before 1979, mapped only where
+  a sub-chapter lines up with an ICD-10 113-list cause; no comparability
+  ratio, seams at 1979 / 1999. D74 has no Injury-Intent section (no
+  V12 / V13). Location V_ fields BLANK. {{YEAR_LIST}} -> V_D74.V1.
+  Response cells: year, sub-chapter (label, h= depth), Deaths, Population,
+  Crude Rate, Age-Adjusted Rate -> the same 6-col contract as `icd9` /
+  `icd10`.
+
+  Test: node --env-file=.env fetch.js --type=mortality --era=icd8_sub --years=1968-1970 --out=rows.json --dump
+  On a 400: paste the <message> from pipeline/mortality_icd8_sub.raw.xml.
+-->
+<parameter><name>accept_datause_restrictions</name><value>true</value></parameter>
+<parameter><name>B_1</name><value>D74.V1</value></parameter>
+<parameter><name>B_2</name><value>D74.V2-level2</value></parameter>
+<parameter><name>B_3</name><value>*None*</value></parameter>
+<parameter><name>B_4</name><value>*None*</value></parameter>
+<parameter><name>B_5</name><value>*None*</value></parameter>
+<parameter><name>F_D74.V2</name><value>*All*</value></parameter>
+<parameter><name>F_D74.V4</name><value>*All*</value></parameter>
+<parameter><name>F_D74.V9</name><value>*All*</value></parameter>
+<parameter><name>F_D74.V10</name><value>*All*</value></parameter>
+<parameter><name>I_D74.V2</name><value>*All* (All Causes of Death)</value></parameter>
+<parameter><name>I_D74.V4</name><value>*All* (All Causes of Death)</value></parameter>
+<parameter><name>I_D74.V9</name><value>*All* (The United States)</value></parameter>
+<parameter><name>I_D74.V10</name><value>*All* (The United States)</value></parameter>
+<parameter><name>M_1</name><value>D74.M1</value></parameter>
+<parameter><name>M_2</name><value>D74.M2</value></parameter>
+<parameter><name>M_3</name><value>D74.M3</value></parameter>
+<parameter><name>O_V2_fmode</name><value>freg</value></parameter>
+<parameter><name>O_V4_fmode</name><value>freg</value></parameter>
+<parameter><name>O_V9_fmode</name><value>freg</value></parameter>
+<parameter><name>O_V10_fmode</name><value>freg</value></parameter>
+<parameter><name>O_aar</name><value>aar_std</value></parameter>
+<parameter><name>O_aar_enable</name><value>true</value></parameter>
+<parameter><name>O_aar_pop</name><value>0000</value></parameter>
+<parameter><name>O_age</name><value>D74.V5</value></parameter>
+<parameter><name>O_icd</name><value>D74.V2</value></parameter>
+<parameter><name>O_javascript</name><value>on</value></parameter>
+<parameter><name>O_location</name><value>D74.V9</value></parameter>
+<parameter><name>O_oc-sect1-request</name><value>close</value></parameter>
+<parameter><name>O_precision</name><value>1</value></parameter>
+<parameter><name>O_rate_per</name><value>100000</value></parameter>
+<parameter><name>O_show_totals</name><value>true</value></parameter>
+<parameter><name>O_timeout</name><value>600</value></parameter>
+<parameter><name>O_title</name><value>whywedie - D74 compressed mortality by year x ICD sub-chapter, national</value></parameter>
+<parameter><name>V_D74.V1</name>{{YEAR_LIST}}</parameter>
+<parameter><name>V_D74.V2</name><value></value></parameter>
+<parameter><name>V_D74.V4</name><value></value></parameter>
+<parameter><name>V_D74.V5</name><value>*All*</value></parameter>
+<parameter><name>V_D74.V6</name><value>00</value></parameter>
+<parameter><name>V_D74.V7</name><value>*All*</value></parameter>
+<parameter><name>V_D74.V8</name><value>*All*</value></parameter>
+<parameter><name>V_D74.V9</name><value></value></parameter>
+<parameter><name>V_D74.V10</name><value></value></parameter>
+<parameter><name>VM_D74.M6_D74.V1</name><value>*All*</value></parameter>
+<parameter><name>VM_D74.M6_D74.V7</name><value>*All*</value></parameter>
+<parameter><name>VM_D74.M6_D74.V8</name><value>*All*</value></parameter>
+<parameter><name>VM_D74.M6_D74.V10</name><value></value></parameter>
+<parameter><name>finder-stage-D74.V2</name><value>codeset</value></parameter>
+<parameter><name>finder-stage-D74.V4</name><value>codeset</value></parameter>
+<parameter><name>finder-stage-D74.V9</name><value>codeset</value></parameter>
+<parameter><name>finder-stage-D74.V10</name><value>codeset</value></parameter>
+<parameter><name>action-Send</name><value>Send</value></parameter>
+<parameter><name>dataset_code</name><value>D74</value></parameter>
+<parameter><name>dataset_label</name><value>Compressed Mortality, 1968-1978</value></parameter>
+<parameter><name>saved_id</name><value></value></parameter>
+<parameter><name>stage</name><value>request</value></parameter>
+</request-parameters>

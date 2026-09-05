@@ -132,6 +132,31 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // One level finer than `icd9`: Year x ICD-9 Sub-Chapter (D16.V2-level2,
+    // ~70 groups). NOT the NCHS "72 selected causes" list — WONDER's
+    // Compressed Mortality DBs don't expose it — but fine enough that a few
+    // specific rankable causes (lung/breast/prostate/colon cancer, stroke,
+    // diabetes, cirrhosis, COPD, external causes) can extend a trend line
+    // back before 1999. Sub-chapter codes differ from `icd9`'s chapter
+    // codes, so both eras coexist in `mortality` with no key collision.
+    // The frontend maps only the sub-chapters that line up with an ICD-10
+    // 113-list cause; no comparability ratio. DRAFT — dump-validate.
+    icd9_sub: {
+      databaseId: 'D16',
+      templateFile: 'mortality_icd9_sub.xml',
+      table: 'mortality',
+      fixed: { icd_version: 9 },
+      yearMin: 1979,
+      yearMax: 1998,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' }, // D16.V2-level2 "ICD Sub-Chapter"
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
     // D16 / D74 grouped by Year only — one all-cause total per year, like
     // `icd10_total`. `fixed` tags each row as the synthetic non-`#` "All
     // causes" cause; `historicalDeaths.js` reads those, so the Death
@@ -349,6 +374,24 @@ export const DATASETS = {
     icd8: {
       databaseId: 'D74',
       templateFile: 'mortality_icd8_chapter.xml',
+      table: 'mortality',
+      fixed: { icd_version: 8 },
+      yearMin: 1968,
+      yearMax: 1978,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+        { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
+    // ICD-8 twin of `icd9_sub`: Year x ICD-8 Sub-Chapter (D74.V2-level2).
+    // Same rationale + no-collision note. DRAFT — dump-validate.
+    icd8_sub: {
+      databaseId: 'D74',
+      templateFile: 'mortality_icd8_sub.xml',
       table: 'mortality',
       fixed: { icd_version: 8 },
       yearMin: 1968,
