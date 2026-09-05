@@ -21,6 +21,29 @@
 // ranking or a "leading cause" callout, so that's all this module exposes.
 
 const SNAPSHOT_URL = `${import.meta.env.BASE_URL}data/mortality.json`
+const META_URL = `${import.meta.env.BASE_URL}data/meta.json`
+
+// Which demographic breakdown axes the pipeline has actually loaded, read
+// from the tiny meta.json instead of the ~6 MB mortality_demographic.json —
+// so the Breakdown control can render before that file is fetched (it's
+// lazy-loaded only when the user picks Sex/Race). Missing/old meta.json →
+// assume both are available (they've been deployed since 2026-09).
+async function breakdownAxes() {
+  try {
+    const res = await fetch(META_URL, { headers: { accept: 'application/json' } })
+    if (!res.ok) return ['sex', 'race']
+    const meta = await res.json()
+    const eras = meta?.sources?.mortality ?? []
+    const axes = new Set()
+    for (const e of eras) {
+      const m = /_(sex|race)$/.exec(e.era)
+      if (m && (e.rows ?? 0) > 0) axes.add(m[1])
+    }
+    return axes.size ? [...axes] : ['sex', 'race']
+  } catch {
+    return ['sex', 'race']
+  }
+}
 
 // The chapter-grain mortality data (D74 ICD-8 1968–1978, D16 ICD-9
 // 1979–1998, D76 ICD-10 1999–2020, D176 ICD-10 2021+) is grouped by ICD
@@ -291,8 +314,12 @@ function buildPrehistory(raw) {
 
 export async function fetchCausesOfDeath() {
   let res
+  let axes
   try {
-    res = await fetch(SNAPSHOT_URL, { headers: { accept: 'application/json' } })
+    ;[res, axes] = await Promise.all([
+      fetch(SNAPSHOT_URL, { headers: { accept: 'application/json' } }),
+      breakdownAxes()
+    ])
   } catch (err) {
     throw new Error(`Couldn't load the mortality data file: ${err.message}`)
   }
@@ -364,6 +391,9 @@ export async function fetchCausesOfDeath() {
     byYear,
     byCause,
     chapters: buildChapters(raw),
-    prehistory: buildPrehistory(raw)
+    prehistory: buildPrehistory(raw),
+    // Breakdown axes present in the pipeline — lets the view show the
+    // Sex/Race control before the heavy demographic file is fetched.
+    breakdown: { available: axes.length > 0, dimensions: axes }
   }
 }

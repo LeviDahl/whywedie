@@ -25,14 +25,12 @@ const { nameStyle } = useNamePreference()
 const label = (officialName) => displayName(officialName, nameStyle.value)
 
 const { data, error, loading, load } = useAsyncData(fetchCausesOfDeath)
-// Optional demographic (Sex / Race) breakdown — its own snapshot file. If
-// the pipeline eras haven't run it comes back { available: false } and the
-// Breakdown control never renders.
+// Optional demographic (Sex / Race) breakdown — lives in its own ~6 MB
+// snapshot file, so it's LAZY: `data.breakdown` (from the tiny meta.json)
+// says whether the axes exist and drives the control; the heavy file is
+// only fetched the first time the reader picks Sex/Race (watcher below).
 const bd = useAsyncData(fetchCauseBreakdown)
-onMounted(() => {
-  load()
-  bd.load()
-})
+onMounted(load)
 
 const TOP_N = 15
 const MAX_PERIODS = 4
@@ -67,16 +65,30 @@ const breakdown = ref(
 if (breakdown.value === 'race' && !METRICS[route.query.metric]) {
   metric.value = 'ageAdjustedRate'
 }
+// The heavy breakdown file is fetched only once the reader picks Sex/Race
+// — or immediately, if the page was opened straight to `?breakdown=…`.
+watch(
+  breakdown,
+  (b) => {
+    if (b !== 'none' && !bd.data.value && !bd.loading.value) bd.load()
+  },
+  { immediate: true }
+)
+const breakdownAvailable = computed(() => Boolean(data.value?.breakdown?.available))
 const breakdownReady = computed(
   () => bd.data.value?.available && Boolean(bd.data.value.dimensions?.[breakdown.value])
 )
 const breakdownActive = computed(() => breakdown.value !== 'none' && breakdownReady.value)
+const breakdownLoading = computed(() => breakdown.value !== 'none' && bd.loading.value)
 // The Race breakdown spans a 2020/2021 vintage seam (bridged- vs single-race).
 const raceSeam = computed(() => {
   const ys = bd.data.value?.years ?? []
   return ys.some((y) => y <= 2020) && ys.some((y) => y >= 2021)
 })
-const breakdownChoices = computed(() => ['none', ...(bd.data.value?.dimensionKeys ?? [])])
+const breakdownChoices = computed(() => [
+  'none',
+  ...(data.value?.breakdown?.dimensions ?? bd.data.value?.dimensionKeys ?? [])
+])
 
 // Every subgroup the active dimension offers, in the snapshot's order.
 const allSubgroups = computed(() =>
@@ -619,7 +631,7 @@ function onAddChapterSelect(event) {
             </div>
           </div>
 
-          <div v-if="bd.data.value?.available" class="flex flex-wrap items-center gap-3">
+          <div v-if="breakdownAvailable" class="flex flex-wrap items-center gap-3">
             <span class="text-xs font-medium uppercase tracking-wide text-muted">Breakdown</span>
             <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
               <button
@@ -633,6 +645,8 @@ function onAddChapterSelect(event) {
                 {{ BREAKDOWN_LABELS[opt] ?? opt }}
               </button>
             </div>
+            <span v-if="breakdownLoading" class="text-xs text-muted">Loading breakdown data…</span>
+            <span v-else-if="bd.error.value" class="text-xs text-muted">Breakdown data unavailable.</span>
           </div>
         </div>
 
