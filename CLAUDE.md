@@ -55,6 +55,23 @@ in [`pipeline/README.md`](pipeline/README.md). Note: **the WONDER API is
 national-only for vital statistics** — it refuses State/County/Region
 grouping, so every pipeline row is US-wide.
 
+**Beyond the 6 sections:** a site-wide `<footer>` in `App.vue` links two
+standalone routes — `/privacy` (`PrivacyView.vue`, plain content; describes
+the current no-cookies / no-analytics / no-ads reality — keep it truthful
+if anything changes) and `/api` (`ApiView.vue`, documents the
+`/data/*.json` snapshots as a public CORS-open read-only API; `.htaccess`
+sends `Access-Control-Allow-Origin: *` on `*.json`). Both are added
+directly in `router/index.js`, not via `nav.js`.
+
+**SEO:** `@unhead/vue` — `App.vue` sets title / description / canonical /
+OG / Twitter / a `WebSite` JSON-LD per route (source: route `meta` ←
+`nav.js` + `src/seo.js`); the 5 data views add a `Dataset` JSON-LD via
+`datasetJsonLd()`. `vite.config.js` writes `dist/sitemap.xml` +
+`dist/robots.txt` at build from the route list. `og:image` points at
+`/og.png` — that file still needs creating. Prerendering (vite-ssg) was
+evaluated and deferred (unhead v1↔v2 clash + Chart.js SSR guards + a
+risky Apache rewrite; Google renders the SPA fine meanwhile).
+
 ## Development Environment
 
 - **OS Platform:** macOS (Darwin). Use Unix-compliant commands only.
