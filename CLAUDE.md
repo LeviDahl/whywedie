@@ -95,8 +95,10 @@ OG / Twitter / a `WebSite` JSON-LD per route (source: route `meta` ←
 article frontmatter off disk with `gray-matter` (can't use
 `import.meta.glob` in the config), so keep that in sync with the registry;
 drafts are excluded. `og:image` → `/og.png` (shipped). Prerendering
-(vite-ssg) was evaluated and deferred (unhead v1↔v2 clash + Chart.js SSR
-guards + a risky Apache rewrite; Google renders the SPA fine meanwhile).
+(vite-ssg) was evaluated and deferred (Chart.js SSR guards + a risky
+Apache rewrite; Google renders the SPA fine meanwhile). `@unhead/vue` is
+on **v3** now (`createHead` from `@unhead/vue/client`); the old v1↔v2
+friction that also counted against vite-ssg is gone.
 
 ## Development Environment
 
@@ -211,7 +213,7 @@ whether it would pass.
   across a page), add **Pinia** with setup-style stores
   (`defineStore('id', () => { ... })`), split by bounded sub-domain rather
   than one monolith store.
-- **Routing:** Vue Router 4, with routes generated from `src/nav.js` in
+- **Routing:** Vue Router 5, with routes generated from `src/nav.js` in
   `src/router/index.js`. Keep using explicit lazy-loaded route components
   (`component: () => import(...)`) for code-splitting — this is already the
   pattern in place.
@@ -656,8 +658,16 @@ essays (COVID, 1918 flu, the 2011 heart-disease dip) still to be written.
   (paid); wire it + ~10 custom events on key interactions + update
   `/privacy`.
 - Support / donation link — Ko-fi / GitHub Sponsors / Liberapay → footer.
-- Prerendering (vite-ssg) — deferred: `@unhead/vue` v1↔v2 clash, Chart.js
-  needs SSR guards, and a risky Apache rewrite. Only worth it if social
+- Prerendering (vite-ssg) — deferred: Chart.js needs SSR guards, and a
+  risky Apache rewrite. (The `@unhead/vue` version friction that also
+  counted against it is resolved — now on v3.) Only worth it if social
   unfurlers matter a lot; Google renders the SPA fine.
 - Self-host the Inter font — removes the one remaining third-party
   request (Google Fonts logs IPs).
+- **`pipeline/` `fast-xml-parser` 4 → 5** — the last outdated dep. Not
+  security-relevant here (the advisory is `XMLBuilder`-only; the pipeline
+  only `XMLParser`s trusted WONDER XML). v5 changed parse defaults and
+  the pipeline has no test suite, so it needs a before/after snapshot
+  diff on a live era fetch. Frontend deps are all current as of 2026-09
+  (vite 8, vue-router 5, `@unhead/vue` 3, plugin-vue 6) with 0 audit
+  findings.

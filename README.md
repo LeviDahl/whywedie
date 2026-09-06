@@ -20,8 +20,8 @@ pages linked from the footer — `/articles` (a Markdown blog), `/api`
 ## Tech stack
 
 - **Vue 3** (Composition API, `<script setup>`)
-- **Vite** — dev server & build tool
-- **Vue Router 4** — client-side routing
+- **Vite 8** — dev server & build tool
+- **Vue Router 5** — client-side routing
 - **Tailwind CSS v4** — utility-first styling, zero-config content detection
   via the `@tailwindcss/vite` plugin
 - **Chart.js + vue-chartjs** — all charts
