@@ -117,10 +117,12 @@ print(dict(zip(heart["years"], heart["deaths"])))`
             The underlying figures are U.S. Government works (CDC / NCHS, via
             <a href="https://wonder.cdc.gov/" target="_blank" rel="noopener" class="link-underline">CDC
             WONDER</a> and <a href="https://data.cdc.gov/" target="_blank" rel="noopener" class="link-underline">data.cdc.gov</a>)
-            and carry no copyright. This project's compilation of them is offered under
-            <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" class="link-underline">CC BY 4.0</a>:
-            use it anywhere, just credit "whywedie.org" and cite CDC as the primary source. If you
-            publish something built on it, a link back is appreciated.
+            and carry no copyright. This project's compilation of them is released under
+            <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener" class="link-underline">CC0 1.0</a>
+            — effectively public domain: use it for anything, no permission or attribution required.
+            That said, a reference to "whywedie.org" (and to CDC as the primary source) is genuinely
+            appreciated, and if you publish something built on it, a link back helps others find the
+            data.
           </p>
         </div>
 

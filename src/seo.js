@@ -51,7 +51,7 @@ export function datasetJsonLd({ name, description, path, temporal, keywords }) {
     name,
     description,
     url: `${SITE_URL}${path}`,
-    license: 'https://creativecommons.org/licenses/by/4.0/',
+    license: 'https://creativecommons.org/publicdomain/zero/1.0/',
     isAccessibleForFree: true,
     creator: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
     publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
