@@ -13,7 +13,7 @@ defineEmits(['close'])
   <aside
     class="fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 -translate-x-full flex-col
            bg-ink text-paper transition-transform duration-200 ease-out
-           lg:static lg:translate-x-0"
+           lg:sticky lg:top-0 lg:bottom-auto lg:h-screen lg:translate-x-0 lg:self-start"
     :class="{ 'translate-x-0': open }"
     aria-label="Primary navigation"
   >
@@ -53,6 +53,21 @@ defineEmits(['close'])
         <span class="flex-1">{{ section.shortLabel }}</span>
       </router-link>
     </nav>
+
+    <div class="px-3 pb-2">
+      <router-link
+        to="/contact"
+        class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
+               text-paper/55 transition-colors duration-150 hover:bg-paper/10 hover:text-paper"
+        active-class="!bg-paper !text-ink hover:!bg-paper"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5 shrink-0 opacity-90 group-hover:opacity-100">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75A2.25 2.25 0 0 1 4.5 4.5h15a2.25 2.25 0 0 1 2.25 2.25v10.5A2.25 2.25 0 0 1 19.5 19.5h-15a2.25 2.25 0 0 1-2.25-2.25V6.75Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="m3 7.5 9 6 9-6" />
+        </svg>
+        <span class="flex-1">Contact</span>
+      </router-link>
+    </div>
 
     <div class="border-t border-paper/10 px-6 py-5">
       <p class="text-xs leading-relaxed text-paper/50">
