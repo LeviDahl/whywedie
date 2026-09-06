@@ -348,8 +348,9 @@ etc.), and reusable component classes (`.btn-primary`, `.btn-secondary`,
 rounded corners, subtle shadows, hover/active states, and visible focus
 rings throughout (nothing removes `:focus-visible`). Custom reusable pieces
 that other classes compose via `@apply` (like `.btn`) are declared with
-Tailwind v4's `@utility` at-rule. Font is Inter, from Google Fonts, with a
-system-font fallback.
+Tailwind v4's `@utility` at-rule. Font is Inter, **self-hosted** via
+`@fontsource/inter` (latin subset, weights 400–800, imported in
+`main.js`), with a system-font fallback — no third-party requests.
 
 **Chart marks are the exception** — bars and lines use a small validated
 color palette (`src/charts/palette.js`) so multiple series and
@@ -357,8 +358,10 @@ period-vs-period comparisons stay legible. Axis / grid / tooltip / all text
 stay in the gray tokens; a legend is always shown for 2+ series and line
 series also carry a dash pattern (identity never rests on color alone).
 
-The sidebar is a fixed dark panel on desktop (≥1024px) and an off-canvas
-drawer on mobile, toggled from a top bar.
+The sidebar (`AppSidebar.vue`) is a dark panel: on desktop (≥1024px) it's
+`sticky top-0 h-screen` so it stays put while `<main>` scrolls (the 6 nav
+links, a Contact link, and the data-source note are always in view); on
+mobile it's an off-canvas drawer toggled from a top bar.
 
 ## What's next
 
@@ -378,10 +381,12 @@ lines extended to 1968** via the ICD sub-chapter approximation
 **Also shipped (site, not data):** `@unhead/vue` per-route head +
 `WebSite` / `Dataset` / `BlogPosting` JSON-LD; build-generated
 `sitemap.xml` / `robots.txt` / `feed.xml`; `favicon.svg` + `og.png`;
-`.htaccess` open CORS on `*.json` (+ compression via cPanel "Optimize
-Website" — GoDaddy ignores `mod_deflate` in `.htaccess`); the four
-standalone pages (`/articles` blog, `/api`, `/contact`, `/privacy`) +
-footer; data-compilation licence set to **CC0 1.0**. Sitemap submitted to
+Inter **self-hosted** (`@fontsource/inter`) so there are zero third-party
+requests; `.htaccess` open CORS on `*.json` + `index.html` `no-store` (+
+compression via cPanel "Optimize Website" — GoDaddy ignores `mod_deflate`
+in `.htaccess`); the four standalone pages (`/articles` blog, `/api`,
+`/contact`, `/privacy`) + footer + a sidebar Contact link;
+data-compilation licence set to **CC0 1.0**. Sitemap submitted to
 Google Search Console (DNS-verified).
 
 - [ ] Stand the pipeline up on a schedule (host + cron + publish, see
@@ -398,5 +403,5 @@ Google Search Console (DNS-verified).
       heart-disease dip). `2011-heart-disease-drop/` is a `draft: true`
       template stub, not finished copy.
 - [ ] Deferred, owner's call: cookieless analytics + ~10 custom events,
-      a support/donation link, self-hosting the Inter font, Bing Webmaster
-      Tools. See `CLAUDE.md` → "SEO, analytics & monetization".
+      a support/donation link, Bing Webmaster Tools. See `CLAUDE.md` →
+      "SEO, analytics & monetization".

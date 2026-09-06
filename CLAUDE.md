@@ -55,14 +55,16 @@ in [`pipeline/README.md`](pipeline/README.md). Note: **the WONDER API is
 national-only for vital statistics** — it refuses State/County/Region
 grouping, so every pipeline row is US-wide.
 
-**Beyond the 6 sections:** a site-wide `<footer>` in `App.vue` links three
+**Beyond the 6 sections:** a site-wide `<footer>` in `App.vue` links four
 standalone routes — `/privacy` (`PrivacyView.vue`, plain content; describes
 the current no-cookies / no-analytics / no-ads reality — keep it truthful
 if anything changes), `/api` (`ApiView.vue`, documents the `/data/*.json`
 snapshots as a public CORS-open read-only API; `.htaccess` sends
-`Access-Control-Allow-Origin: *` on `*.json`), and `/articles` +
-`/articles/:slug` (the blog — see **Articles** below). All added directly
-in `router/index.js`, not via `nav.js`.
+`Access-Control-Allow-Origin: *` on `*.json`), `/contact` (`ContactView.vue`
+— GitHub Issues for bugs, a runtime-assembled `feedback@whywedie.org`
+mailto for feedback; also linked at the bottom of `AppSidebar.vue`), and
+`/articles` + `/articles/:slug` (the blog — see **Articles** below). All
+added directly in `router/index.js`, not via `nav.js`.
 
 **Articles** (`/articles`): blog-style essays on data oddities (COVID, 1918
 influenza, the 2011 heart-disease dip, …). Each is a folder
@@ -315,7 +317,7 @@ copy — is strictly black, white, and gray, no color. Tokens live in
 (`.btn-primary`, `.btn-secondary`, `.card`, `.badge`, `.link-underline`)
 keep buttons/links/cards consistent — rounded corners, subtle shadows,
 hover/active states, visible focus rings (never remove `:focus-visible`).
-Font is Inter (Google Fonts) with a system-font fallback.
+Font is Inter, self-hosted via `@fontsource/inter` (latin subset, imported in `main.js`), with a system-font fallback — no third-party font request.
 
 **Charts are the one exception**: chart *marks* (bars, lines) may use
 color, so multiple series and period-vs-period comparisons stay legible.
@@ -631,11 +633,14 @@ build next".
 
 **Shipped + deployed (2026-09):** `.htaccess` compression (via cPanel
 "Optimize Website" — GoDaddy ignores `AddOutputFilterByType` in
-`.htaccess`, so the block there is inert but harmless) + open CORS on
-`/data/*.json`; lazy-load of `mortality_demographic.json`; `/privacy` +
-`/api` pages + footer; `@unhead/vue` per-route head + `Dataset` /
-`WebSite` JSON-LD; build-generated `sitemap.xml` + `robots.txt`;
-`favicon.svg` + `og.png`. Sitemap submitted to Google Search Console
+`.htaccess`; the inert `mod_deflate`/`mod_brotli` block was removed, a
+comment left in its place) + open CORS on `/data/*.json` + `index.html`
+`Cache-Control: no-store` (kills the stale-HTML-after-deploy blank page);
+lazy-load of `mortality_demographic.json`; `/privacy` + `/api` + `/contact`
+pages + footer; `@unhead/vue` per-route head + `Dataset` / `WebSite` /
+`BlogPosting` JSON-LD; build-generated `sitemap.xml` + `robots.txt` +
+`feed.xml`; `favicon.svg` + `og.png`; **Inter self-hosted** (no third-party
+requests at all now). Sitemap submitted to Google Search Console
 (domain-verified via DNS). **Data licence → CC0 1.0** (was CC BY 4.0):
 `/api` copy + the `Dataset` JSON-LD `license` now say CC0, with a "reference
 appreciated" courtesy note (public-domain CDC source, so CC BY was
@@ -661,8 +666,10 @@ a literal in the markup). The alias is a free **ImprovMX** inbound forward
   risky Apache rewrite. (The `@unhead/vue` version friction that also
   counted against it is resolved — now on v3.) Only worth it if social
   unfurlers matter a lot; Google renders the SPA fine.
-- Self-host the Inter font — removes the one remaining third-party
-  request (Google Fonts logs IPs).
+- ~~Self-host the Inter font~~ **DONE (2026-09).** `@fontsource/inter`
+  (latin subset, weights 400–800) imported in `main.js`; the Google Fonts
+  `<link>` + preconnects are gone from `index.html`. Zero third-party
+  requests now — `/privacy` updated to say so.
 
 **Dependencies (2026-09):** frontend and `pipeline/` are both fully on
 current majors with a clean `npm audit` — vite 8, vue-router 5,
