@@ -30,9 +30,9 @@ const updated = 'September 2026'
             <li>No analytics, no visitor counter, no session recording, no heatmaps.</li>
             <li>No advertising and no ad networks.</li>
             <li>No accounts, no sign-in, no email collection.</li>
-            <li>No third-party embeds. The only external requests the page makes are for the
-              Inter font (Google Fonts) and, on load, the public data files this site is built
-              from.</li>
+            <li>No third-party embeds, and no third-party fonts, scripts, or CDNs — everything
+              the page needs is served from this domain. The only requests it makes are for
+              its own code and, on load, the public data files it's built from.</li>
           </ul>
         </div>
 
