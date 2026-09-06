@@ -3,11 +3,14 @@
 An interactive site tracking US death, birth, and population statistics,
 sourced from CDC data.
 
-**Current state:** all six sidebar sections are live.
+**Current state:** all six sidebar sections are live, plus four standalone
+pages linked from the footer — `/articles` (a Markdown blog), `/api`
+(the JSON snapshots documented as an open API), `/contact`, and
+`/privacy`. See [Beyond the six sections](#beyond-the-six-sections).
 
 | section | data | notes |
 |---|---|---|
-| Home | — | project overview + "pick a year" cross-section lookup |
+| Home | — | project overview + "pick a year" cross-section lookup + latest-articles teaser |
 | Death Statistics Over Time | CDC WONDER → `/data/mortality.json`, `/data/mortality_monthly.json` | annual all-cause deaths **1968–present** (D74/D16/D76/D176) with a Total-deaths / Age-adjusted-rate toggle (the rate spliced to **1900** from Socrata `w9j2-ggv5`) + monthly all-cause deaths (D176, 2018–present), each with time-range tabs |
 | Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | ranked bars + trend; overlay multiple periods (years or decade ranges) and causes; friendly ↔ official cause names; per-cause 1999–2025 (113 list), ICD-chapter grain **1968–2025** ("Broad Chapters"); optional Sex / Race breakdown **1999–2025** (`/data/mortality_demographic.json`) |
 | Birth Statistics | CDC WONDER + Socrata | annual births 1960–present + fertility/birth-rate toggle (`/data/natality.json`), Pew generation bands with drill-down, `(i)` field explainer; monthly births (D192 `/data/natality_monthly.json`, Socrata fallback) |
@@ -22,6 +25,11 @@ sourced from CDC data.
 - **Tailwind CSS v4** — utility-first styling, zero-config content detection
   via the `@tailwindcss/vite` plugin
 - **Chart.js + vue-chartjs** — all charts
+- **`@unhead/vue`** — per-route `<title>` / description / canonical / Open
+  Graph / Twitter + JSON-LD (`WebSite`, `Dataset`, `BlogPosting`), set in
+  `App.vue` + the views from `src/seo.js`
+- **`unplugin-vue-markdown`** — compiles `src/articles/<slug>/index.md` to
+  Vue components for the blog (articles can embed chart components)
 
 **The site itself is static** — no server, no build-time data fetch. It
 either calls data.cdc.gov's Socrata JSON API directly from the browser, or
@@ -129,12 +137,12 @@ fresh deploy; the pipeline's publish step overwrites it in production.
 
 `BirthStatisticsView.vue` has two series:
 - **Annual births + fertility/birth rate** — `src/api/natality.js` reads
-  `/data/natality.json`. Pre-2003 is the committed Socrata `89yk-m38d`
-  baseline (NCHS Natality Measures by Race, "All races": births, crude
-  birth rate, general fertility rate); 2003–2022 comes from the WONDER
-  natality pipeline (D27 for 2003–2006, D66 for 2007–2022) and 2023–present
-  from D192 ("Provisional Natality") — `build-snapshots.js` merges them over
-  the baseline. D192 has **no rate measure**; `natality.js` backfills the
+  `/data/natality.json`. Pre-2003 years are a committed baseline (NCHS
+  "Natality Measures by Race", All races: births, crude birth rate, general
+  fertility rate); 2003–2022 comes from the WONDER natality pipeline (D27
+  for 2003–2006, D66 for 2007–2022) and 2023–present from D192 ("Provisional
+  Natality") — `build-snapshots.js` merges the WONDER years over the
+  baseline, keeping only its pre-2003 rows. D192 has **no rate measure**; `natality.js` backfills the
   crude birth rate for 2019+ from births ÷ the resident-population figure in
   `mortality.json` (flagged `birthRateDerived`), so that toggle runs to
   2025. The general fertility rate runs to **2023**: WONDER supplies it
@@ -190,15 +198,46 @@ Two data strategies coexist on purpose:
   Upside: finalized multi-decade data with age-adjusted rates. Powers
   everything else.
 
+## Beyond the six sections
+
+Four routes are added directly in `src/router/index.js` (not via `nav.js`)
+and linked from the site-wide footer in `App.vue`:
+
+- **`/articles`, `/articles/:slug`** — a Markdown blog. Each article is a
+  folder `src/articles/<slug>/` with `index.md` (YAML frontmatter + prose,
+  compiled by `unplugin-vue-markdown`). Prose that needs a chart embeds a
+  Vue component via the file's own `<script setup>` — a bespoke figure
+  `.vue` colocated in the folder, or `TimeSeriesChart` directly — wrapped in
+  `src/components/ArticleFigure.vue`. `src/articles/index.js` is the
+  registry (`import.meta.glob`, newest first); `ArticlesView.vue` lists,
+  `ArticleView.vue` renders one (`.article-prose` styles in `style.css` +
+  `BlogPosting` JSON-LD from frontmatter). `draft: true` hides an article
+  from the index, sitemap, and RSS feed in a production build but keeps it
+  reachable by direct URL (`noindex`); drafts show in `npm run dev`.
+- **`/api`** (`ApiView.vue`) — documents `/data/*.json` as a public,
+  CORS-open, read-only API. `public/.htaccess` sends
+  `Access-Control-Allow-Origin: *` on `*.json`. Licence: **CC0 1.0**.
+- **`/contact`** (`ContactView.vue`) — GitHub Issues for bugs, a
+  `feedback@whywedie.org` mailto (assembled at runtime) for everything
+  else. The alias is a free ImprovMX inbound forward to a personal inbox.
+- **`/privacy`** (`PrivacyView.vue`) — the no-cookies / no-analytics /
+  no-ads reality. Keep it truthful if that ever changes.
+
+At build, a small plugin in `vite.config.js` writes `dist/sitemap.xml`,
+`dist/robots.txt`, and `dist/feed.xml` (RSS of published articles) from the
+route list + article frontmatter.
+
 ## Deploying to GoDaddy
 
 The site is static files in `public_html`:
 
-1. `npm run build` locally — produces `dist/` (including `.htaccess` and
-   `data/mortality.json`, both copied from `public/`).
+1. `npm run build` locally — produces `dist/`: the app, plus `.htaccess`
+   and `data/*.json` copied from `public/`, plus `sitemap.xml` +
+   `robots.txt` + `feed.xml` written by the `vite.config.js` SEO plugin.
 2. Upload the **contents** of `dist/` (not the `dist` folder itself) into
-   `public_html`, via cPanel File Manager or FTP. Overwrite `index.html`
-   and `assets/`.
+   `public_html` — `./deploy.sh` does this as an `lftp` FTPS mirror (reads
+   `.env.deploy`, gitignored; see `.env.deploy.example`), or use cPanel
+   File Manager / FTP by hand. Overwrite `index.html` and `assets/`.
 3. **After a File Manager zip-extract, fix permissions:** `public_html`
    itself must be `755`, and every file `644` (folders `755`). The extract
    can leave `.htaccess` as `600`, which Apache can't read → the whole site
@@ -217,11 +256,16 @@ run on cPanel — see [`pipeline/README.md`](pipeline/README.md).
 ```
 src/
   nav.js                     # single source of truth for the 6 sidebar sections
-  router/index.js            # routes generated from nav.js
-  App.vue                    # app shell: sidebar + mobile top bar + page transitions
-  style.css                  # Tailwind import, black/white design tokens, component classes
+  router/index.js            # routes: nav.js sections + /articles, /api, /contact, /privacy
+  seo.js                     # SEO constants + siteJsonLd / datasetJsonLd / articleJsonLd
+  App.vue                    # app shell: sidebar + mobile top bar + footer + per-route head
+  style.css                  # Tailwind import, design tokens, component + .article-prose classes
   charts/
     palette.js                # validated color palette for chart MARKS only (chrome stays mono)
+  articles/
+    index.js                  # blog registry (import.meta.glob of ./*/index.md) + date formatter
+    <slug>/index.md           # one article: frontmatter + Markdown prose + optional <script setup>
+    <slug>/*.vue              # bespoke figure components that article imports
   data/
     causeNames.js             # plain-language labels for the rankable causes
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
@@ -248,17 +292,23 @@ src/
     PageHeader.vue             # consistent page title/description header
     YearLookup.vue             # Home "in the year N" cross-section lookup
     RangeTabs.vue              # segmented control for a chart's time window
-    TimeSeriesChart.vue        # Chart.js line chart, single- or multi-series (Death Stats + trend)
+    TimeSeriesChart.vue        # Chart.js line chart, single- or multi-series (Death Stats, trend, articles)
     RankedBarChart.vue         # Chart.js horizontal bar chart, single- or multi-series (period compare)
     ChartToolbar.vue           # Table / CSV / Copy-link row under a chart
     DataTable.vue              # sortable table of a chart's underlying rows
+    ArticleFigure.vue          # framed <figure> + caption + source, for charts embedded in articles
   views/
-    HomeView.vue               # project overview (built out)
+    HomeView.vue               # project overview + latest-articles teaser
     DeathStatisticsView.vue    # annual chart + monthly chart, each with its own caveats
     CausesOfDeathView.vue      # ranked bars (compare periods) + trend (compare causes)
     BirthStatisticsView.vue    # provisional monthly births + YoY
     PopulationChangeView.vue   # births vs deaths, natural increase, century birth history
     ByTheNumbersView.vue       # births/deaths as a daily average + rotating scale facts
+    ArticlesView.vue           # /articles index (card list)
+    ArticleView.vue            # /articles/:slug — chrome + .article-prose + head/JSON-LD
+    ApiView.vue                # /api — the JSON snapshots as an open API (CC0)
+    ContactView.vue            # /contact — GitHub Issues + feedback email
+    PrivacyView.vue            # /privacy — no cookies / no analytics / no ads
 public/
   .htaccess                   # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/                       # committed snapshots; pipeline/ refreshes them in prod
@@ -279,6 +329,14 @@ module — a snapshot reader (`causesOfDeath.js`) or a Socrata query
 before assuming a dataset's fields/quirks — see "How the data pipelines
 work" above), and a view using `useAsyncData` + a chart component the way
 `DeathStatisticsView.vue` does.
+
+Adding an article: `mkdir src/articles/<slug>/`, write `index.md` with
+frontmatter (`title`, `date` as a quoted `"YYYY-MM-DD"`, `description`;
+`draft: true` while WIP) and Markdown prose. Charts go in a colocated
+`.vue` imported from the `.md`'s `<script setup>`, wrapped in
+`<ArticleFigure>`. Nothing else to register — the glob and the
+sitemap/feed builder pick it up. Drop `draft` to publish. Copy
+`src/articles/2011-heart-disease-drop/` for the pattern.
 
 ## Design system
 
@@ -317,6 +375,15 @@ WONDER dataset, needs `CENSUS_API_KEY`); **11 rankable causes' trend
 lines extended to 1968** via the ICD sub-chapter approximation
 (`icd9_sub` / `icd8_sub` → `PREHISTORY_MAP`, grey + flagged).
 
+**Also shipped (site, not data):** `@unhead/vue` per-route head +
+`WebSite` / `Dataset` / `BlogPosting` JSON-LD; build-generated
+`sitemap.xml` / `robots.txt` / `feed.xml`; `favicon.svg` + `og.png`;
+`.htaccess` open CORS on `*.json` (+ compression via cPanel "Optimize
+Website" — GoDaddy ignores `mod_deflate` in `.htaccess`); the four
+standalone pages (`/articles` blog, `/api`, `/contact`, `/privacy`) +
+footer; data-compilation licence set to **CC0 1.0**. Sitemap submitted to
+Google Search Console (DNS-verified).
+
 - [ ] Stand the pipeline up on a schedule (host + cron + publish, see
       `pipeline/README.md`) — only the D176/D192 provisional eras recur
       (pass `--years=2021-<last full year>`); the finalized databases run
@@ -327,3 +394,9 @@ lines extended to 1968** via the ICD sub-chapter approximation
       comparability-ratio crosswalk applied per cause).
 - [ ] Periodically re-check whether `hmz2-vwda` has resumed updating
       (still ends June 2024 as of 2026-09).
+- [ ] Write the first real articles (COVID, 1918 influenza, the 2011
+      heart-disease dip). `2011-heart-disease-drop/` is a `draft: true`
+      template stub, not finished copy.
+- [ ] Deferred, owner's call: cookieless analytics + ~10 custom events,
+      a support/donation link, self-hosting the Inter font, Bing Webmaster
+      Tools. See `CLAUDE.md` → "SEO, analytics & monetization".
