@@ -574,3 +574,42 @@ stroke move since the 1970s".
 
 WONDER API rate limit: ≥15 s between requests (429 otherwise); a manual
 loop needs `sleep 16` between `fetch.js` calls.
+
+## SEO, analytics & monetization
+
+The owner wants the site to stay **privacy-first** (no cookies, no
+consent banner) but is open to modest monetization and *aggregate*
+(cookieless) analytics. AdSense was ruled out — even non-personalized
+mode loads Google's script, sets cookies, and forces an EEA/UK consent
+banner. True heatmaps / session recording are also out (privacy +
+consent). Aggregate event counts are the agreed substitute for "what to
+build next".
+
+**Shipped + deployed (2026-09):** `.htaccess` compression (via cPanel
+"Optimize Website" — GoDaddy ignores `AddOutputFilterByType` in
+`.htaccess`, so the block there is inert but harmless) + open CORS on
+`/data/*.json`; lazy-load of `mortality_demographic.json`; `/privacy` +
+`/api` pages + footer; `@unhead/vue` per-route head + `Dataset` /
+`WebSite` JSON-LD; build-generated `sitemap.xml` + `robots.txt`;
+`favicon.svg` + `og.png`. Sitemap submitted to Google Search Console
+(domain-verified via DNS).
+
+**Open — need owner input:**
+- **Contact** — plan is a "feature requests → GitHub Issues" link + an
+  obfuscated email alias; needs the public repo URL + which address. (Or
+  a Web3Forms/Formspree endpoint if they want a real form — honeypot +
+  time-trap, no CAPTCHA.)
+- **Data licence** — `/api` currently says CC BY 4.0; owner may switch to
+  CC0.
+
+**Deferred backlog (low priority, owner will decide when):**
+- Bing Webmaster Tools — "Import from Google Search Console" is one click.
+- Cookieless analytics — GoatCounter / Umami Cloud (free) or Plausible
+  (paid); wire it + ~10 custom events on key interactions + update
+  `/privacy`.
+- Support / donation link — Ko-fi / GitHub Sponsors / Liberapay → footer.
+- Prerendering (vite-ssg) — deferred: `@unhead/vue` v1↔v2 clash, Chart.js
+  needs SSR guards, and a risky Apache rewrite. Only worth it if social
+  unfurlers matter a lot; Google renders the SPA fine.
+- Self-host the Inter font — removes the one remaining third-party
+  request (Google Fonts logs IPs).
