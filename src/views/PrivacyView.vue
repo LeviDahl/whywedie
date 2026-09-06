@@ -45,12 +45,14 @@ const updated = 'September 2026'
           <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">Analytics</h2>
           <p class="mt-4 max-w-2xl">
             Right now the site runs no analytics at all. It's planned, though: a lightweight,
-            cookieless tool (something like GoatCounter or Plausible) to see which sections
-            actually get used. That means page-view and click counts <em>in aggregate</em> —
-            no cookies, no personal data, no cross-site tracking, no per-visitor profiles — and
-            a tool chosen to honour "Do Not Track" and analytics blockers. When it goes live,
-            this section will be updated to name the tool and link its privacy policy; it won't
-            be added silently.
+            cookieless tool (something like GoatCounter or Plausible) to see which parts of the
+            site actually get used — page views per section, and a running tally of a handful of
+            specific actions (a chart toggle, a CSV download, a section link). Counts only, <em>in
+            aggregate</em>: no cookies, no personal data, no cross-site tracking, no per-visitor
+            profiles, no recording of where a cursor moves or what a given person did. The tool
+            will be one that honours "Do Not Track" and analytics blockers. When it goes live,
+            this section will be updated to name it and link its privacy policy; it won't be
+            added silently.
           </p>
         </div>
 
