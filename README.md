@@ -220,8 +220,10 @@ and linked from the site-wide footer in `App.vue`:
 - **`/contact`** (`ContactView.vue`) — GitHub Issues for bugs, a
   `feedback@whywedie.org` mailto (assembled at runtime) for everything
   else. The alias is a free ImprovMX inbound forward to a personal inbox.
-- **`/privacy`** (`PrivacyView.vue`) — the no-cookies / no-analytics /
-  no-ads reality. Keep it truthful if that ever changes.
+- **`/privacy`** (`PrivacyView.vue`) — no cookies, no ads, no third-party
+  requests; an "Analytics" section states that cookieless aggregate
+  analytics is *planned* (not "no analytics"). Keep it truthful — when an
+  analytics tool ships, name it there.
 
 At build, a small plugin in `vite.config.js` writes `dist/sitemap.xml`,
 `dist/robots.txt`, and `dist/feed.xml` (RSS of published articles) from the
@@ -308,7 +310,7 @@ src/
     ArticleView.vue            # /articles/:slug — chrome + .article-prose + head/JSON-LD
     ApiView.vue                # /api — the JSON snapshots as an open API (CC0)
     ContactView.vue            # /contact — GitHub Issues + feedback email
-    PrivacyView.vue            # /privacy — no cookies / no analytics / no ads
+    PrivacyView.vue            # /privacy — no cookies/ads/third-parties; analytics stated as "planned"
 public/
   .htaccess                   # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/                       # committed snapshots; pipeline/ refreshes them in prod

@@ -56,9 +56,11 @@ national-only for vital statistics** — it refuses State/County/Region
 grouping, so every pipeline row is US-wide.
 
 **Beyond the 6 sections:** a site-wide `<footer>` in `App.vue` links four
-standalone routes — `/privacy` (`PrivacyView.vue`, plain content; describes
-the current no-cookies / no-analytics / no-ads reality — keep it truthful
-if anything changes), `/api` (`ApiView.vue`, documents the `/data/*.json`
+standalone routes — `/privacy` (`PrivacyView.vue`, plain content; no
+cookies / no ads / no third-party requests, and an **"Analytics" section
+that says cookieless aggregate analytics is planned** rather than
+promising "no analytics" — keep it truthful, and when a tool ships, edit
+that section to name it), `/api` (`ApiView.vue`, documents the `/data/*.json`
 snapshots as a public CORS-open read-only API; `.htaccess` sends
 `Access-Control-Allow-Origin: *` on `*.json`), `/contact` (`ContactView.vue`
 — GitHub Issues for bugs, a runtime-assembled `feedback@whywedie.org`

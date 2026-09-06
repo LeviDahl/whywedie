@@ -1,7 +1,9 @@
 <script setup>
-// Static content page. Describes the site's actual privacy practices as of
-// now — no cookies, no analytics, no third-party scripts. Update this if an
-// analytics tool or any embedded third party is ever added.
+// Static content page. Describes the site's actual privacy practices.
+// Current state: no cookies, no ads, no third-party requests, and no
+// analytics *yet* — a cookieless aggregate analytics tool is planned, and
+// the "Analytics" section says so plainly. When that tool goes live, update
+// that section to name it + link its policy (don't just quietly ship it).
 const updated = 'September 2026'
 </script>
 
@@ -12,8 +14,9 @@ const updated = 'September 2026'
         <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-muted">The fine print</p>
         <h1 class="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Privacy</h1>
         <p class="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-          Short version: this site doesn't track you. No cookies, no analytics, no ads, no
-          third-party scripts.
+          Short version: no cookies, no ads, and nothing that identifies you or follows you
+          around the web. The one thing on the roadmap is basic, cookieless visitor
+          analytics — aggregate counts only — described below.
         </p>
       </div>
     </header>
@@ -25,15 +28,30 @@ const updated = 'September 2026'
             What we don't collect
           </h2>
           <ul class="mt-4 list-disc space-y-2 pl-5">
-            <li>No cookies or other local storage for tracking. (Your browser may remember one
-              preference — friendly vs. official cause names — and that never leaves your device.)</li>
-            <li>No analytics, no visitor counter, no session recording, no heatmaps.</li>
+            <li>No cookies, and no local storage used for tracking. (Your browser may remember one
+              display preference — friendly vs. official cause names — and that never leaves your
+              device.)</li>
+            <li>No session recording, no heatmaps, no fingerprinting, no cross-site or behavioural
+              tracking, no per-visitor profiles — none of that, now or planned.</li>
             <li>No advertising and no ad networks.</li>
             <li>No accounts, no sign-in, no email collection.</li>
-            <li>No third-party embeds, and no third-party fonts, scripts, or CDNs — everything
-              the page needs is served from this domain. The only requests it makes are for
-              its own code and, on load, the public data files it's built from.</li>
+            <li>No third-party embeds, fonts, scripts, or CDNs — everything the page needs is served
+              from this domain. The only requests it makes are for its own code and, on load, the
+              public data files it's built from.</li>
           </ul>
+        </div>
+
+        <div>
+          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">Analytics</h2>
+          <p class="mt-4 max-w-2xl">
+            Right now the site runs no analytics at all. It's planned, though: a lightweight,
+            cookieless tool (something like GoatCounter or Plausible) to see which sections
+            actually get used. That means page-view and click counts <em>in aggregate</em> —
+            no cookies, no personal data, no cross-site tracking, no per-visitor profiles — and
+            a tool chosen to honour "Do Not Track" and analytics blockers. When it goes live,
+            this section will be updated to name the tool and link its privacy policy; it won't
+            be added silently.
+          </p>
         </div>
 
         <div>
@@ -64,18 +82,6 @@ const updated = 'September 2026'
             to a personal inbox and kept only as long as needed to reply. It isn't added to any
             mailing list. Bug reports opened on GitHub are public, under GitHub's own privacy
             policy.
-          </p>
-        </div>
-
-        <div>
-          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">
-            If this ever changes
-          </h2>
-          <p class="mt-4 max-w-2xl">
-            A privacy-respecting, cookieless analytics tool may be added later to understand which
-            sections are useful — aggregate counts only, still no cookies and no personal data. If
-            that happens, this page will say so, name the tool, and link its own privacy policy
-            before it goes live.
           </p>
         </div>
 
