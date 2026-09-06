@@ -114,6 +114,7 @@ watch(
           <span class="flex flex-wrap gap-x-4 gap-y-2">
             <router-link to="/articles" class="link-underline">Articles</router-link>
             <router-link to="/api" class="link-underline">API</router-link>
+            <router-link to="/contact" class="link-underline">Contact</router-link>
             <router-link to="/privacy" class="link-underline">Privacy</router-link>
             <a
               href="https://data.cdc.gov/"

@@ -57,6 +57,17 @@ const updated = 'September 2026'
         </div>
 
         <div>
+          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">If you contact us</h2>
+          <p class="mt-4 max-w-2xl">
+            Email sent to the address on the
+            <RouterLink to="/contact" class="link-underline">contact page</RouterLink> is forwarded
+            to a personal inbox and kept only as long as needed to reply. It isn't added to any
+            mailing list. Bug reports opened on GitHub are public, under GitHub's own privacy
+            policy.
+          </p>
+        </div>
+
+        <div>
           <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">
             If this ever changes
           </h2>

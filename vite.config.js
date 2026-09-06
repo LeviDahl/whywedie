@@ -70,7 +70,7 @@ function seoFiles() {
       const articles = listArticles()
 
       const rows = [
-        ...[...sections.map((s) => s.path), '/articles', '/api', '/privacy'].map((p) => ({
+        ...[...sections.map((s) => s.path), '/articles', '/api', '/contact', '/privacy'].map((p) => ({
           loc: p === '/' ? '/' : p,
           lastmod: today,
           changefreq: p === '/' ? 'weekly' : 'monthly'

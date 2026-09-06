@@ -28,6 +28,12 @@ export const STANDALONE_META = {
     description:
       'Short essays on the oddities in US mortality, birth, and population data — COVID-19, ' +
       'the 1918 influenza pandemic, the 2011 heart-disease dip, and more.'
+  },
+  contact: {
+    title: 'Contact',
+    description:
+      'Report a bug or data error on GitHub, or email feedback and ideas. An independent, ' +
+      'one-person project.'
   }
 }
 

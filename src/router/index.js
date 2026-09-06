@@ -39,6 +39,12 @@ routes.push(
     meta: { ...STANDALONE_META.articles }
   },
   {
+    path: '/contact',
+    name: 'contact',
+    component: () => import('@/views/ContactView.vue'),
+    meta: { ...STANDALONE_META.contact }
+  },
+  {
     // Article head/meta are set inside the view from the article's
     // frontmatter (title unknown until the slug resolves).
     path: '/articles/:slug',
