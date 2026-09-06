@@ -629,9 +629,14 @@ The owner wants the site to stay **privacy-first** (no cookies, no
 consent banner) but is open to modest monetization and *aggregate*
 (cookieless) analytics. AdSense was ruled out — even non-personalized
 mode loads Google's script, sets cookies, and forces an EEA/UK consent
-banner. True heatmaps / session recording are also out (privacy +
-consent). Aggregate event counts are the agreed substitute for "what to
-build next".
+banner. **Session recording / replay and per-visitor cursor+scroll
+heatmaps are out** (privacy + consent). What's in: aggregate counts —
+page views per section + a tally of ~10 named actions (chart toggles,
+CSV, section links, outbound clicks). That's the "which button gets used
+most" signal the owner wanted; an *aggregate* element-click heatmap
+*view* built from those counts is fine (it's still just counts, no
+per-visitor anything). `/privacy`'s wording is scoped to match — don't
+re-broaden "no heatmaps" to an absolute.
 
 **Shipped + deployed (2026-09):** `.htaccess` compression (via cPanel
 "Optimize Website" — GoDaddy ignores `AddOutputFilterByType` in
