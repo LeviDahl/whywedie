@@ -55,22 +55,48 @@ in [`pipeline/README.md`](pipeline/README.md). Note: **the WONDER API is
 national-only for vital statistics** — it refuses State/County/Region
 grouping, so every pipeline row is US-wide.
 
-**Beyond the 6 sections:** a site-wide `<footer>` in `App.vue` links two
+**Beyond the 6 sections:** a site-wide `<footer>` in `App.vue` links three
 standalone routes — `/privacy` (`PrivacyView.vue`, plain content; describes
 the current no-cookies / no-analytics / no-ads reality — keep it truthful
-if anything changes) and `/api` (`ApiView.vue`, documents the
-`/data/*.json` snapshots as a public CORS-open read-only API; `.htaccess`
-sends `Access-Control-Allow-Origin: *` on `*.json`). Both are added
-directly in `router/index.js`, not via `nav.js`.
+if anything changes), `/api` (`ApiView.vue`, documents the `/data/*.json`
+snapshots as a public CORS-open read-only API; `.htaccess` sends
+`Access-Control-Allow-Origin: *` on `*.json`), and `/articles` +
+`/articles/:slug` (the blog — see **Articles** below). All added directly
+in `router/index.js`, not via `nav.js`.
+
+**Articles** (`/articles`): blog-style essays on data oddities (COVID, 1918
+influenza, the 2011 heart-disease dip, …). Each is a folder
+`src/articles/<slug>/` with an `index.md` (YAML frontmatter + prose,
+compiled to a Vue component by **`unplugin-vue-markdown`** — wired in
+`vite.config.js`, `vue({ include: [/\.vue$/, /\.md$/] })`). Prose is
+Markdown; a story that needs a chart puts a Vue component right in the `.md`
+via its own `<script setup>` block — either `@/components/TimeSeriesChart.vue`
+directly or a bespoke figure `.vue` colocated in the article folder, wrapped
+in `@/components/ArticleFigure.vue` (framed `<figure>` + caption + source).
+`src/articles/index.js` is the registry (`import.meta.glob('./*/index.md')`,
+sorted by `date` desc); `src/views/ArticlesView.vue` is the index list,
+`src/views/ArticleView.vue` renders one (page chrome + `.article-prose`
+container in `style.css` + per-article head/`BlogPosting` JSON-LD from
+frontmatter). Frontmatter: `title`, `date` ("YYYY-MM-DD", quote it),
+`description` (required — card blurb + meta + OG); optional `updated`,
+`tags[]`, `draft: true` (hidden from the index + sitemap + feed in a prod
+build; still reachable by direct URL, `noindex`; visible in `npm run dev`).
+`unplugin-vue-markdown` exports each frontmatter key as a **named export**
+(not a `frontmatter` object) — the registry reads `mod.title` etc. The
+first stub, `2011-heart-disease-drop/`, is `draft: true` — a working
+template, not finished copy.
 
 **SEO:** `@unhead/vue` — `App.vue` sets title / description / canonical /
 OG / Twitter / a `WebSite` JSON-LD per route (source: route `meta` ←
 `nav.js` + `src/seo.js`); the 5 data views add a `Dataset` JSON-LD via
-`datasetJsonLd()`. `vite.config.js` writes `dist/sitemap.xml` +
-`dist/robots.txt` at build from the route list. `og:image` points at
-`/og.png` — that file still needs creating. Prerendering (vite-ssg) was
-evaluated and deferred (unhead v1↔v2 clash + Chart.js SSR guards + a
-risky Apache rewrite; Google renders the SPA fine meanwhile).
+`datasetJsonLd()`, and article pages a `BlogPosting` via `articleJsonLd()`.
+`vite.config.js`'s `seoFiles()` plugin writes `dist/sitemap.xml` +
+`dist/robots.txt` + `dist/feed.xml` (RSS, articles) at build — it re-reads
+article frontmatter off disk with `gray-matter` (can't use
+`import.meta.glob` in the config), so keep that in sync with the registry;
+drafts are excluded. `og:image` → `/og.png` (shipped). Prerendering
+(vite-ssg) was evaluated and deferred (unhead v1↔v2 clash + Chart.js SSR
+guards + a risky Apache rewrite; Google renders the SPA fine meanwhile).
 
 ## Development Environment
 
@@ -207,8 +233,13 @@ src/
   router/index.js            # routes generated from nav.js
   App.vue                    # app shell: sidebar + mobile top bar + page transitions
   style.css                  # Tailwind import, black/white design tokens, component classes
+  seo.js                     # SEO constants + siteJsonLd / datasetJsonLd / articleJsonLd + STANDALONE_META
   charts/
     palette.js                # validated color palette for chart MARKS only (chrome stays mono)
+  articles/
+    index.js                  # article registry (import.meta.glob of ./*/index.md) + formatArticleDate
+    <slug>/index.md           # one article: YAML frontmatter + Markdown prose + optional <script setup>
+    <slug>/*.vue              # bespoke figure components that article's index.md imports
   data/
     causeNames.js             # plain-language labels for the rankable causes
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
@@ -239,13 +270,16 @@ src/
     RankedBarChart.vue        # Chart.js horizontal bars — single- OR multi-series (period compare)
     ChartToolbar.vue           # Table / CSV / Copy-link row under a chart
     DataTable.vue              # sortable table of a chart's underlying rows
+    ArticleFigure.vue         # framed <figure> + caption + source, for embedding charts in articles
   views/
-    HomeView.vue              # project overview (built out)
+    HomeView.vue              # project overview (built out) + latest-articles teaser
     DeathStatisticsView.vue   # annual chart + monthly chart, each with own caveats
     CausesOfDeathView.vue     # ranked bars (compare periods) + trend (compare causes)
     BirthStatisticsView.vue   # provisional monthly births + YoY
     PopulationChangeView.vue  # births vs deaths, natural increase, century birth history
     ByTheNumbersView.vue      # births/deaths as a daily average + rotating scale facts
+    ArticlesView.vue          # /articles index (card list)
+    ArticleView.vue           # /articles/:slug — chrome + .article-prose + head/JSON-LD from frontmatter
 public/
   .htaccess                  # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/mortality.json        # committed baseline snapshot; pipeline/ refreshes it in prod
@@ -261,6 +295,14 @@ Adding a 6th sidebar section: add an entry to `nav.js`, add a view file, add
 it to the `viewComponents` map in `router/index.js`. Adding a new live-data
 section: see "data.cdc.gov / Socrata API" below, or `pipeline/README.md` for
 a WONDER-backed one.
+
+Adding an article: `mkdir src/articles/<slug>/`, write `index.md` with
+frontmatter (`title`, `date`, `description`; `draft: true` while WIP) + prose;
+`npm run dev` to preview (drafts show in dev). Charts go in a colocated `.vue`
+imported from the `.md`'s `<script setup>`, wrapped in `<ArticleFigure>`.
+Nothing else to register — the glob in `src/articles/index.js` and the
+sitemap/feed builder both pick it up. Drop `draft` to publish. See
+`2011-heart-disease-drop/` for the pattern.
 
 ## Design system
 
@@ -592,15 +634,21 @@ build next".
 `/api` pages + footer; `@unhead/vue` per-route head + `Dataset` /
 `WebSite` JSON-LD; build-generated `sitemap.xml` + `robots.txt`;
 `favicon.svg` + `og.png`. Sitemap submitted to Google Search Console
-(domain-verified via DNS).
+(domain-verified via DNS). **Data licence → CC0 1.0** (was CC BY 4.0):
+`/api` copy + the `Dataset` JSON-LD `license` now say CC0, with a "reference
+appreciated" courtesy note (public-domain CDC source, so CC BY was
+overreach). **Articles/blog scaffold** — `/articles` + `/articles/:slug`,
+Markdown-with-embedded-Vue via `unplugin-vue-markdown`; see the **Articles**
+section up top. One `draft: true` stub (`2011-heart-disease-drop`); real
+essays (COVID, 1918 flu, the 2011 heart-disease dip) still to be written.
 
 **Open — need owner input:**
-- **Contact** — plan is a "feature requests → GitHub Issues" link + an
-  obfuscated email alias; needs the public repo URL + which address. (Or
-  a Web3Forms/Formspree endpoint if they want a real form — honeypot +
-  time-trap, no CAPTCHA.)
-- **Data licence** — `/api` currently says CC BY 4.0; owner may switch to
-  CC0.
+- **Contact** — decided: bugs → GitHub Issues
+  (`github.com/LeviDahl/whywedie/issues`), ideas/feedback → email. Email is
+  `feedback@whywedie.org` via **ImprovMX** (free inbound forward → owner's
+  Gmail; MX + merged SPF added at GoDaddy 2026-09, DNS propagating). TODO:
+  build the `/contact` page (GitHub link + obfuscated email) + footer link
+  once the alias is confirmed live.
 
 **Deferred backlog (low priority, owner will decide when):**
 - Bing Webmaster Tools — "Import from Google Search Console" is one click.

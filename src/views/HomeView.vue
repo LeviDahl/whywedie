@@ -1,8 +1,10 @@
 <script setup>
 import { sections } from '@/nav.js'
 import YearLookup from '@/components/YearLookup.vue'
+import { articles, formatArticleDate } from '@/articles/index.js'
 
 const dataSections = sections.filter((s) => s.path !== '/')
+const latestArticles = articles.slice(0, 3)
 </script>
 
 <template>
@@ -82,6 +84,37 @@ const dataSections = sections.filter((s) => s.path !== '/')
             </span>
           </router-link>
         </div>
+      </div>
+    </section>
+
+    <section
+      v-if="latestArticles.length"
+      class="border-t border-line px-6 py-12 sm:px-10 sm:py-16"
+    >
+      <div class="mx-auto max-w-3xl">
+        <div class="flex items-baseline justify-between gap-4">
+          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">Articles</h2>
+          <router-link to="/articles" class="text-sm font-medium text-ink link-underline">
+            All articles
+          </router-link>
+        </div>
+        <ul class="mt-6 space-y-4">
+          <li v-for="a in latestArticles" :key="a.slug">
+            <router-link
+              :to="`/articles/${a.slug}`"
+              class="card group flex flex-col hover:border-ink"
+            >
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                <time v-if="a.date" :datetime="a.date">{{ formatArticleDate(a.date) }}</time>
+                <span v-if="a.draft" class="badge">Draft</span>
+              </div>
+              <h3 class="mt-2 text-base font-semibold text-ink group-hover:underline">
+                {{ a.title }}
+              </h3>
+              <p class="mt-2 text-sm leading-relaxed text-muted">{{ a.description }}</p>
+            </router-link>
+          </li>
+        </ul>
       </div>
     </section>
 

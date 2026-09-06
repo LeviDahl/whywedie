@@ -112,6 +112,7 @@ watch(
         <div class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2">
           <span>Why We Die — an independent open-data project, not affiliated with the CDC.</span>
           <span class="flex flex-wrap gap-x-4 gap-y-2">
+            <router-link to="/articles" class="link-underline">Articles</router-link>
             <router-link to="/api" class="link-underline">API</router-link>
             <router-link to="/privacy" class="link-underline">Privacy</router-link>
             <a

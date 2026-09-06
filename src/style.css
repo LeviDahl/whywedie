@@ -79,3 +79,100 @@
            px-3 py-1 text-xs font-medium text-muted;
   }
 }
+
+/*
+ * Long-form article typography. Applied by src/views/ArticleView.vue to the
+ * <article> that wraps a compiled index.md. Element selectors match the raw
+ * markdown output (p, h2, ul, blockquote, …); embedded Vue components (a
+ * chart, <ArticleFigure>, …) render as top-level siblings and pick up only
+ * the vertical rhythm from `> * + *`. Anything marked `.not-prose` (and its
+ * descendants) is excluded from the inline-element rules so a component's
+ * own buttons / links keep their styles.
+ */
+@layer components {
+  .article-prose {
+    @apply text-[15px] leading-7 text-ink-soft sm:text-base sm:leading-8;
+  }
+
+  .article-prose > * + * {
+    @apply mt-5;
+  }
+
+  .article-prose h2 {
+    @apply mt-12 mb-3 scroll-mt-24 text-xl font-semibold tracking-tight text-ink sm:text-2xl;
+  }
+
+  .article-prose h3 {
+    @apply mt-9 mb-2 scroll-mt-24 text-base font-semibold text-ink sm:text-lg;
+  }
+
+  .article-prose p {
+    @apply text-ink-soft;
+  }
+
+  .article-prose strong {
+    @apply font-semibold text-ink;
+  }
+
+  .article-prose
+    :is(ul, ol):not(:where(.not-prose, .not-prose *)) {
+    @apply my-5 space-y-2 pl-6;
+  }
+
+  .article-prose ul:not(:where(.not-prose, .not-prose *)) {
+    @apply list-disc marker:text-muted-soft;
+  }
+
+  .article-prose ol:not(:where(.not-prose, .not-prose *)) {
+    @apply list-decimal marker:text-muted-soft;
+  }
+
+  .article-prose li:not(:where(.not-prose, .not-prose *)) {
+    @apply pl-1;
+  }
+
+  .article-prose a:not(:where(.not-prose, .not-prose *)) {
+    @apply underline decoration-line-strong decoration-1 underline-offset-4
+           transition-colors duration-150 hover:decoration-ink;
+  }
+
+  .article-prose blockquote {
+    @apply border-l-2 border-line-strong pl-4 text-muted italic;
+  }
+
+  .article-prose :is(code):not(:where(.not-prose, .not-prose *, pre *)) {
+    @apply rounded bg-paper-soft px-1.5 py-0.5 text-[0.9em] text-ink;
+  }
+
+  .article-prose pre {
+    @apply overflow-x-auto rounded-lg bg-paper-soft p-4 text-xs leading-relaxed text-ink;
+  }
+
+  .article-prose hr {
+    @apply my-10 border-line;
+  }
+
+  .article-prose :is(h2, h3) > a {
+    @apply no-underline;
+  }
+
+  .article-prose figure {
+    @apply my-8;
+  }
+
+  .article-prose figcaption {
+    @apply mt-2 text-xs leading-relaxed text-muted;
+  }
+
+  .article-prose table {
+    @apply my-6 w-full border-collapse text-sm;
+  }
+
+  .article-prose :is(th, td) {
+    @apply border border-line px-3 py-2 text-left;
+  }
+
+  .article-prose th {
+    @apply bg-paper-soft font-semibold text-ink;
+  }
+}

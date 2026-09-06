@@ -22,6 +22,12 @@ export const STANDALONE_META = {
     title: 'Privacy',
     description:
       "Why We Die's privacy practices: no cookies, no analytics, no ads, no third-party tracking."
+  },
+  articles: {
+    title: 'Articles',
+    description:
+      'Short essays on the oddities in US mortality, birth, and population data — COVID-19, ' +
+      'the 1918 influenza pandemic, the 2011 heart-disease dip, and more.'
   }
 }
 
@@ -68,5 +74,28 @@ export function datasetJsonLd({ name, description, path, temporal, keywords }) {
         contentUrl: `${SITE_URL}/api`
       }
     ]
+  }
+}
+
+/**
+ * JSON-LD BlogPosting block for an article page. `path` is the route
+ * ("/articles/<slug>"); dates are "YYYY-MM-DD" strings.
+ */
+export function articleJsonLd({ title, description, path, datePublished, dateModified }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: title,
+    description,
+    url: `${SITE_URL}${path}`,
+    mainEntityOfPage: `${SITE_URL}${path}`,
+    datePublished,
+    dateModified: dateModified || datePublished,
+    inLanguage: 'en-US',
+    isAccessibleForFree: true,
+    image: OG_IMAGE,
+    author: { '@type': 'Person', name: 'Levi Dahlstrom' },
+    publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+    isPartOf: { '@type': 'Blog', name: `${SITE_NAME} — Articles`, url: `${SITE_URL}/articles` }
   }
 }

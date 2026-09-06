@@ -31,6 +31,19 @@ routes.push(
     name: 'privacy',
     component: () => import('@/views/PrivacyView.vue'),
     meta: { ...STANDALONE_META.privacy }
+  },
+  {
+    path: '/articles',
+    name: 'articles',
+    component: () => import('@/views/ArticlesView.vue'),
+    meta: { ...STANDALONE_META.articles }
+  },
+  {
+    // Article head/meta are set inside the view from the article's
+    // frontmatter (title unknown until the slug resolves).
+    path: '/articles/:slug',
+    name: 'article',
+    component: () => import('@/views/ArticleView.vue')
   }
 )
 
@@ -44,6 +57,8 @@ const router = createRouter({
     // Views sync their controls into the query string (router.replace) — a
     // same-path query change must NOT yank the page back to the top.
     if (to.path === from.path) return false
+    // Deep link to an article heading (#some-heading).
+    if (to.hash) return { el: to.hash, top: 80 }
     return savedPosition ?? { top: 0 }
   }
 })
