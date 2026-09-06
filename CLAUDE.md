@@ -644,13 +644,12 @@ Markdown-with-embedded-Vue via `unplugin-vue-markdown`; see the **Articles**
 section up top. One `draft: true` stub (`2011-heart-disease-drop`); real
 essays (COVID, 1918 flu, the 2011 heart-disease dip) still to be written.
 
-**Open — need owner input:**
-- **Contact** — decided: bugs → GitHub Issues
-  (`github.com/LeviDahl/whywedie/issues`), ideas/feedback → email. Email is
-  `feedback@whywedie.org` via **ImprovMX** (free inbound forward → owner's
-  Gmail; MX + merged SPF added at GoDaddy 2026-09, DNS propagating). TODO:
-  build the `/contact` page (GitHub link + obfuscated email) + footer link
-  once the alias is confirmed live.
+**Contact — DONE (2026-09).** `/contact` page (`ContactView.vue`, route +
+footer link): bugs → GitHub Issues (`github.com/LeviDahl/whywedie/issues`),
+ideas/feedback → `feedback@whywedie.org` (address assembled at runtime, not
+a literal in the markup). The alias is a free **ImprovMX** inbound forward
+→ owner's Gmail (MX + merged SPF at GoDaddy, DNS live). `/privacy` has an
+"If you contact us" note.
 
 **Deferred backlog (low priority, owner will decide when):**
 - Bing Webmaster Tools — "Import from Google Search Console" is one click.
