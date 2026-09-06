@@ -5,14 +5,14 @@ at `/data/*.json`.
 
 Self-contained: its own `package.json`, its own `node_modules`, three
 dependencies (`axios`, `mysql2`, `fast-xml-parser`). Nothing here is imported
-by the Vite frontend and vice-versa.
+by the Vite frontend and vice-versa. All three are on their current major
+(`fast-xml-parser` 5 as of 2026-09) with a clean `npm audit`.
 
-> `npm audit` flags one moderate advisory on `fast-xml-parser@4` — an
-> `XMLBuilder` comment/CDATA-injection issue. **Not exploitable here:** the
-> pipeline only uses `XMLParser` (read), never `XMLBuilder`, and it parses
-> trusted CDC WONDER responses. The fix is a semver-major bump to v5 (API
-> changes, would need re-testing `lib/parseResponse.js` against live
-> WONDER) — deferred, not urgent.
+> `fast-xml-parser` was bumped 4 → 5 after confirming the parse is
+> unchanged: `parser.parse()` and `lib/parseResponse.js`'s `parseTable()`
+> produce byte-identical output on all 16 committed `*.raw.xml` samples
+> (every era). The v4 `XMLBuilder` advisory never applied — the pipeline
+> only ever calls `XMLParser` on trusted WONDER responses.
 
 ```
 pipeline/

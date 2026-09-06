@@ -664,10 +664,9 @@ essays (COVID, 1918 flu, the 2011 heart-disease dip) still to be written.
   unfurlers matter a lot; Google renders the SPA fine.
 - Self-host the Inter font — removes the one remaining third-party
   request (Google Fonts logs IPs).
-- **`pipeline/` `fast-xml-parser` 4 → 5** — the last outdated dep. Not
-  security-relevant here (the advisory is `XMLBuilder`-only; the pipeline
-  only `XMLParser`s trusted WONDER XML). v5 changed parse defaults and
-  the pipeline has no test suite, so it needs a before/after snapshot
-  diff on a live era fetch. Frontend deps are all current as of 2026-09
-  (vite 8, vue-router 5, `@unhead/vue` 3, plugin-vue 6) with 0 audit
-  findings.
+
+**Dependencies (2026-09):** frontend and `pipeline/` are both fully on
+current majors with a clean `npm audit` — vite 8, vue-router 5,
+`@unhead/vue` 3, `@vitejs/plugin-vue` 6 on the site; `fast-xml-parser` 5
+in the pipeline (bump verified by a byte-for-byte parse diff of all 16
+committed `*.raw.xml` samples — see `pipeline/README.md`).
