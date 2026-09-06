@@ -31,8 +31,10 @@ const updated = 'September 2026'
             <li>No cookies, and no local storage used for tracking. (Your browser may remember one
               display preference — friendly vs. official cause names — and that never leaves your
               device.)</li>
-            <li>No session recording, no heatmaps, no fingerprinting, no cross-site or behavioural
-              tracking, no per-visitor profiles — none of that, now or planned.</li>
+            <li>No session recording or replay, no per-visitor cursor/scroll heatmaps, no
+              fingerprinting, no cross-site or behavioural tracking, no per-visitor profiles —
+              none of that, now or planned. Any analytics that's added stays aggregate (see
+              below).</li>
             <li>No advertising and no ad networks.</li>
             <li>No accounts, no sign-in, no email collection.</li>
             <li>No third-party embeds, fonts, scripts, or CDNs — everything the page needs is served
