@@ -4,12 +4,14 @@ import { useHead } from '@unhead/vue'
 import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
+import RankedBarChart from '@/components/RankedBarChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
 import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchHistoricalAnnualDeaths } from '@/api/historicalDeaths.js'
 import { fetchMonthlyDeaths } from '@/api/monthlyDeaths.js'
 import { fetchLifeExpectancy } from '@/api/lifeExpectancy.js'
+import { fetchDeathsByAge } from '@/api/deathsByAge.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'death-statistics')
@@ -45,11 +47,13 @@ useHead({
 const historical = useAsyncData(fetchHistoricalAnnualDeaths)
 const monthly = useAsyncData(fetchMonthlyDeaths)
 const lifeExp = useAsyncData(fetchLifeExpectancy)
+const byAge = useAsyncData(fetchDeathsByAge)
 
 onMounted(() => {
   historical.load()
   monthly.load()
   lifeExp.load()
+  byAge.load()
 })
 
 const integerFormatter = (v) => (v == null ? '—' : v.toLocaleString())
@@ -300,6 +304,39 @@ const seasonalityTable = computed(() => {
     columns: ['Month', 'Avg. deaths (per 30.4 days)'],
     rows: s.labels.map((m, i) => [m, s.values[i]]),
     note: `Mean of ${s.from}–${s.to}, length-adjusted`
+  }
+})
+
+// --- Deaths by age group (latest complete year) ---
+const byAgeChart = computed(() => {
+  const d = byAge.data.value
+  if (!d?.latest?.length || d.latestYear == null) return null
+  return {
+    labels: d.latest.map((r) => r.group),
+    series: [{ label: `${d.latestYear}`, values: d.latest.map((r) => r.deaths) }]
+  }
+})
+const byAgeShare = computed(() => {
+  const d = byAge.data.value
+  if (!d?.latest?.length) return null
+  const total = d.latest.reduce((s, r) => s + (r.deaths ?? 0), 0)
+  const old = d.latest
+    .filter((r) => r.group === '75-84 years' || r.group === '85 years and older')
+    .reduce((s, r) => s + (r.deaths ?? 0), 0)
+  const young = d.latest.find((r) => r.group === 'Under 25 years')?.deaths ?? 0
+  return {
+    year: d.latestYear,
+    over75Pct: total ? Math.round((old / total) * 100) : null,
+    under25Pct: total ? Math.round((young / total) * 100) : null
+  }
+})
+const byAgeTable = computed(() => {
+  const d = byAge.data.value
+  if (!d?.years?.length) return null
+  return {
+    columns: ['Age group', ...d.years.map(String)],
+    rows: d.series.map((s) => [s.label, ...s.values]),
+    note: `${d.years[0]}–${d.years.at(-1)} · all-cause`
   }
 })
 </script>
@@ -571,6 +608,48 @@ const seasonalityTable = computed(() => {
           month so February isn't understated. Includes the 2020–2021 COVID-19 waves. Source:
           {{ monthly.data.value.source }}.
         </p>
+      </section>
+
+      <!-- Deaths by age group -->
+      <section v-if="byAge.loading.value || byAgeChart">
+        <h2 id="deaths-by-age" class="mb-4 scroll-mt-24 text-base font-semibold text-ink">
+          Deaths by Age
+        </h2>
+
+        <div v-if="byAge.loading.value" class="card flex items-center justify-center py-16 text-sm text-muted">
+          Loading…
+        </div>
+        <template v-else-if="byAgeChart">
+          <p v-if="byAgeShare" class="mb-3 max-w-2xl text-sm leading-relaxed text-ink-soft">
+            Death is overwhelmingly an old-age event: in {{ byAgeShare.year }}, about
+            {{ byAgeShare.over75Pct }}% of US deaths were people aged 75 or older, and roughly
+            {{ byAgeShare.under25Pct }}% were under 25.
+          </p>
+          <div class="card">
+            <RankedBarChart
+              :labels="byAgeChart.labels"
+              :series="byAgeChart.series"
+              :value-formatter="integerFormatter"
+              :legend="false"
+              :aria-label="`Bar chart: US deaths by age group in ${byAge.data.value.latestYear}, rising steeply with age.`"
+              png-name="whywedie-deaths-by-age"
+              png-source="NCHS / CDC"
+            />
+            <ChartToolbar
+              v-if="byAgeTable"
+              :columns="byAgeTable.columns"
+              :rows="byAgeTable.rows"
+              :note="byAgeTable.note"
+              :show-link="false"
+              filename="whywedie-deaths-by-age"
+            />
+          </div>
+          <p class="mt-3 text-xs text-muted">
+            All-cause deaths, {{ byAge.data.value.years[0] }}–{{ byAge.data.value.years.at(-1) }} in
+            the table; the chart shows {{ byAge.data.value.latestYear }}. Source:
+            {{ byAge.data.value.source }}.
+          </p>
+        </template>
       </section>
     </div>
   </div>
