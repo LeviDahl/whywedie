@@ -25,6 +25,19 @@ const pageDescription = computed(() =>
 )
 const canonical = computed(() => `${SITE_URL}${route.path === '/' ? '' : route.path}`)
 
+// Footer links, in a fixed order. The link for the page you're already on
+// is dropped (no point offering "Privacy" from the privacy page).
+const FOOTER_LINKS = [
+  { to: '/articles', label: 'Articles' },
+  { to: '/notes', label: 'Data Notes' },
+  { to: '/api', label: 'Open API' },
+  { to: '/contact', label: 'Contact' },
+  { to: '/privacy', label: 'Privacy' }
+]
+const footerLinks = computed(() =>
+  FOOTER_LINKS.filter((l) => l.to !== route.path)
+)
+
 useHead(() =>
   bare.value
     ? { title: `${pageTitle.value}` }
@@ -122,20 +135,27 @@ watch(
         <component :is="Component" :key="currentRoute.path" />
       </router-view>
 
-      <footer class="border-t border-line px-6 py-8 text-xs text-muted sm:px-10">
-        <div class="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-2">
-          <span>Why We Die — an independent open-data project, not affiliated with the CDC.</span>
-          <span class="flex flex-wrap gap-x-4 gap-y-2">
-            <router-link to="/contact" class="link-underline">Contact</router-link>
-            <router-link to="/privacy" class="link-underline">Privacy</router-link>
+      <footer class="border-t border-line px-6 py-8 sm:px-10">
+        <div
+          class="mx-auto flex max-w-5xl flex-col gap-3 text-xs text-muted sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p>Why We Die is an independent, non-commercial open-data project. Not affiliated with the CDC.</p>
+          <nav class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <router-link
+              v-for="l in footerLinks"
+              :key="l.to"
+              :to="l.to"
+              class="transition-colors hover:text-ink"
+              >{{ l.label }}</router-link
+            >
             <a
               href="https://data.cdc.gov/"
               target="_blank"
               rel="noopener noreferrer"
-              class="link-underline"
+              class="transition-colors hover:text-ink"
               >Data source</a
             >
-          </span>
+          </nav>
         </div>
       </footer>
     </main>
