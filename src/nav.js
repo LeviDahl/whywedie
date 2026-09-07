@@ -74,3 +74,24 @@ export const sections = [
       'Roughly how many babies are born and how many people die in the United States on a typical day — a rolling 12-month total divided by 365 — next to everyday things at the same scale.'
   }
 ]
+
+// Secondary sidebar groups — rendered below the 6 data sections as labelled,
+// icon-less lists. Routes for these live directly in router/index.js (not
+// generated from here), so keep the paths in sync.
+export const secondaryGroups = [
+  {
+    label: 'Writing',
+    links: [
+      { path: '/articles', label: 'Articles' },
+      { path: '/notes', label: 'Data Notes' }
+    ]
+  },
+  {
+    label: 'Project',
+    links: [
+      { path: '/api', label: 'Open API' },
+      { path: '/contact', label: 'Contact' },
+      { path: '/privacy', label: 'Privacy' }
+    ]
+  }
+]

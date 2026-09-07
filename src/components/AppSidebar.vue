@@ -1,5 +1,5 @@
 <script setup>
-import { sections } from '@/nav.js'
+import { sections, secondaryGroups } from '@/nav.js'
 import NavIcon from '@/components/NavIcon.vue'
 
 defineProps({
@@ -39,7 +39,7 @@ defineEmits(['close'])
       </button>
     </div>
 
-    <nav class="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
+    <nav class="mt-4 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
       <router-link
         v-for="section in sections"
         :key="section.path"
@@ -52,22 +52,23 @@ defineEmits(['close'])
         <NavIcon :name="section.name" class="h-5 w-5 shrink-0 opacity-90 group-hover:opacity-100" />
         <span class="flex-1">{{ section.shortLabel }}</span>
       </router-link>
-    </nav>
 
-    <div class="px-3 pb-2">
-      <router-link
-        to="/contact"
-        class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
-               text-paper/55 transition-colors duration-150 hover:bg-paper/10 hover:text-paper"
-        active-class="!bg-paper !text-ink hover:!bg-paper"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-5 w-5 shrink-0 opacity-90 group-hover:opacity-100">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75A2.25 2.25 0 0 1 4.5 4.5h15a2.25 2.25 0 0 1 2.25 2.25v10.5A2.25 2.25 0 0 1 19.5 19.5h-15a2.25 2.25 0 0 1-2.25-2.25V6.75Z" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="m3 7.5 9 6 9-6" />
-        </svg>
-        <span class="flex-1">Contact</span>
-      </router-link>
-    </div>
+      <div v-for="group in secondaryGroups" :key="group.label" class="pt-4">
+        <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-paper/35">
+          {{ group.label }}
+        </p>
+        <router-link
+          v-for="link in group.links"
+          :key="link.path"
+          :to="link.path"
+          class="block rounded-lg px-3 py-2 text-sm font-medium text-paper/60
+                 transition-colors duration-150 hover:bg-paper/10 hover:text-paper"
+          active-class="!bg-paper !text-ink hover:!bg-paper"
+        >
+          {{ link.label }}
+        </router-link>
+      </div>
+    </nav>
 
     <div class="border-t border-paper/10 px-6 py-5">
       <p class="text-xs leading-relaxed text-paper/50">
