@@ -699,15 +699,18 @@ Scanned Our World in Data, Worldometers, USAFacts. Ideas ranked; owner
 picked **1–4 first, then 5–6, rest later**.
 
 **Tier 1 — signature features (building now / next):**
-1. **Live-ticking counters** — US births / deaths / net-change that animate
-   (annual rate ÷ seconds elapsed today) + "…this year" running totals,
-   reset daily. Clearly labelled a projection, not a live count. Home
-   and/or By the Numbers. (Worldometers' whole traffic engine.)
+1. ~~**Live-ticking counters**~~ **DONE (2026-09).** `LiveCounters.vue` —
+   "so far today" + "so far this year" for births / deaths / net, ticking
+   at 4 Hz off the wall clock, reset at local midnight / 1 Jan, labelled a
+   projection. Full two-row version on By the Numbers (replaced the static
+   "typical day" cards); a `compact` one-row version on Home under the hero.
 2. **Embeddable charts** — a bare `/embed/*` route + "copy embed code"
    `<iframe>` snippet in `ChartToolbar`. Every blog that embeds one is a
    backlink. (OWID's biggest backlink engine.) Biggest lift.
-3. **Download chart as PNG** — Chart.js `toBase64Image()` → a "Save image"
-   button by the CSV one; watermark the site URL onto it for social.
+3. ~~**Download chart as PNG**~~ **DONE (2026-09).** Hover-reveal "PNG"
+   button on every `TimeSeriesChart` / `RankedBarChart`; `src/lib/chartImage.js`
+   composites the canvas onto white + stamps a "whywedie.org" + source
+   footer. Retina-res, guards a 0-size canvas.
 4. **Data Notes** — a SEPARATE content type from Articles (owner wants zero
    confusion): short = one chart + a paragraph or two, published often.
    Own route (`/notes` + `/notes/:slug`), own registry
