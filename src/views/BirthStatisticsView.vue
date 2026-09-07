@@ -448,6 +448,8 @@ const annualTable = computed(() => {
               :series-label="ANNUAL_METRICS[annualMetric].axis"
               :value-formatter="annualFmt"
               :aria-label="`Line chart: US ${ANNUAL_METRICS[annualMetric].label.toLowerCase()} by year, ${annualView.labels[0]} to ${annualView.labels.at(-1)}. Full figures in the data table below.`"
+              png-name="whywedie-annual-births"
+              png-source="CDC WONDER + Census"
               @band-click="onBandClick"
             />
             <ChartToolbar

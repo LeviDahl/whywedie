@@ -298,6 +298,8 @@ const monthlyTable = computed(() => {
               :series-label="ANNUAL_METRICS[metric].label"
               :value-formatter="metricFmt"
               :aria-label="`Line chart: ${ANNUAL_METRICS[metric].label.toLowerCase()} in the US, ${annualView.labels[0]} to ${annualView.labels.at(-1)}. Full figures in the data table below.`"
+              png-name="whywedie-annual-deaths"
+              png-source="CDC WONDER"
             />
             <ChartToolbar
               v-if="annualTable"

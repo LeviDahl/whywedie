@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Bar } from 'vue-chartjs'
+import { chartToPngDataUrl, downloadDataUrl } from '@/lib/chartImage.js'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,8 +26,18 @@ const props = defineProps({
   // (e.g. the interactive Show chips on the breakdown view).
   legend: { type: Boolean, default: true },
   // Text alternative for the <canvas> — screen readers + crawlers.
-  ariaLabel: { type: String, default: '' }
+  ariaLabel: { type: String, default: '' },
+  // Base filename for the "save PNG" button; source line stamped on the image.
+  pngName: { type: String, default: 'whywedie-chart' },
+  pngSource: { type: String, default: '' }
 })
+
+const chartRef = ref(null)
+function savePng() {
+  const chart = chartRef.value?.chart
+  const url = chartToPngDataUrl(chart, { source: props.pngSource })
+  downloadDataUrl(props.pngName, url)
+}
 
 const multi = computed(() => props.series.length > 1)
 const showLegend = computed(() => props.legend && multi.value)
@@ -131,10 +142,24 @@ const heightPx = computed(() => {
 
 <template>
   <div
+    class="group relative"
     :style="{ height: heightPx + 'px' }"
     :role="ariaLabel ? 'img' : undefined"
     :aria-label="ariaLabel || undefined"
   >
-    <Bar :data="chartData" :options="chartOptions" />
+    <Bar ref="chartRef" :data="chartData" :options="chartOptions" />
+    <button
+      type="button"
+      class="absolute right-0 top-0 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px]
+             font-medium text-muted-soft opacity-0 transition-opacity hover:text-ink
+             focus-visible:opacity-100 group-hover:opacity-100"
+      aria-label="Save this chart as a PNG image"
+      @click="savePng"
+    >
+      <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14" />
+      </svg>
+      PNG
+    </button>
   </div>
 </template>

@@ -282,6 +282,8 @@ const historyTable = computed(() => {
               series-label="People"
               :value-formatter="compact"
               :aria-label="`Line chart: US births and deaths per year, ${bvdWindow.years[0]} to ${bvdWindow.years.at(-1)}. Full figures in the data table below.`"
+              png-name="whywedie-births-vs-deaths"
+              png-source="CDC WONDER"
             />
             <ChartToolbar
               v-if="bvdTable"
@@ -406,6 +408,8 @@ const historyTable = computed(() => {
               series-label="Births"
               :value-formatter="compact"
               :aria-label="`Line chart: US births per year, ${historyView.years[0]} to ${historyView.years.at(-1)}. Full figures in the data table below.`"
+              png-name="whywedie-us-births-history"
+              png-source="CDC / NCHS"
               @band-click="onHistoryBandClick"
             />
             <ChartToolbar

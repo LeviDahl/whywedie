@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { Line } from 'vue-chartjs'
+import { chartToPngDataUrl, downloadDataUrl } from '@/lib/chartImage.js'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -43,8 +44,18 @@ const props = defineProps({
   // annual-births chart. A band with `active: true` is emphasised.
   bands: { type: Array, default: () => [] },
   // Text alternative for the <canvas> — screen readers + crawlers.
-  ariaLabel: { type: String, default: '' }
+  ariaLabel: { type: String, default: '' },
+  // Base filename for the "save PNG" button; source line stamped on the image.
+  pngName: { type: String, default: 'whywedie-chart' },
+  pngSource: { type: String, default: '' }
 })
+
+const chartRef = ref(null)
+function savePng() {
+  const chart = chartRef.value?.chart
+  const url = chartToPngDataUrl(chart, { source: props.pngSource })
+  downloadDataUrl(props.pngName, url)
+}
 
 // Emitted when a band is clicked (the whole band object). Lets a parent
 // "drill down" into a cohort. Only wired when `bands` is non-empty.
@@ -247,10 +258,23 @@ const chartOptions = computed(() => ({
 
 <template>
   <div
-    class="h-72 sm:h-96"
+    class="group relative h-72 sm:h-96"
     :role="ariaLabel ? 'img' : undefined"
     :aria-label="ariaLabel || undefined"
   >
-    <Line :data="chartData" :options="chartOptions" :plugins="[bandsPlugin]" />
+    <Line ref="chartRef" :data="chartData" :options="chartOptions" :plugins="[bandsPlugin]" />
+    <button
+      type="button"
+      class="absolute right-0 top-0 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px]
+             font-medium text-muted-soft opacity-0 transition-opacity hover:text-ink
+             focus-visible:opacity-100 group-hover:opacity-100"
+      aria-label="Save this chart as a PNG image"
+      @click="savePng"
+    >
+      <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14" />
+      </svg>
+      PNG
+    </button>
   </div>
 </template>

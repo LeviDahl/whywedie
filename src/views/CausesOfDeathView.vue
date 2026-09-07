@@ -859,6 +859,8 @@ function onAddChapterSelect(event) {
               :value-formatter="valueFormatter"
               :legend="!breakdownActive"
               :aria-label="`Bar chart: leading causes of death in the US ranked by ${METRICS[metric].label.toLowerCase()}. Full figures in the data table below.`"
+              png-name="whywedie-leading-causes"
+              png-source="CDC WONDER"
             />
             <ChartToolbar
               v-if="rankedTable"
