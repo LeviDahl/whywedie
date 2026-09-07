@@ -4,7 +4,8 @@
 // feed — it's `perYear × (time elapsed / period length)`, recomputed from
 // the real wall clock each animation frame so it stays accurate rather
 // than drifting. Reset points are local midnight and local Jan 1.
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { computed } from 'vue'
+import { useNowClock, fractionOfDay, fractionOfYear } from '@/composables/useClock.js'
 
 const props = defineProps({
   birthsPerYear: { type: Number, required: true },
@@ -17,31 +18,9 @@ const props = defineProps({
 
 const DAY_MS = 86_400_000
 
-function yearBounds(d = new Date()) {
-  const start = new Date(d.getFullYear(), 0, 1).getTime()
-  const end = new Date(d.getFullYear() + 1, 0, 1).getTime()
-  return { start, end, length: end - start }
-}
-function dayStart(d = new Date()) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-}
-
-// 4 Hz is plenty — the counters tick slower than once a second — and it
-// keeps Vue from re-rendering every animation frame.
-const now = ref(Date.now())
-let timer = 0
-onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 250) })
-onBeforeUnmount(() => clearInterval(timer))
-
-const fracToday = computed(() => {
-  const t = now.value
-  return Math.min(1, (t - dayStart(new Date(t))) / DAY_MS)
-})
-const fracYear = computed(() => {
-  const t = now.value
-  const { start, length } = yearBounds(new Date(t))
-  return Math.min(1, (t - start) / length)
-})
+const now = useNowClock()
+const fracToday = computed(() => fractionOfDay(now.value))
+const fracYear = computed(() => fractionOfYear(now.value))
 const thisYear = computed(() => new Date(now.value).getFullYear())
 
 const int = (n) => Math.floor(n).toLocaleString('en-US')

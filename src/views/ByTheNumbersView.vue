@@ -4,6 +4,7 @@ import { useHead } from '@unhead/vue'
 import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import LiveCounters from '@/components/LiveCounters.vue'
+import LiveNumber from '@/components/LiveNumber.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchDailyPace } from '@/api/dailyStats.js'
 import { DAILY_FACTS, perDay, pickFacts } from '@/data/dailyFacts.js'
@@ -134,7 +135,9 @@ function exportCsv() {
           </div>
           <div class="grid gap-4 sm:grid-cols-3">
             <div v-for="f in facts" :key="f.label" class="card">
-              <dd class="text-3xl font-semibold tracking-tight text-ink">~{{ human(perDay(f)) }}</dd>
+              <dd class="text-3xl font-semibold tracking-tight text-ink">
+                <LiveNumber :per-year="f.perYear" prefix="~" />
+              </dd>
               <dt class="mt-1.5 text-sm text-ink">{{ f.label }}</dt>
               <p class="mt-2 text-xs text-muted">
                 <span class="badge mr-1.5">{{ f.scope }}</span>{{ f.source }}
@@ -142,8 +145,8 @@ function exportCsv() {
             </div>
           </div>
           <p class="mt-3 text-xs text-muted">
-            These are rough public estimates (annual ÷ 365), included for scale — not precise, and
-            not health data.
+            "So far today" spreads a rough public yearly estimate (annual ÷ 365) evenly across the
+            clock — for scale, not precise, not a live feed, and not health data.
           </p>
           <div class="mt-3 border-t border-line pt-2.5">
             <button
