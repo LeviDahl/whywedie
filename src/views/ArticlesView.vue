@@ -50,7 +50,9 @@ useHead({
         </ul>
 
         <p class="mt-10 text-xs text-muted">
-          <a href="/feed.xml" class="link-underline">RSS feed</a>
+          Quick one-chart takes are in
+          <router-link to="/notes" class="link-underline">Data Notes</router-link>.
+          <a href="/feed.xml" class="link-underline">RSS feed</a>.
         </p>
       </div>
     </section>

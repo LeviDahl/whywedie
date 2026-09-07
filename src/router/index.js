@@ -54,6 +54,17 @@ routes.push(
     path: '/articles/:slug',
     name: 'article',
     component: () => import('@/views/ArticleView.vue')
+  },
+  {
+    path: '/notes',
+    name: 'notes',
+    component: () => import('@/views/NotesView.vue'),
+    meta: { ...STANDALONE_META.notes }
+  },
+  {
+    path: '/notes/:slug',
+    name: 'note',
+    component: () => import('@/views/NoteView.vue')
   }
 )
 

@@ -58,9 +58,60 @@ function listArticles() {
   return out.sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))
 }
 
-// Emit sitemap.xml + robots.txt + feed.xml into dist/ at build time so
-// they can't drift from the route list. Routes = the 6 nav sections + the
-// standalone pages + one URL per published article.
+// Flat src/notes/<slug>.md — same frontmatter read, drafts excluded.
+function listNotes() {
+  const dir = fileURLToPath(new URL('./src/notes/', import.meta.url))
+  let files = []
+  try {
+    files = readdirSync(dir).filter((f) => f.endsWith('.md'))
+  } catch {
+    return []
+  }
+  const out = []
+  for (const file of files) {
+    let fm = {}
+    try {
+      fm = matter(readFileSync(fileURLToPath(new URL(`./src/notes/${file}`, import.meta.url)), 'utf8')).data ?? {}
+    } catch {
+      continue
+    }
+    if (fm.draft) continue
+    const date = fm.date instanceof Date ? fm.date.toISOString().slice(0, 10) : fm.date ?? null
+    out.push({
+      slug: file.replace(/\.md$/, ''),
+      title: fm.title ?? file,
+      description: fm.description ?? '',
+      date: date ? String(date).slice(0, 10) : null
+    })
+  }
+  return out.sort((a, b) => String(b.date ?? '').localeCompare(String(a.date ?? '')))
+}
+
+function rssFeed({ title, link, description, base, items }) {
+  const entries = items
+    .map(
+      (it) =>
+        `    <item>\n` +
+        `      <title>${xmlEscape(it.title)}</title>\n` +
+        `      <link>${base}/${it.slug}</link>\n` +
+        `      <guid isPermaLink="true">${base}/${it.slug}</guid>\n` +
+        (it.date ? `      <pubDate>${new Date(it.date).toUTCString()}</pubDate>\n` : '') +
+        `      <description>${xmlEscape(it.description)}</description>\n` +
+        `    </item>`
+    )
+    .join('\n')
+  return (
+    `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n` +
+    `    <title>${xmlEscape(title)}</title>\n    <link>${link}</link>\n` +
+    `    <description>${xmlEscape(description)}</description>\n    <language>en-us</language>\n` +
+    (entries ? `${entries}\n` : '') +
+    `  </channel>\n</rss>\n`
+  )
+}
+
+// Emit sitemap.xml + robots.txt + feed.xml + notes.xml into dist/ at build
+// time so they can't drift: the 6 nav sections + standalone pages + one URL
+// per published article and per published data note.
 function seoFiles() {
   return {
     name: 'whywedie-seo-files',
@@ -68,18 +119,23 @@ function seoFiles() {
     closeBundle() {
       const today = new Date().toISOString().slice(0, 10)
       const articles = listArticles()
+      const notes = listNotes()
 
       const rows = [
-        ...[...sections.map((s) => s.path), '/articles', '/api', '/contact', '/privacy'].map((p) => ({
+        ...[
+          ...sections.map((s) => s.path),
+          '/articles',
+          '/notes',
+          '/api',
+          '/contact',
+          '/privacy'
+        ].map((p) => ({
           loc: p === '/' ? '/' : p,
           lastmod: today,
           changefreq: p === '/' ? 'weekly' : 'monthly'
         })),
-        ...articles.map((a) => ({
-          loc: `/articles/${a.slug}`,
-          lastmod: a.date ?? today,
-          changefreq: 'yearly'
-        }))
+        ...articles.map((a) => ({ loc: `/articles/${a.slug}`, lastmod: a.date ?? today, changefreq: 'yearly' })),
+        ...notes.map((n) => ({ loc: `/notes/${n.slug}`, lastmod: n.date ?? today, changefreq: 'yearly' }))
       ]
 
       const urls = rows
@@ -95,35 +151,27 @@ function seoFiles() {
         `<?xml version="1.0" encoding="UTF-8"?>\n` +
           `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`
       )
-      writeFileSync(
-        'dist/robots.txt',
-        `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`
-      )
+      writeFileSync('dist/robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`)
 
-      const items = articles
-        .map(
-          (a) =>
-            `    <item>\n` +
-            `      <title>${xmlEscape(a.title)}</title>\n` +
-            `      <link>${SITE_URL}/articles/${a.slug}</link>\n` +
-            `      <guid isPermaLink="true">${SITE_URL}/articles/${a.slug}</guid>\n` +
-            (a.date ? `      <pubDate>${new Date(a.date).toUTCString()}</pubDate>\n` : '') +
-            `      <description>${xmlEscape(a.description)}</description>\n` +
-            `    </item>`
-        )
-        .join('\n')
       writeFileSync(
         'dist/feed.xml',
-        `<?xml version="1.0" encoding="UTF-8"?>\n` +
-          `<rss version="2.0">\n` +
-          `  <channel>\n` +
-          `    <title>Why We Die — Articles</title>\n` +
-          `    <link>${SITE_URL}/articles</link>\n` +
-          `    <description>Short essays on the oddities in US mortality, birth, and population data.</description>\n` +
-          `    <language>en-us</language>\n` +
-          (items ? `${items}\n` : '') +
-          `  </channel>\n` +
-          `</rss>\n`
+        rssFeed({
+          title: 'Why We Die — Articles',
+          link: `${SITE_URL}/articles`,
+          description: 'Short essays on the oddities in US mortality, birth, and population data.',
+          base: `${SITE_URL}/articles`,
+          items: articles
+        })
+      )
+      writeFileSync(
+        'dist/notes.xml',
+        rssFeed({
+          title: 'Why We Die — Data Notes',
+          link: `${SITE_URL}/notes`,
+          description: 'Quick takes on US mortality, birth, and population data — one chart, a paragraph or two.',
+          base: `${SITE_URL}/notes`,
+          items: notes
+        })
       )
     }
   }

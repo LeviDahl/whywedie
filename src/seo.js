@@ -30,6 +30,12 @@ export const STANDALONE_META = {
       'Short essays on the oddities in US mortality, birth, and population data — COVID-19, ' +
       'the 1918 influenza pandemic, the 2011 heart-disease dip, and more.'
   },
+  notes: {
+    title: 'Data Notes',
+    description:
+      'Quick takes on the US mortality, birth, and population data — one chart, a paragraph or ' +
+      'two. Shorter and more frequent than the Articles.'
+  },
   contact: {
     title: 'Contact',
     description:
@@ -151,5 +157,24 @@ export function articleJsonLd({ title, description, path, datePublished, dateMod
     author: { '@type': 'Person', name: 'Levi Dahlstrom' },
     publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
     isPartOf: { '@type': 'Blog', name: `${SITE_NAME} — Articles`, url: `${SITE_URL}/articles` }
+  }
+}
+
+/** JSON-LD for a Data Note — a short, chart-first post (schema.org Article). */
+export function noteJsonLd({ title, description, path, datePublished }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title,
+    description,
+    url: `${SITE_URL}${path}`,
+    mainEntityOfPage: `${SITE_URL}${path}`,
+    datePublished,
+    dateModified: datePublished,
+    inLanguage: 'en-US',
+    isAccessibleForFree: true,
+    image: OG_IMAGE,
+    author: { '@type': 'Person', name: 'Levi Dahlstrom' },
+    publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL }
   }
 }
