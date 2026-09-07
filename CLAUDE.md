@@ -692,3 +692,70 @@ current majors with a clean `npm audit` — vite 8, vue-router 5,
 `@unhead/vue` 3, `@vitejs/plugin-vue` 6 on the site; `fast-xml-parser` 5
 in the pipeline (bump verified by a byte-for-byte parse diff of all 16
 committed `*.raw.xml` samples — see `pipeline/README.md`).
+
+## Feature backlog & distribution (from a 2026-09 competitive scan)
+
+Scanned Our World in Data, Worldometers, USAFacts. Ideas ranked; owner
+picked **1–4 first, then 5–6, rest later**.
+
+**Tier 1 — signature features (building now / next):**
+1. **Live-ticking counters** — US births / deaths / net-change that animate
+   (annual rate ÷ seconds elapsed today) + "…this year" running totals,
+   reset daily. Clearly labelled a projection, not a live count. Home
+   and/or By the Numbers. (Worldometers' whole traffic engine.)
+2. **Embeddable charts** — a bare `/embed/*` route + "copy embed code"
+   `<iframe>` snippet in `ChartToolbar`. Every blog that embeds one is a
+   backlink. (OWID's biggest backlink engine.) Biggest lift.
+3. **Download chart as PNG** — Chart.js `toBase64Image()` → a "Save image"
+   button by the CSV one; watermark the site URL onto it for social.
+4. **Data Notes** — a SEPARATE content type from Articles (owner wants zero
+   confusion): short = one chart + a paragraph or two, published often.
+   Own route (`/notes` + `/notes/:slug`), own registry
+   (`src/notes/*.md`, flat files), own compact view, own feed
+   (`/notes.xml`), own footer link. Articles stay long-form essays with
+   `BlogPosting` schema; Notes use `Article` (or none).
+
+**Tier 2 — data the site is missing (all high search volume):**
+5. **Life expectancy** — most-searched US mortality metric, currently
+   absent; CDC series back to 1900 (needs a new source — NCHS life tables
+   / a Socrata dataset, not `w9j2-ggv5` which is death *rates*).
+6. **Deaths by age** — "at what age do Americans die?" + a survival curve.
+   WONDER supports Age Group grouping → a new pipeline era.
+7. Leading causes of death **by age group** (WONDER Age × Cause) —
+   "top causes of death for people in their 30s", very high intent.
+8. Drug overdose / suicide / firearm deaths as first-class topics
+   (WONDER intent + multiple-cause breakdowns).
+
+**Tier 3 — expansions:**
+9. State-level data — WONDER is national-only for the pipeline, but
+   Socrata has state all-cause deaths + births → ~50× more rankable pages.
+10. "Since you were born" — birth year → "X million Americans have died
+    since." Novelty, shareable.
+11. Seasonality — deaths by month-of-year averaged (winter spike); the
+    monthly data already exists.
+12. International comparison — US vs peer countries on death rate / life
+    expectancy / fertility (needs World Bank / UN / OWID data).
+
+**Distribution / backlinks checklist (owner action; Claude drafts the copy):**
+- Publish 1 real Article → unblocks **Show HN** (title + first comment
+  draft ready on request).
+- **Wikipedia** — cite as source for a specific figure on *Mortality in
+  the United States*, *List of causes of death by rate*, *Birth rate*,
+  *Total fertility rate*, *Demographics of the United States*. Not an
+  External-links dump.
+- **Kaggle Datasets** + **data.world** — publish a dataset entry linking
+  `/api`.
+- **University health-sciences librarians** — short email → `.edu`
+  LibGuide link.
+- **r/dataisbeautiful** (one chart as `[OC]`), r/dataviz, r/datasets,
+  **HelpMeViz**.
+- Newsletters: **Data Elixir** (submit form), **Dataviz Universe** (Yan
+  Holtz), **Dashing Data Viz**, **Flowing Data** (Nathan Yau — pitch a
+  finding). Data Is Plural is dorment since Aug 2025 — skip.
+- **Bing Webmaster Tools** — "Import from Google Search Console".
+- Google Dataset Search — no submission; the `/api` `DataCatalog` +
+  per-view `Dataset` JSON-LD feed it. Re-check in ~1 month.
+
+**Done for discovery (2026-09):** GitHub repo description + homepage +
+topics (were blank); `DataCatalog` JSON-LD on `/api` with real
+`contentUrl` per file; `sameAs` → repo in site schema.
