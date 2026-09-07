@@ -2,6 +2,13 @@
 // router both read from this list, so adding a new section later means
 // adding one entry here (plus a view component) rather than editing
 // multiple files.
+//
+// `label` / `shortLabel` are UI strings (page heading, sidebar). `seoTitle`
+// / `seoDescription` are what the router puts in <title> / <meta
+// description> — phrased for how people actually search ("how many people
+// die in the US each year") rather than the friendly UI label, and to
+// stand apart from the 2024 book of the same name. Fall back to
+// label/description when absent.
 
 export const sections = [
   {
@@ -17,7 +24,10 @@ export const sections = [
     label: 'Death Statistics Over Time',
     shortLabel: 'Death Statistics',
     description:
-      'Annual US deaths back to 1968 — with the age-adjusted rate spliced to 1900 — plus the most current monthly figures CDC has published.'
+      'Annual US deaths back to 1968 — with the age-adjusted rate spliced to 1900 — plus the most current monthly figures CDC has published.',
+    seoTitle: 'US Deaths Per Year, 1968–2025',
+    seoDescription:
+      'How many people die in the US each year, 1968 to today, plus the age-adjusted death rate back to 1900 and the latest monthly provisional counts. CDC data, charted.'
   },
   {
     path: '/causes-of-death',
@@ -25,7 +35,10 @@ export const sections = [
     label: 'Causes of Death',
     shortLabel: 'Causes of Death',
     description:
-      'Leading causes of death ranked by year (1999–present) with deaths, crude rate, and age-adjusted rate — plus trends over time, a sex/race breakdown, and broad ICD chapters back to 1968.'
+      'Leading causes of death ranked by year (1999–present) with deaths, crude rate, and age-adjusted rate — plus trends over time, a sex/race breakdown, and broad ICD chapters back to 1968.',
+    seoTitle: 'Leading Causes of Death in the US, by Year',
+    seoDescription:
+      'The leading causes of death in the United States ranked by year (1999–2025) — heart disease, cancer, COVID-19 and more — with crude and age-adjusted rates, long-run trends, and a sex/race breakdown.'
   },
   {
     path: '/birth-statistics',
@@ -33,7 +46,10 @@ export const sections = [
     label: 'Birth Statistics',
     shortLabel: 'Birth Statistics',
     description:
-      'Annual US births back to 1960 with the birth and fertility rates, Pew generation bands, and CDC\'s most current provisional monthly counts.'
+      'Annual US births back to 1960 with the birth and fertility rates, Pew generation bands, and CDC\'s most current provisional monthly counts.',
+    seoTitle: 'US Birth Rate & Fertility Rate Over Time',
+    seoDescription:
+      'US births per year since 1960 with the general fertility rate (births per 1,000 women 15–44) and crude birth rate, generation cohorts, and current monthly provisional counts. CDC + Census data.'
   },
   {
     path: '/population-change',
@@ -41,7 +57,10 @@ export const sections = [
     label: 'Population Decline / Gain',
     shortLabel: 'Population Change',
     description:
-      'Births vs. deaths and the shrinking natural increase between them, plus a century of US births.'
+      'Births vs. deaths and the shrinking natural increase between them, plus a century of US births.',
+    seoTitle: 'US Births vs. Deaths & Natural Increase',
+    seoDescription:
+      'US births versus deaths and the shrinking natural increase between them, 1968–2025, plus a century of annual births with generation cohorts. Interactive charts from CDC data.'
   },
   {
     path: '/by-the-numbers',
@@ -49,6 +68,9 @@ export const sections = [
     label: 'By the Numbers',
     shortLabel: 'By the Numbers',
     description:
-      'US births and deaths as a daily average — next to a few other things that happen in the same 24 hours.'
+      'US births and deaths as a daily average — next to a few other things that happen in the same 24 hours.',
+    seoTitle: 'How Many People Are Born & Die in the US Each Day',
+    seoDescription:
+      'Roughly how many babies are born and how many people die in the United States on a typical day — a rolling 12-month total divided by 365 — next to everyday things at the same scale.'
   }
 ]

@@ -55,6 +55,18 @@ const netPerDay = computed(() =>
   data.value ? (data.value.birthsPerYear - data.value.deathsPerYear) / 365 : null
 )
 
+// Plain-text lead paragraph so the page has real indexable content.
+const summary = computed(() => {
+  if (!data.value) return ''
+  return (
+    `On a typical day the United States sees roughly ${human(birthsPerDay.value)} births and ` +
+    `${human(deathsPerDay.value)} deaths — a net change of about ` +
+    `${netPerDay.value >= 0 ? '+' : '−'}${human(Math.abs(netPerDay.value))} people, before immigration. ` +
+    `These are a rolling 12-month total (${data.value.periodLabel}) divided by 365, not a live count, ` +
+    `shown next to a few everyday things at the same scale.`
+  )
+})
+
 const facts = ref(pickFacts(3))
 function shuffle() {
   facts.value = pickFacts(3, (Math.random() * 2 ** 31) | 0)
@@ -78,6 +90,9 @@ function exportCsv() {
     <PageHeader eyebrow="Scale" :title="section.label" :description="section.description" />
 
     <div class="mx-auto max-w-4xl px-6 py-10 sm:px-10 space-y-12">
+      <p v-if="summary" class="max-w-2xl text-base leading-relaxed text-ink-soft">
+        {{ summary }}
+      </p>
       <p class="text-sm text-muted">
         A "typical day" here just means an annual figure divided by 365 — not a live count.
       </p>

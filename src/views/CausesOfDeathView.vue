@@ -453,6 +453,28 @@ const trendShowsPrehistory = computed(
   () => Boolean(trendPrehistory.value) && trendStart.value < trendPreYears.value.length
 )
 
+// Plain-text lead paragraph — the latest year's top causes in prose, so the
+// page has substantive indexable content despite the <canvas> charts.
+const summary = computed(() => {
+  const d = data.value
+  if (!d?.years?.length) return ''
+  const ly = d.years.at(-1)
+  const rows = (d.byYear[ly] ?? [])
+    .filter((r) => r.deaths != null)
+    .slice()
+    .sort((a, b) => b.deaths - a.deaths)
+  if (rows.length < 3) return ''
+  const named = (r) => displayName(r.cause, 'friendly')
+  const [a, b, c] = rows
+  return (
+    `In ${ly} the leading causes of death in the United States were ${named(a)} ` +
+    `(about ${a.deaths.toLocaleString()} deaths), ${named(b)} (${b.deaths.toLocaleString()}), and ` +
+    `${named(c)} (${c.deaths.toLocaleString()}). This page ranks the top causes for any year from ` +
+    `${d.years[0]} to ${d.years.at(-1)} — with crude and age-adjusted rates, trends over time, ` +
+    `a breakdown by sex or race, and broad ICD chapters back to 1968. Every chart has a data table and CSV.`
+  )
+})
+
 // --- tables behind the two charts ---
 const round2 = (v) => (v == null ? '' : Math.round(v * 100) / 100)
 
@@ -596,9 +618,13 @@ function onAddChapterSelect(event) {
 
 <template>
   <div>
-    <PageHeader eyebrow="Mortality" title="Causes of Death" :description="section.description" />
+    <PageHeader eyebrow="Mortality" title="Leading Causes of Death in the US" :description="section.description" />
 
     <div class="mx-auto max-w-4xl px-6 py-10 sm:px-10 space-y-12">
+      <p v-if="summary" class="max-w-2xl text-base leading-relaxed text-ink-soft">
+        {{ summary }}
+      </p>
+
       <div v-if="loading" class="card flex items-center justify-center py-20 text-sm text-muted">
         Loading…
       </div>
@@ -832,6 +858,7 @@ function onAddChapterSelect(event) {
               :series="rankedSeries"
               :value-formatter="valueFormatter"
               :legend="!breakdownActive"
+              :aria-label="`Bar chart: leading causes of death in the US ranked by ${METRICS[metric].label.toLowerCase()}. Full figures in the data table below.`"
             />
             <ChartToolbar
               v-if="rankedTable"

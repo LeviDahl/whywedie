@@ -4,17 +4,21 @@ import DataTable from '@/components/DataTable.vue'
 import { downloadCsv } from '@/lib/csv.js'
 
 // A small row under a chart: an optional left-side note (e.g. data vintage),
-// then Table / CSV / Copy link. `columns` + `rows` are the tabular form of
-// whatever the chart is showing.
+// then a collapsible data table + CSV / Copy link. `columns` + `rows` are the
+// tabular form of whatever the chart is showing. The table lives in a
+// <details> so it's always in the DOM (crawlable, works without JS) but
+// collapsed by default; `tableLabel` names it and `open` can start it
+// expanded.
 const props = defineProps({
   columns: { type: Array, required: true },
   rows: { type: Array, required: true },
   filename: { type: String, required: true },
   note: { type: String, default: '' },
-  showLink: { type: Boolean, default: true }
+  showLink: { type: Boolean, default: true },
+  tableLabel: { type: String, default: 'Data table' },
+  open: { type: Boolean, default: false }
 })
 
-const open = ref(false)
 const copied = ref(false)
 
 function csv() {
@@ -37,19 +41,6 @@ async function copyLink() {
     <div class="mt-3 flex flex-wrap items-center gap-x-1 gap-y-2 border-t border-line pt-2.5">
       <span v-if="note" class="text-xs text-muted-soft">{{ note }}</span>
       <span class="flex-1"></span>
-
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors"
-        :class="open ? 'bg-ink text-paper' : 'text-muted hover:bg-paper-soft hover:text-ink'"
-        :aria-expanded="open"
-        @click="open = !open"
-      >
-        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round">
-          <path d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-        Table
-      </button>
 
       <button
         type="button"
@@ -83,8 +74,18 @@ async function copyLink() {
       </button>
     </div>
 
-    <div v-if="open" class="mt-3">
-      <DataTable :columns="columns" :rows="rows" />
-    </div>
+    <details class="group mt-3" :open="open">
+      <summary
+        class="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-paper-soft hover:text-ink [&::-webkit-details-marker]:hidden"
+      >
+        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+        {{ tableLabel }}
+      </summary>
+      <div class="mt-3">
+        <DataTable :columns="columns" :rows="rows" />
+      </div>
+    </details>
   </div>
 </template>

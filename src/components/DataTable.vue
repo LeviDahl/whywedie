@@ -6,7 +6,10 @@ import { computed, ref } from 'vue'
 const props = defineProps({
   columns: { type: Array, required: true },
   rows: { type: Array, required: true },
-  maxRows: { type: Number, default: 60 }
+  // Rendered in the DOM even when the <details> is collapsed, so this
+  // doubles as the crawlable/no-JS copy of the chart data — keep it
+  // generous. Anything beyond is a "download the CSV" note.
+  maxRows: { type: Number, default: 130 }
 })
 
 const sortCol = ref(-1)

@@ -23,7 +23,9 @@ const props = defineProps({
   valueFormatter: { type: Function, default: (v) => v?.toLocaleString() ?? '—' },
   // Suppress the built-in legend when the caller shows its own key
   // (e.g. the interactive Show chips on the breakdown view).
-  legend: { type: Boolean, default: true }
+  legend: { type: Boolean, default: true },
+  // Text alternative for the <canvas> — screen readers + crawlers.
+  ariaLabel: { type: String, default: '' }
 })
 
 const multi = computed(() => props.series.length > 1)
@@ -128,7 +130,11 @@ const heightPx = computed(() => {
 </script>
 
 <template>
-  <div :style="{ height: heightPx + 'px' }">
+  <div
+    :style="{ height: heightPx + 'px' }"
+    :role="ariaLabel ? 'img' : undefined"
+    :aria-label="ariaLabel || undefined"
+  >
     <Bar :data="chartData" :options="chartOptions" />
   </div>
 </template>

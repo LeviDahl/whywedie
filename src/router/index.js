@@ -15,7 +15,11 @@ const routes = sections.map((section) => ({
   path: section.path,
   name: section.name,
   component: viewComponents[section.name],
-  meta: { title: section.label, description: section.description }
+  meta: {
+    // SEO copy when present (see nav.js), else the friendly UI strings.
+    title: section.seoTitle ?? section.label,
+    description: section.seoDescription ?? section.description
+  }
 }))
 
 // Standalone pages — not sidebar sections, linked from the footer.

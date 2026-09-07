@@ -157,6 +157,40 @@ const monthlyView = computed(() => {
 })
 
 // --- tables (always the full series) ---
+// Plain-text lead paragraph — real figures in prose, so the page has
+// substantive indexable content even though the charts are <canvas>.
+const summary = computed(() => {
+  const d = historical.data.value
+  if (!d?.years?.length) return ''
+  const parts = []
+  const ci = d.totalDeaths.findIndex((v) => v != null)
+  const ly = d.years.at(-1)
+  const ld = d.totalDeaths.at(-1)
+  if (ci >= 0 && ld != null) {
+    const prov = d.isProvisional?.at(-1) ? ' (provisional)' : ''
+    parts.push(
+      `About ${ld.toLocaleString()} people died in the United States in ${ly}${prov}, ` +
+        `up from ${d.totalDeaths[ci].toLocaleString()} in ${d.years[ci]} as the population grew and aged.`
+    )
+  }
+  const ar = d.ageAdjustedRate ?? []
+  const af = ar.findIndex((v) => v != null)
+  let al = -1
+  for (let i = ar.length - 1; i >= 0; i--) if (ar[i] != null) { al = i; break }
+  if (af >= 0 && al >= 0 && af !== al) {
+    parts.push(
+      `Adjusted for that ageing, the death rate has fallen sharply — from about ` +
+        `${Math.round(ar[af]).toLocaleString()} per 100,000 in ${d.years[af]} to ` +
+        `${Math.round(ar[al]).toLocaleString()} in ${d.years[al]}.`
+    )
+  }
+  parts.push(
+    'The charts below cover annual deaths and the latest monthly provisional counts; ' +
+      'every chart has a data table and a CSV download.'
+  )
+  return parts.join(' ')
+})
+
 const annualTable = computed(() => {
   const d = historical.data.value
   if (!d) return null
@@ -185,9 +219,13 @@ const monthlyTable = computed(() => {
 
 <template>
   <div>
-    <PageHeader eyebrow="Mortality" title="Death Statistics Over Time" :description="section.description" />
+    <PageHeader eyebrow="Mortality" title="US Death Statistics Over Time" :description="section.description" />
 
     <div class="mx-auto max-w-4xl px-6 py-10 sm:px-10 space-y-12">
+      <p v-if="summary" class="max-w-2xl text-base leading-relaxed text-ink-soft">
+        {{ summary }}
+      </p>
+
       <!-- Stat callouts -->
       <div v-if="latestYearDeaths != null || latestMonthDeaths != null" class="grid gap-4 sm:grid-cols-2">
         <div class="card">
@@ -259,6 +297,7 @@ const monthlyTable = computed(() => {
               :muted-points="annualView.muted"
               :series-label="ANNUAL_METRICS[metric].label"
               :value-formatter="metricFmt"
+              :aria-label="`Line chart: ${ANNUAL_METRICS[metric].label.toLowerCase()} in the US, ${annualView.labels[0]} to ${annualView.labels.at(-1)}. Full figures in the data table below.`"
             />
             <ChartToolbar
               v-if="annualTable"
@@ -330,6 +369,7 @@ const monthlyTable = computed(() => {
               muted-label="incomplete"
               series-label="Deaths"
               :value-formatter="integerFormatter"
+              :aria-label="`Line chart: US deaths by month, ${monthlyView.labels[0]} to ${monthlyView.labels.at(-1)}. Full figures in the data table below.`"
             />
             <ChartToolbar
               v-if="monthlyTable"

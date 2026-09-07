@@ -238,6 +238,46 @@ const annualView = computed(() => {
   }
 })
 
+// Plain-text lead paragraph — real figures in prose, so the page carries
+// substantive indexable content despite the <canvas> charts.
+const summary = computed(() => {
+  const d = annual.data.value
+  const ys = plottedYears.value
+  if (!d || !ys.length) return ''
+  const parts = []
+  const fy = ys[0]
+  const ly = ys.at(-1)
+  const lb = d.byYear[ly]?.births
+  let peakY = fy
+  let peakB = d.byYear[fy]?.births ?? 0
+  for (const y of ys) {
+    const b = d.byYear[y]?.births
+    if (b != null && b > peakB) { peakB = b; peakY = y }
+  }
+  if (lb != null) {
+    parts.push(
+      `The United States recorded about ${lb.toLocaleString()} births in ${ly}` +
+        (peakY !== ly
+          ? `, down from a peak of roughly ${peakB.toLocaleString()} in ${peakY}.`
+          : `.`)
+    )
+  }
+  const frFirst = ys.find((y) => d.byYear[y]?.fertilityRate != null)
+  let frLast = null
+  for (let i = ys.length - 1; i >= 0; i--) {
+    if (d.byYear[ys[i]]?.fertilityRate != null) { frLast = ys[i]; break }
+  }
+  if (frFirst != null && frLast != null && frFirst !== frLast) {
+    parts.push(
+      `The general fertility rate — births per 1,000 women aged 15–44 — has fallen from ` +
+        `${d.byYear[frFirst].fertilityRate.toFixed(1)} in ${frFirst} to ` +
+        `${d.byYear[frLast].fertilityRate.toFixed(1)} in ${frLast}, most of the drop coming after 2007.`
+    )
+  }
+  parts.push('Charts below cover annual births, the fertility and birth rates, and current monthly counts; each has a data table and CSV.')
+  return parts.join(' ')
+})
+
 const annualTable = computed(() => {
   const d = annual.data.value
   if (!d) return null
@@ -251,9 +291,13 @@ const annualTable = computed(() => {
 
 <template>
   <div>
-    <PageHeader eyebrow="Natality" title="Birth Statistics" :description="section.description" />
+    <PageHeader eyebrow="Natality" title="US Birth Statistics" :description="section.description" />
 
     <div class="mx-auto max-w-4xl px-6 py-10 sm:px-10 space-y-12">
+      <p v-if="summary" class="max-w-2xl text-base leading-relaxed text-ink-soft">
+        {{ summary }}
+      </p>
+
       <!-- Stat callouts -->
       <div v-if="latestBirths != null" class="grid gap-4 sm:grid-cols-2">
         <div class="card">
@@ -403,6 +447,7 @@ const annualTable = computed(() => {
               :bands="annualBands"
               :series-label="ANNUAL_METRICS[annualMetric].axis"
               :value-formatter="annualFmt"
+              :aria-label="`Line chart: US ${ANNUAL_METRICS[annualMetric].label.toLowerCase()} by year, ${annualView.labels[0]} to ${annualView.labels.at(-1)}. Full figures in the data table below.`"
               @band-click="onBandClick"
             />
             <ChartToolbar

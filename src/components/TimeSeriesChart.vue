@@ -41,7 +41,9 @@ const props = defineProps({
   // axis: [{ from, to, label }]. Faint alternating fill + a divider and a
   // small label per span. Used for the Pew generation cohorts on the
   // annual-births chart. A band with `active: true` is emphasised.
-  bands: { type: Array, default: () => [] }
+  bands: { type: Array, default: () => [] },
+  // Text alternative for the <canvas> — screen readers + crawlers.
+  ariaLabel: { type: String, default: '' }
 })
 
 // Emitted when a band is clicked (the whole band object). Lets a parent
@@ -244,7 +246,11 @@ const chartOptions = computed(() => ({
 </script>
 
 <template>
-  <div class="h-72 sm:h-96">
+  <div
+    class="h-72 sm:h-96"
+    :role="ariaLabel ? 'img' : undefined"
+    :aria-label="ariaLabel || undefined"
+  >
     <Line :data="chartData" :options="chartOptions" :plugins="[bandsPlugin]" />
   </div>
 </template>

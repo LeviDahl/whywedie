@@ -168,6 +168,27 @@ const historyView = computed(() => {
   return { years: tail(d.years, n), births: tail(d.births, n) }
 })
 
+// Plain-text lead paragraph — figures in prose, so the page has
+// substantive indexable content despite the <canvas> charts.
+const summary = computed(() => {
+  if (!first.value || !last.value) return ''
+  const parts = []
+  parts.push(
+    `In ${last.value.year} the United States had about ${full(last.value.births)} births and ` +
+      `${full(last.value.deaths)} deaths — a natural increase of ${full(last.value.ni)} ` +
+      `(births minus deaths, before immigration).`
+  )
+  if (first.value.ni != null && last.value.ni != null) {
+    parts.push(
+      `That surplus has shrunk from ${full(first.value.ni)} in ${first.value.year}` +
+        (trough.value ? `, and came closest to zero in ${trough.value.year} (${signed(trough.value.ni)})` : '') +
+        `.`
+    )
+  }
+  parts.push('Charts below track births versus deaths, the natural increase alone, and a century of annual US births — each with a data table and CSV.')
+  return parts.join(' ')
+})
+
 // --- tables behind each chart ---
 const bvdTable = computed(() => {
   const d = bvd.data.value
@@ -191,9 +212,13 @@ const historyTable = computed(() => {
 
 <template>
   <div>
-    <PageHeader eyebrow="Population" title="Population Decline / Gain" :description="section.description" />
+    <PageHeader eyebrow="Population" title="US Population Change — Births vs. Deaths" :description="section.description" />
 
     <div class="mx-auto max-w-4xl px-6 py-10 sm:px-10 space-y-12">
+      <p v-if="summary" class="max-w-2xl text-base leading-relaxed text-ink-soft">
+        {{ summary }}
+      </p>
+
       <!-- Stat callouts -->
       <div v-if="last" class="grid gap-4 sm:grid-cols-3">
         <div class="card">
@@ -256,6 +281,7 @@ const historyTable = computed(() => {
               :series="bvdSeries"
               series-label="People"
               :value-formatter="compact"
+              :aria-label="`Line chart: US births and deaths per year, ${bvdWindow.years[0]} to ${bvdWindow.years.at(-1)}. Full figures in the data table below.`"
             />
             <ChartToolbar
               v-if="bvdTable"
@@ -379,6 +405,7 @@ const historyTable = computed(() => {
               :bands="historyBands"
               series-label="Births"
               :value-formatter="compact"
+              :aria-label="`Line chart: US births per year, ${historyView.years[0]} to ${historyView.years.at(-1)}. Full figures in the data table below.`"
               @band-click="onHistoryBandClick"
             />
             <ChartToolbar
