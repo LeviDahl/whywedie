@@ -9,6 +9,7 @@ import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchHistoricalAnnualDeaths } from '@/api/historicalDeaths.js'
 import { fetchMonthlyDeaths } from '@/api/monthlyDeaths.js'
+import { fetchLifeExpectancy } from '@/api/lifeExpectancy.js'
 import { sections } from '@/nav.js'
 
 const section = sections.find((s) => s.name === 'death-statistics')
@@ -21,15 +22,18 @@ useHead({
         datasetJsonLd({
           name: 'US death statistics over time',
           description:
-            'Annual United States deaths since 1968 and the age-adjusted death rate back to ' +
-            '1900, plus the most recent monthly provisional counts. National, from CDC WONDER.',
+            'Annual United States deaths since 1968, the age-adjusted death rate and life ' +
+            'expectancy at birth back to 1900, seasonal (by-month) mortality, and the most ' +
+            'recent monthly provisional counts. National, from CDC / NCHS.',
           path: '/death-statistics',
           temporal: '1900/..',
           keywords: [
             'US death rate',
             'deaths per year United States',
             'age-adjusted death rate',
-            'mortality statistics',
+            'US life expectancy',
+            'life expectancy at birth',
+            'winter mortality seasonality',
             'CDC deaths by year'
           ]
         })
@@ -40,10 +44,12 @@ useHead({
 
 const historical = useAsyncData(fetchHistoricalAnnualDeaths)
 const monthly = useAsyncData(fetchMonthlyDeaths)
+const lifeExp = useAsyncData(fetchLifeExpectancy)
 
 onMounted(() => {
   historical.load()
   monthly.load()
+  lifeExp.load()
 })
 
 const integerFormatter = (v) => (v == null ? '—' : v.toLocaleString())
@@ -213,6 +219,87 @@ const monthlyTable = computed(() => {
     columns: ['Month', 'Deaths', 'Crude rate'],
     rows: d.months.map((m) => [m.label, m.deaths, m.crudeRate ?? '']),
     note: `${d.months[0].label}–${d.months.at(-1).label}`
+  }
+})
+
+// --- Life expectancy at birth (1900–present) ---
+const LE_RANGES = [
+  { key: '25y', label: '25 yr', n: 25 },
+  { key: '50y', label: '50 yr', n: 50 },
+  { key: 'max', label: 'Max', n: Infinity }
+]
+const leRange = ref('max')
+const lifeExpView = computed(() => {
+  const d = lifeExp.data.value
+  if (!d?.years?.length) return null
+  const n = LE_RANGES.find((r) => r.key === leRange.value)?.n ?? Infinity
+  return {
+    labels: tail(d.years, n),
+    values: tail(d.values, n),
+    muted: tail(d.muted, n)
+  }
+})
+const lifeExpDelta = computed(() => {
+  const d = lifeExp.data.value
+  if (!d?.values?.length) return null
+  return { first: d.values[0], firstYear: d.years[0], last: d.values.at(-1), lastYear: d.years.at(-1) }
+})
+const lifeExpTable = computed(() => {
+  const d = lifeExp.data.value
+  if (!d) return null
+  return {
+    columns: ['Year', 'Life expectancy (yrs)', 'Source'],
+    rows: d.years.map((y, i) => [y, d.values[i], y >= d.supplementFrom ? 'NCHS final' : 'data.cdc.gov']),
+    note: `${d.years[0]}–${d.years.at(-1)} · years at birth`
+  }
+})
+
+// --- Seasonality: average deaths by calendar month (recent complete years) ---
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const SEASONALITY_YEARS = 6
+const seasonality = computed(() => {
+  const months = monthly.data.value?.months
+  if (!months?.length) return null
+  // full calendar years only: a year with all 12 months present
+  const byYear = new Map()
+  for (const m of months) {
+    if (m.deaths == null) continue
+    if (!byYear.has(m.year)) byYear.set(m.year, new Map())
+    byYear.get(m.year).set(m.month, m.deaths)
+  }
+  const completeYears = [...byYear.keys()].filter((y) => byYear.get(y).size === 12).sort((a, b) => a - b)
+  if (completeYears.length < 2) return null
+  const use = completeYears.slice(-SEASONALITY_YEARS)
+  // Normalise to a 30.44-day month so February's short length doesn't read
+  // as a seasonal dip — this chart is about *rate*, not raw monthly totals.
+  const DAYS = [31, 28.25, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  const avg = MONTH_NAMES.map((_, i) => {
+    const mo = i + 1
+    const vals = use.map((y) => byYear.get(y).get(mo)).filter((v) => v != null)
+    if (!vals.length) return null
+    const mean = vals.reduce((a, b) => a + b, 0) / vals.length
+    return Math.round((mean / DAYS[i]) * 30.44)
+  })
+  const yearMean = avg.reduce((a, b) => a + (b ?? 0), 0) / avg.filter((v) => v != null).length
+  const hi = Math.max(...avg.filter((v) => v != null))
+  const lo = Math.min(...avg.filter((v) => v != null))
+  return {
+    labels: MONTH_NAMES,
+    values: avg,
+    from: use[0],
+    to: use.at(-1),
+    swing: yearMean ? Math.round(((hi - lo) / yearMean) * 100) : null,
+    hiMonth: MONTH_NAMES[avg.indexOf(hi)],
+    loMonth: MONTH_NAMES[avg.indexOf(lo)]
+  }
+})
+const seasonalityTable = computed(() => {
+  const s = seasonality.value
+  if (!s) return null
+  return {
+    columns: ['Month', 'Avg. deaths (per 30.4 days)'],
+    rows: s.labels.map((m, i) => [m, s.values[i]]),
+    note: `Mean of ${s.from}–${s.to}, length-adjusted`
   }
 })
 </script>
@@ -390,6 +477,100 @@ const monthlyTable = computed(() => {
           </p>
           <p class="mt-1 text-xs text-muted">Source: {{ monthly.data.value.source }}.</p>
         </template>
+      </section>
+
+      <!-- Life expectancy at birth -->
+      <section>
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 id="life-expectancy" class="scroll-mt-24 text-base font-semibold text-ink">
+            Life Expectancy at Birth
+          </h2>
+          <RangeTabs
+            v-if="lifeExp.data.value?.years?.length"
+            v-model="leRange"
+            :options="LE_RANGES"
+            aria-label="Life expectancy chart range"
+          />
+        </div>
+
+        <div v-if="lifeExp.loading.value" class="card flex items-center justify-center py-20 text-sm text-muted">
+          Loading…
+        </div>
+        <div v-else-if="lifeExp.error.value" class="card border-line-strong">
+          <p class="text-sm font-semibold text-ink">Couldn't load this chart</p>
+          <button type="button" class="btn-secondary mt-4" @click="lifeExp.load">Try again</button>
+        </div>
+        <template v-else-if="lifeExpView">
+          <p v-if="lifeExpDelta" class="mb-3 max-w-2xl text-sm leading-relaxed text-ink-soft">
+            US life expectancy at birth rose from about {{ lifeExpDelta.first }} years in
+            {{ lifeExpDelta.firstYear }} to {{ lifeExpDelta.last }} in {{ lifeExpDelta.lastYear }} —
+            though it fell sharply in 2020–2021 during COVID-19 before recovering.
+          </p>
+          <div class="card">
+            <TimeSeriesChart
+              :labels="lifeExpView.labels"
+              :values="lifeExpView.values"
+              :muted-points="lifeExpView.muted"
+              muted-label="NCHS final (supplement)"
+              series-label="Years"
+              :value-formatter="rateFormatter"
+              :aria-label="`Line chart: US life expectancy at birth, ${lifeExpView.labels[0]} to ${lifeExpView.labels.at(-1)}.`"
+              png-name="whywedie-life-expectancy"
+              png-source="NCHS / CDC"
+            />
+            <ChartToolbar
+              v-if="lifeExpTable"
+              :columns="lifeExpTable.columns"
+              :rows="lifeExpTable.rows"
+              :note="lifeExpTable.note"
+              filename="whywedie-life-expectancy"
+            />
+          </div>
+          <p class="mt-3 text-xs text-muted">
+            The dashed tail (2019+) comes from NCHS's final annual figures rather than the
+            data.cdc.gov table, which ends at 2018.
+          </p>
+          <p class="mt-1 text-xs text-muted">Source: {{ lifeExp.data.value.source }}.</p>
+        </template>
+      </section>
+
+      <!-- Seasonality -->
+      <section v-if="seasonality">
+        <h2 id="seasonality" class="mb-4 scroll-mt-24 text-base font-semibold text-ink">
+          When in the Year People Die
+        </h2>
+        <p class="mb-3 max-w-2xl text-sm leading-relaxed text-ink-soft">
+          Averaged over {{ seasonality.from }}–{{ seasonality.to }}, deaths peak in
+          {{ seasonality.hiMonth }} and bottom out in {{ seasonality.loMonth }}
+          <template v-if="seasonality.swing != null">
+            — about a {{ seasonality.swing }}% swing across the year</template>,
+          the familiar winter-mortality pattern.
+        </p>
+        <div class="card">
+          <TimeSeriesChart
+            :labels="seasonality.labels"
+            :values="seasonality.values"
+            series-label="Avg. deaths"
+            :value-formatter="integerFormatter"
+            aria-label="Line chart: average US deaths by calendar month, showing the winter peak."
+            png-name="whywedie-deaths-seasonality"
+            png-source="CDC WONDER (D176)"
+          />
+          <ChartToolbar
+            v-if="seasonalityTable"
+            :columns="seasonalityTable.columns"
+            :rows="seasonalityTable.rows"
+            :note="seasonalityTable.note"
+            :show-link="false"
+            filename="whywedie-deaths-seasonality"
+          />
+        </div>
+        <p class="mt-3 text-xs text-muted">
+          Mean all-cause deaths per month over the last
+          {{ seasonality.to - seasonality.from + 1 }} complete years, adjusted to a 30.4-day
+          month so February isn't understated. Includes the 2020–2021 COVID-19 waves. Source:
+          {{ monthly.data.value.source }}.
+        </p>
       </section>
     </div>
   </div>
