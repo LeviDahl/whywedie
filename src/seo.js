@@ -21,7 +21,8 @@ export const STANDALONE_META = {
   privacy: {
     title: 'Privacy',
     description:
-      "Why We Die's privacy practices: no cookies, no analytics, no ads, no third-party tracking."
+      "Why We Die's privacy practices: no cookies, no ads, no third-party requests. Cookieless " +
+      'aggregate analytics is planned and will be named here before it goes live.'
   },
   articles: {
     title: 'Articles',
@@ -37,6 +38,8 @@ export const STANDALONE_META = {
   }
 }
 
+export const REPO_URL = 'https://github.com/LeviDahl/whywedie'
+
 /** JSON-LD describing the site itself — safe to include on every page. */
 export function siteJsonLd() {
   return {
@@ -47,8 +50,53 @@ export function siteJsonLd() {
     description: DEFAULT_DESCRIPTION,
     inLanguage: 'en-US',
     isAccessibleForFree: true,
+    sameAs: [REPO_URL],
     creator: { '@type': 'Person', name: 'Levi Dahlstrom' },
-    publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL }
+    publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL, sameAs: [REPO_URL] }
+  }
+}
+
+/**
+ * JSON-LD DataCatalog for the /api page — lists every /data/*.json file as
+ * a Dataset whose distribution points at the real download URL. This is the
+ * structured-data hook for Google Dataset Search and for researchers.
+ * `endpoints` = [{ path: '/foo.json', what: '…' }] (from ApiView).
+ */
+export function dataCatalogJsonLd(endpoints) {
+  const publisher = { '@type': 'Organization', name: SITE_NAME, url: SITE_URL, sameAs: [REPO_URL] }
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'DataCatalog',
+    name: `${SITE_NAME} — Open Data`,
+    url: `${SITE_URL}/api`,
+    description:
+      'CORS-open JSON snapshots of US mortality and natality statistics, consolidated from ' +
+      'CDC WONDER and data.cdc.gov. Public domain (CC0).',
+    isAccessibleForFree: true,
+    license: 'https://creativecommons.org/publicdomain/zero/1.0/',
+    publisher,
+    creator: publisher,
+    dataset: endpoints
+      .filter((e) => e.path !== '/meta.json')
+      .map((e) => ({
+        '@type': 'Dataset',
+        name: e.path.replace(/^\//, '').replace(/\.json$/, ''),
+        description: e.what,
+        url: `${SITE_URL}/api`,
+        license: 'https://creativecommons.org/publicdomain/zero/1.0/',
+        isAccessibleForFree: true,
+        spatialCoverage: 'United States',
+        creator: publisher,
+        publisher,
+        citation:
+          'Centers for Disease Control and Prevention, National Center for Health Statistics — ' +
+          'CDC WONDER and data.cdc.gov',
+        distribution: {
+          '@type': 'DataDownload',
+          encodingFormat: 'application/json',
+          contentUrl: `${SITE_URL}/data${e.path}`
+        }
+      }))
   }
 }
 

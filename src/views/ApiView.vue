@@ -3,6 +3,9 @@
 // read-only data API. No backend — these are just cached static files with
 // CORS enabled (see public/.htaccess). Keep the endpoint list in sync with
 // pipeline/build-snapshots.js.
+import { useHead } from '@unhead/vue'
+import { dataCatalogJsonLd } from '@/seo.js'
+
 const BASE = 'https://whywedie.org/data'
 
 const endpoints = [
@@ -47,6 +50,15 @@ data = requests.get("${BASE}/mortality.json").json()
 years = data["years"]                       # [1968, 1969, ...]
 heart = data["byCause"]["10:#Diseases of heart (I00-I09,I11,I13,I20-I51)"]
 print(dict(zip(heart["years"], heart["deaths"])))`
+
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(dataCatalogJsonLd(endpoints))
+    }
+  ]
+})
 </script>
 
 <template>
