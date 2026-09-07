@@ -56,7 +56,8 @@ national-only for vital statistics** — it refuses State/County/Region
 grouping, so every pipeline row is US-wide.
 
 **Beyond the 6 sections:** a site-wide `<footer>` in `App.vue` links four
-standalone routes — `/privacy` (`PrivacyView.vue`, plain content; no
+standalone routes — `/notes` + `/notes/:slug` (**Data Notes** — see
+below), `/privacy` (`PrivacyView.vue`, plain content; no
 cookies / no ads / no third-party requests, and an **"Analytics" section
 that says cookieless aggregate analytics is planned** rather than
 promising "no analytics" — keep it truthful, and when a tool ships, edit
@@ -89,6 +90,19 @@ build; still reachable by direct URL, `noindex`; visible in `npm run dev`).
 (not a `frontmatter` object) — the registry reads `mod.title` etc. The
 first stub, `2011-heart-disease-drop/`, is `draft: true` — a working
 template, not finished copy.
+
+**Data Notes** (`/notes`): a SEPARATE short-form type — one chart + a
+paragraph or two, kept visually and structurally distinct from Articles so
+readers don't conflate them. Flat files `src/notes/<slug>.md` (not
+folder-per); registry `src/notes/index.js`; `src/views/NotesView.vue`
+(a tight dated list) + `src/views/NoteView.vue` (lighter chrome — "DATA
+NOTE" eyebrow, smaller title — same `.article-prose` body). Frontmatter is
+minimal: `title`, `date`, `description`, optional `draft` — **no** `tags`,
+**no** `updated`. Schema is `Article` (not `BlogPosting`) via `noteJsonLd()`.
+Own feed `dist/notes.xml` (the shared `rssFeed()` helper in
+`vite.config.js`), own `<link rel=alternate>`, own footer link; `/articles`
+and `/notes` cross-link. First stub `us-deaths-past-3-million.md` is
+`draft: true`.
 
 **SEO:** `@unhead/vue` — `App.vue` sets title / description / canonical /
 OG / Twitter / a `WebSite` JSON-LD per route (source: route `meta` ←
@@ -703,7 +717,9 @@ picked **1–4 first, then 5–6, rest later**.
    "so far today" + "so far this year" for births / deaths / net, ticking
    at 4 Hz off the wall clock, reset at local midnight / 1 Jan, labelled a
    projection. Full two-row version on By the Numbers (replaced the static
-   "typical day" cards); a `compact` one-row version on Home under the hero.
+   "typical day" cards); a `compact` one-row version on Home under the hero. The By-the-Numbers
+   "Meanwhile" scale facts also tick, via `LiveNumber.vue` + the shared
+   `src/composables/useClock.js` (one 4 Hz interval for the whole page).
 2. **Embeddable charts** — a bare `/embed/*` route + "copy embed code"
    `<iframe>` snippet in `ChartToolbar`. Every blog that embeds one is a
    backlink. (OWID's biggest backlink engine.) Biggest lift.
@@ -711,12 +727,10 @@ picked **1–4 first, then 5–6, rest later**.
    button on every `TimeSeriesChart` / `RankedBarChart`; `src/lib/chartImage.js`
    composites the canvas onto white + stamps a "whywedie.org" + source
    footer. Retina-res, guards a 0-size canvas.
-4. **Data Notes** — a SEPARATE content type from Articles (owner wants zero
-   confusion): short = one chart + a paragraph or two, published often.
-   Own route (`/notes` + `/notes/:slug`), own registry
-   (`src/notes/*.md`, flat files), own compact view, own feed
-   (`/notes.xml`), own footer link. Articles stay long-form essays with
-   `BlogPosting` schema; Notes use `Article` (or none).
+4. ~~**Data Notes**~~ **DONE (2026-09).** Separate `/notes` + `/notes/:slug`,
+   flat `src/notes/*.md`, `NotesView` + `NoteView`, `noteJsonLd()`
+   (`Article`), `dist/notes.xml`, footer link + article↔note cross-links.
+   See the **Data Notes** section up top. First stub is `draft: true`.
 
 **Tier 2 — data the site is missing (all high search volume):**
 5. **Life expectancy** — most-searched US mortality metric, currently
