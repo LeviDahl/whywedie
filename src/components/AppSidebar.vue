@@ -53,7 +53,12 @@ defineEmits(['close'])
         <span class="flex-1">{{ section.shortLabel }}</span>
       </router-link>
 
-      <div v-for="group in secondaryGroups" :key="group.label" class="pt-4">
+      <div
+        v-for="(group, gi) in secondaryGroups"
+        :key="group.label"
+        class="pt-4"
+        :class="gi === 0 && 'mt-3 border-t border-paper/10'"
+      >
         <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-paper/35">
           {{ group.label }}
         </p>
