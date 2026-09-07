@@ -7,7 +7,7 @@ export const SITE_NAME = 'Why We Die'
 export const SITE_URL = 'https://whywedie.org'
 export const OG_IMAGE = `${SITE_URL}/og.png` // 1200×630; drop the file in public/
 export const DEFAULT_DESCRIPTION =
-  'Interactive US death, birth, and population statistics from the CDC — leading causes of ' +
+  'Interactive US death, birth, and population statistics from the CDC: leading causes of ' +
   'death, birth and fertility rates, and natural increase, tracked from 1900 to today.'
 
 // Non-section routes that still want their own title/description.
@@ -16,7 +16,7 @@ export const STANDALONE_META = {
     title: 'Open Data API',
     description:
       "Free, CORS-enabled JSON endpoints for the site's CDC-derived mortality and natality " +
-      'series — endpoint list, code examples, and licence.'
+      'series, with an endpoint list, code examples, and licence.'
   },
   privacy: {
     title: 'Privacy',
@@ -27,13 +27,13 @@ export const STANDALONE_META = {
   articles: {
     title: 'Articles',
     description:
-      'Short essays on the oddities in US mortality, birth, and population data — COVID-19, ' +
+      'Short essays on the oddities in US mortality, birth, and population data: COVID-19, ' +
       'the 1918 influenza pandemic, the 2011 heart-disease dip, and more.'
   },
   notes: {
     title: 'Data Notes',
     description:
-      'Quick takes on the US mortality, birth, and population data — one chart, a paragraph or ' +
+      'Quick takes on the US mortality, birth, and population data: one chart, a paragraph or ' +
       'two. Shorter and more frequent than the Articles.'
   },
   contact: {

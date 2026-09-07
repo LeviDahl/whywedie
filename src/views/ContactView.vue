@@ -18,7 +18,7 @@ const mailto = `mailto:${email}?subject=${encodeURIComponent('whywedie.org feedb
         <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-muted">Get in touch</p>
         <h1 class="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Contact</h1>
         <p class="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-          This is a one-person project. Corrections, ideas, and bug reports are all welcome — I
+          This is a one-person project. Corrections, ideas, and bug reports are all welcome. I
           read everything, though replies can be slow.
         </p>
       </div>
@@ -30,8 +30,7 @@ const mailto = `mailto:${email}?subject=${encodeURIComponent('whywedie.org feedb
           <h2 class="text-base font-semibold text-ink">Found a bug or a data error?</h2>
           <p class="mt-2 text-sm leading-relaxed text-muted">
             Open an issue on GitHub. It helps to include the page, what you saw, what you
-            expected, and your browser — and to skim the open issues first in case it's already
-            filed.
+            expected, and your browser. Skim the open issues first in case it's already filed.
           </p>
           <a
             :href="`${REPO_URL}/issues`"

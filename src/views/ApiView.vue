@@ -130,24 +130,24 @@ useHead({
             <a href="https://wonder.cdc.gov/" target="_blank" rel="noopener" class="link-underline">CDC
             WONDER</a> and <a href="https://data.cdc.gov/" target="_blank" rel="noopener" class="link-underline">data.cdc.gov</a>)
             and carry no copyright. This project's compilation of them is released under
-            <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener" class="link-underline">CC0 1.0</a>
-            — effectively public domain: use it for anything, no permission or attribution required.
-            That said, a reference to "whywedie.org" (and to CDC as the primary source) is genuinely
+            <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener" class="link-underline">CC0 1.0</a>,
+            which is effectively public domain: use it for anything, with no permission or attribution
+            required. A reference to "whywedie.org" (and to CDC as the primary source) is still
             appreciated, and if you publish something built on it, a link back helps others find the
             data.
           </p>
         </div>
 
         <div class="rounded-lg border border-line-strong bg-paper-soft p-5">
-          <h2 class="text-sm font-semibold text-ink">No guarantees — and this may not stay free</h2>
+          <h2 class="text-sm font-semibold text-ink">No guarantees, and this may not stay free</h2>
           <p class="mt-2 text-sm leading-relaxed text-muted">
             This is a best-effort service on shared hosting. No uptime guarantee, no support SLA,
             and the file shapes may change without notice (breaking changes would move to a new
-            path). Snapshots refresh on an irregular manual schedule — check
+            path). Snapshots refresh on an irregular manual schedule, so check
             <code class="rounded bg-paper px-1 text-ink">fetchedAt</code>. Heavy or automated use
-            may lead to rate limiting, and the API may later move behind a key or onto a paid /
-            managed platform. If you're relying on it for something real, cache your own copy — and
-            a heads-up that it's in use is genuinely helpful.
+            may lead to rate limiting, and the API may later move behind a key or onto a paid or
+            managed platform. If you're relying on it for something real, cache your own copy. A
+            heads-up that it's in use is helpful too.
           </p>
         </div>
       </div>

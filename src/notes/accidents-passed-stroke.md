@@ -20,12 +20,12 @@ const SERIES = [
 </script>
 
 Ask most people to name the leading causes of death in America and you'll hear
-heart disease, cancer, and stroke — in that order. That was true for decades. It
+heart disease, cancer, and stroke, in that order. That was true for decades. It
 isn't anymore.
 
-Around **2015**, deaths from *accidents* — the CDC's catch-all for unintentional
-injuries: car crashes, falls, and, increasingly, drug overdoses — pulled ahead of
-stroke, and they've held the #3 spot every year since. The gap blew open during
+Around **2015**, deaths from *accidents* (the CDC's catch-all for unintentional
+injuries like car crashes, falls, and, increasingly, drug overdoses) pulled ahead
+of stroke, and they've held the #3 spot every year since. The gap blew open during
 the pandemic, when accident deaths jumped from about 173,000 in 2019 to **227,000
 in 2022**, most of that the overdose crisis. Both have eased a little since, but
 accidents are still ahead.
