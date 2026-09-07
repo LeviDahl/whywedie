@@ -792,26 +792,39 @@ picked **1–4 first, then 5–6, rest later**.
 12. International comparison — US vs peer countries on death rate / life
     expectancy / fertility (needs World Bank / UN / OWID data).
 
-**Distribution / backlinks checklist (owner action; Claude drafts the copy):**
-- Publish 1 real Article → unblocks **Show HN** (title + first comment
-  draft ready on request).
-- **Wikipedia** — cite as source for a specific figure on *Mortality in
-  the United States*, *List of causes of death by rate*, *Birth rate*,
-  *Total fertility rate*, *Demographics of the United States*. Not an
-  External-links dump.
-- **Kaggle Datasets** + **data.world** — publish a dataset entry linking
-  `/api`.
-- **University health-sciences librarians** — short email → `.edu`
-  LibGuide link.
+**Distribution / backlinks checklist.** Owner decided (2026-09): **do the
+first Note + the Wikipedia adds first, table the rest until those two are
+live.**
+
+*In progress:*
+- ~~Publish 1 short Note~~ **DONE** — `src/notes/accidents-passed-stroke.md`
+  ("America's #3 cause of death quietly changed", published, live).
+- **Wikipedia** — External-links / data-source adds drafted for *Life
+  expectancy in the United States*, *Demographics of the United States*,
+  *List of causes of death by rate*, *Drug overdose deaths in the United
+  States* (exact wikitext + placement handed to the owner; COI-disclose
+  and prefer the Talk page). Not inline citations for facts (CDC is the
+  better source there); not an EL dump.
+
+*Tabled until the two above are live:*
+- Finish a full **Article** → then **Show HN** (Claude drafts title +
+  first comment).
+- **Kaggle Datasets** + **data.world** — a dataset entry linking `/api`.
+- **University health-sciences librarians** — short email → `.edu` link.
 - **r/dataisbeautiful** (one chart as `[OC]`), r/dataviz, r/datasets,
   **HelpMeViz**.
-- Newsletters: **Data Elixir** (submit form), **Dataviz Universe** (Yan
-  Holtz), **Dashing Data Viz**, **Flowing Data** (Nathan Yau — pitch a
-  finding). Data Is Plural is dorment since Aug 2025 — skip.
+- Newsletters: **Data Elixir** (submit form), **Dataviz Universe**,
+  **Dashing Data Viz**, **Flowing Data** (pitch a finding). Data Is
+  Plural is dormant since Aug 2025 — skip.
 - **Bing Webmaster Tools** — "Import from Google Search Console".
-- Google Dataset Search — no submission; the `/api` `DataCatalog` +
-  per-view `Dataset` JSON-LD feed it. Re-check in ~1 month.
+- Google Dataset Search — no submission; `/api` `DataCatalog` + per-view
+  `Dataset` JSON-LD feed it. Re-check ~1 month out.
+- Cookieless analytics (pick a tool → Claude wires it + events +
+  `/privacy`); support/donation link → footer; pipeline hosting (unblocks
+  features 7, 8, and refreshing deaths-by-age past 2022); the Death
+  Statistics → "Mortality" nav regroup once 5 sections feels heavy.
 
 **Done for discovery (2026-09):** GitHub repo description + homepage +
 topics (were blank); `DataCatalog` JSON-LD on `/api` with real
-`contentUrl` per file; `sameAs` → repo in site schema.
+`contentUrl` per file; `sameAs` → repo in site schema; first Data Note
+published.
