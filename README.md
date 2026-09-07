@@ -289,7 +289,7 @@ src/
     useAsyncData.js           # shared loading/error/data helper for section views
     useNamePreference.js      # friendly vs official cause names, persisted (localStorage)
   components/
-    AppSidebar.vue            # sidebar nav (desktop: static, mobile: slide-in drawer)
+    AppSidebar.vue            # sidebar: 6 data sections + Writing/Project groups
     NavIcon.vue                # inline SVG icons per section
     PageHeader.vue             # consistent page title/description header
     YearLookup.vue             # Home "in the year N" cross-section lookup
@@ -361,9 +361,12 @@ stay in the gray tokens; a legend is always shown for 2+ series and line
 series also carry a dash pattern (identity never rests on color alone).
 
 The sidebar (`AppSidebar.vue`) is a dark panel: on desktop (≥1024px) it's
-`sticky top-0 h-screen` so it stays put while `<main>` scrolls (the 6 nav
-links, a Contact link, and the data-source note are always in view); on
-mobile it's an off-canvas drawer toggled from a top bar.
+`sticky top-0 h-screen` so it stays put while `<main>` scrolls; on mobile
+it's an off-canvas drawer toggled from a top bar. It holds the 6 data
+sections (iconed), then two labelled icon-less groups from
+`nav.js`'s `secondaryGroups` — **Writing** (Articles, Data Notes) and
+**Project** (Open API, Contact, Privacy) — then the data-source note. The
+page footer is just Contact / Privacy / Data source.
 
 ## What's next
 

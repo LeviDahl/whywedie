@@ -65,7 +65,7 @@ that section to name it), `/api` (`ApiView.vue`, documents the `/data/*.json`
 snapshots as a public CORS-open read-only API; `.htaccess` sends
 `Access-Control-Allow-Origin: *` on `*.json`), `/contact` (`ContactView.vue`
 — GitHub Issues for bugs, a runtime-assembled `feedback@whywedie.org`
-mailto for feedback; also linked at the bottom of `AppSidebar.vue`), and
+mailto for feedback; also in the sidebar's "Project" group), and
 `/articles` + `/articles/:slug` (the blog — see **Articles** below). All
 added directly in `router/index.js`, not via `nav.js`.
 
@@ -281,7 +281,7 @@ src/
     useAsyncData.js          # shared loading/error/data helper for section views
     useNamePreference.js     # friendly vs official cause names, persisted (localStorage)
   components/
-    AppSidebar.vue           # sidebar nav (desktop: static, mobile: slide-in drawer)
+    AppSidebar.vue           # sidebar: 6 data sections + Writing/Project groups (nav.js secondaryGroups)
     NavIcon.vue               # inline SVG icons per section (one v-if branch per section name)
     PageHeader.vue            # consistent page title/description header
     YearLookup.vue            # Home "in the year N" cross-section lookup
