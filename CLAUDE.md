@@ -651,7 +651,16 @@ requests at all now). Sitemap submitted to Google Search Console
 (domain-verified via DNS). **Data licence → CC0 1.0** (was CC BY 4.0):
 `/api` copy + the `Dataset` JSON-LD `license` now say CC0, with a "reference
 appreciated" courtesy note (public-domain CDC source, so CC BY was
-overreach). **Articles/blog scaffold** — `/articles` + `/articles/:slug`,
+overreach). **On-page SEO pass (2026-09)** — the data views were near-empty
+to a crawler (Chart.js `<canvas>` + click-gated tables). Now: `ChartToolbar`
+renders the data table in an always-in-DOM `<details>` (`DataTable` maxRows
+130); each data view has a data-built plain-text lead `<p>` (real figures in
+prose); `TimeSeriesChart`/`RankedBarChart` take `ariaLabel` → `role="img"`;
+`nav.js` has `seoTitle`/`seoDescription` per section (search-phrased, and
+distinct from the 2024 book) that the router prefers over the UI label;
+`<h1>`s carry "US"/the keyword. Still SPA-rendered — a light prerender
+(bake text/tables, hydrate the canvas) is the next lever. **Articles/blog
+scaffold** — `/articles` + `/articles/:slug`,
 Markdown-with-embedded-Vue via `unplugin-vue-markdown`; see the **Articles**
 section up top. One `draft: true` stub (`2011-heart-disease-drop`); real
 essays (COVID, 1918 flu, the 2011 heart-disease dip) still to be written.
