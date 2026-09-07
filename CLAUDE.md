@@ -55,7 +55,8 @@ in [`pipeline/README.md`](pipeline/README.md). Note: **the WONDER API is
 national-only for vital statistics** — it refuses State/County/Region
 grouping, so every pipeline row is US-wide.
 
-**Beyond the 6 sections:** a site-wide `<footer>` in `App.vue` links four
+**Beyond the 6 sections:** the sidebar's "Writing" + "Project" groups
+(`nav.js` `secondaryGroups`) and a trimmed `App.vue` `<footer>` link the
 standalone routes — `/notes` + `/notes/:slug` (**Data Notes** — see
 below), `/privacy` (`PrivacyView.vue`, plain content; no
 cookies / no ads / no third-party requests, and an **"Analytics" section
