@@ -127,16 +127,20 @@ function exportCsv() {
 
         <!-- Rotating scale facts -->
         <section>
-          <div class="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+          <div class="mb-2 flex flex-wrap items-baseline justify-between gap-3">
             <h2 class="text-base font-semibold text-ink">Meanwhile, in the same 24 hours…</h2>
             <button type="button" class="btn-secondary px-3 py-1 text-xs" @click="shuffle">
               Show me others
             </button>
           </div>
+          <p class="mb-4 text-xs text-muted">
+            Numbers are approximate — a rough yearly estimate spread evenly across the day, for
+            scale, not a live count.
+          </p>
           <div class="grid gap-4 sm:grid-cols-3">
             <div v-for="f in facts" :key="f.label" class="card">
               <dd class="text-3xl font-semibold tracking-tight text-ink">
-                <LiveNumber :per-year="f.perYear" prefix="~" />
+                <LiveNumber :per-year="f.perYear" />
               </dd>
               <dt class="mt-1.5 text-sm text-ink">{{ f.label }}</dt>
               <p class="mt-2 text-xs text-muted">
@@ -145,8 +149,7 @@ function exportCsv() {
             </div>
           </div>
           <p class="mt-3 text-xs text-muted">
-            "So far today" spreads a rough public yearly estimate (annual ÷ 365) evenly across the
-            clock — for scale, not precise, not a live feed, and not health data.
+            Yearly figures from the cited sources; shown here for scale, not as health data.
           </p>
           <div class="mt-3 border-t border-line pt-2.5">
             <button
