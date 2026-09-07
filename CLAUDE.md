@@ -9,9 +9,13 @@ authentication.
 All six sidebar sections are live (Home, Death Statistics Over Time, Causes
 of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
 
-- **Death Statistics** — annual all-cause deaths **1968–present** (WONDER
-  snapshot: D74/D16 → D76 → D176) + current-monthly deaths (D176 snapshot),
-  each with 10/25/50/Max range tabs.
+- **Death Statistics** — five sections: annual all-cause deaths
+  **1968–present** (WONDER D74/D16→D76→D176) with a counts/age-adjusted-rate
+  toggle (rate to 1900); current-monthly deaths (D176); **Life Expectancy
+  at Birth 1900–present** (`src/api/lifeExpectancy.js`, Socrata `w9j2-ggv5`
+  + NCHS-final 2019–2023 supplement); **seasonality** ("When in the Year
+  People Die" — mean deaths by calendar month, length-adjusted); **Deaths
+  by Age** (`src/api/deathsByAge.js`, Socrata `y5bj-9g5w` rollup, 2015–2022).
 - **Causes of Death** — ranked bar + trend line, deaths / crude-rate /
   age-adjusted-rate toggle, overlay multiple **periods** (years or decade
   ranges, as mean annual values) and multiple **causes**, friendly ↔
@@ -34,11 +38,13 @@ of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
   Pew generation bands + drill-down. Births from `/data/natality.json`
   (+ Socrata `e6fc-ccez` for pre-1960), deaths from `/data/mortality.json`
   "All causes". Time-range tabs on each chart.
-- **By the Numbers** — births/deaths as a per-day average: the last 12
-  months of `mortality_monthly.json` + `natality_monthly.json` ÷ 365
-  (`src/api/dailyStats.js`, Socrata `hmz2-vwda` fallback) next to rotating
-  hand-curated "N per day" scale facts (`src/data/dailyFacts.js`, labelled
-  as rough estimates).
+- **By the Numbers** — Worldometers-style **live projected counters**
+  (`LiveCounters.vue` + `LiveNumber.vue` + `src/composables/useClock.js`,
+  one 4 Hz interval): "so far today / so far this year" for births/deaths,
+  and the rotating scale facts (`src/data/dailyFacts.js`) tick too, big
+  numbers abbreviated ("5.9 billion"). Plus **"In one lifetime"**
+  (`LifetimeTally.vue` — births/deaths since a chosen year) and the daily
+  average (`src/api/dailyStats.js`, `hmz2-vwda` fallback).
 
 **The site itself is static — no server, no build-time data fetch.** It
 either calls Socrata directly from the browser, or reads a committed JSON
@@ -270,6 +276,8 @@ src/
     monthlyBirths.js          # monthly births from /data/natality_monthly.json (D192), Socrata fallback
     monthlyDeaths.js          # monthly all-cause deaths from /data/mortality_monthly.json
     historicalDeaths.js       # annual all-cause deaths from /data/mortality.json "All causes"
+    lifeExpectancy.js         # Socrata w9j2-ggv5 life expectancy 1900-2018 + NCHS 2019-23 supplement
+    deathsByAge.js            # Socrata y5bj-9g5w weekly deaths by age group, rolled up to years (2015-22)
     causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
     causeBreakdown.js         # reads /data/mortality_demographic.json — Sex/Race breakdown (optional)
     populationChange.js       # births (natality.json + e6fc-ccez) vs deaths (mortality.json) + natural increase
@@ -278,29 +286,39 @@ src/
     natality.js               # annual births + fertility rate from /data/natality.json (+ monthly roll-up)
   lib/
     csv.js                    # toCsv / downloadCsv helpers
+    chartImage.js             # Chart.js canvas -> watermarked PNG data URL + download
   composables/
     useAsyncData.js          # shared loading/error/data helper for section views
     useNamePreference.js     # friendly vs official cause names, persisted (localStorage)
+    useClock.js              # one shared 4 Hz wall-clock ref + fractionOfDay/Year helpers (live counters)
   components/
     AppSidebar.vue           # sidebar: 6 data sections + Writing/Project groups (nav.js secondaryGroups)
     NavIcon.vue               # inline SVG icons per section (one v-if branch per section name)
     PageHeader.vue            # consistent page title/description header
     YearLookup.vue            # Home "in the year N" cross-section lookup
     RangeTabs.vue             # segmented control for a chart's time window
-    TimeSeriesChart.vue       # Chart.js line chart — single- OR multi-series (pass `series`)
-    RankedBarChart.vue        # Chart.js horizontal bars — single- OR multi-series (period compare)
-    ChartToolbar.vue           # Table / CSV / Copy-link row under a chart
-    DataTable.vue              # sortable table of a chart's underlying rows
+    TimeSeriesChart.vue       # Chart.js line — single-/multi-series; PNG btn + ResizeObserver (iframe fix)
+    RankedBarChart.vue        # Chart.js horizontal bars — single-/multi-series; PNG btn + ResizeObserver
+    ChartToolbar.vue           # data table (<details>) + CSV + Copy-link + Embed (<iframe> snippet)
+    DataTable.vue              # sortable table of a chart's underlying rows (in-DOM, maxRows 130)
     ArticleFigure.vue         # framed <figure> + caption + source, for embedding charts in articles
+    LiveCounters.vue          # "so far today / this year" ticking births/deaths (By the Numbers, Home)
+    LiveNumber.vue            # one ticking integer (annual figure × fraction of day); big-number abbrev
+    LifetimeTally.vue         # "In one lifetime" — births/deaths since a chosen year
   views/
-    HomeView.vue              # project overview (built out) + latest-articles teaser
-    DeathStatisticsView.vue   # annual chart + monthly chart, each with own caveats
+    HomeView.vue              # overview + compact live counter + latest-articles teaser
+    DeathStatisticsView.vue   # annual, monthly, life expectancy, seasonality, deaths by age
     CausesOfDeathView.vue     # ranked bars (compare periods) + trend (compare causes)
     BirthStatisticsView.vue   # provisional monthly births + YoY
     PopulationChangeView.vue  # births vs deaths, natural increase, century birth history
-    ByTheNumbersView.vue      # births/deaths as a daily average + rotating scale facts
+    ByTheNumbersView.vue      # live counters + "In one lifetime" + rotating scale facts + daily average
     ArticlesView.vue          # /articles index (card list)
     ArticleView.vue           # /articles/:slug — chrome + .article-prose + head/JSON-LD from frontmatter
+    NotesView.vue             # /notes index (tight dated list)
+    NoteView.vue              # /notes/:slug — lighter chrome, Article JSON-LD
+    EmbedView.vue             # /embed/:slug — one bare chart for <iframe> embeds (App.vue renders chrome-less)
+    ApiView.vue               # /api — the JSON snapshots as an open API (DataCatalog JSON-LD, CC0)
+    ContactView.vue           # /contact ; PrivacyView.vue # /privacy
 public/
   .htaccess                  # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/mortality.json        # committed baseline snapshot; pipeline/ refreshes it in prod
@@ -515,6 +533,9 @@ codes" line.
 | Home "pick a year" | births 1909–2025, deaths 1968–2025, **leading cause 1999–2025** | leading cause works to 2025 now (provisional_causes rows carry the `leading` flag); partial trailing natality year dropped; shows the Pew generation for the year |
 | Death Statistics — annual, **counts** | 1968–2025 | monthly 2018–present |
 | Death Statistics — annual, **age-adjusted rate** | **1900–2025** | pre-1968 from Socrata `w9j2-ggv5`; 1968–2025 WONDER (D176 provisional 2021+ now carries the age-adjusted rate — the `O_aar_enable` fetch ran). Socrata `489q-934x` (VSRR) stays wired as a fallback for years the snapshot lacks. All 2000-std, match at the seams. Metric toggle on the chart |
+| Death Statistics — **life expectancy** | **1900–2023** | 1900–2018 Socrata `w9j2-ggv5` (`average_life_expectancy`); 2019–2023 committed NCHS-final supplement, dashed |
+| Death Statistics — **seasonality** | last 6 complete years | mean deaths by calendar month, length-adjusted; includes the 2020–21 COVID waves |
+| Death Statistics — **deaths by age** | **2015–2022** | Socrata `y5bj-9g5w` weekly→annual rollup, US/Unweighted, 6 NCHS age bands; ends 2022 (dataset not refreshed past ~2023) |
 | Causes of Death — ranked | **1999–2025** | 113 list; a bar is a snapshot so no pre-1999 |
 | Causes of Death — trend | ranked causes 1999–2025; **11 of them back to 1968** | pre-1999 = the ICD sub-chapter approximation (`PREHISTORY_MAP` in `causesOfDeath.js`), grey + flagged; `icd9_sub` / `icd8_sub` eras ran, deployed 2026-09 |
 | Causes of Death — Sex/Race breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race) |
@@ -525,7 +546,8 @@ codes" line.
 | Birth Statistics — monthly births | 2023–2026 | D192 |
 | Population Change — births vs deaths / natural increase | 1968–2025 | |
 | Population Change — long view | 1909–2025 | |
-| By the Numbers | 12 months ending ~mid-2026 | rolling annual ÷ 365 |
+| By the Numbers — daily average | 12 months ending ~mid-2026 | rolling annual ÷ 365 |
+| By the Numbers — "In one lifetime" | births 1960+, deaths 1968+ | sums the annual snapshots from a chosen year; input clamps to 1968 |
 
 **Remaining:**
 
@@ -742,11 +764,17 @@ picked **1–4 first, then 5–6, rest later**.
    See the **Data Notes** section up top. First stub is `draft: true`.
 
 **Tier 2 — data the site is missing (all high search volume):**
-5. **Life expectancy** — most-searched US mortality metric, currently
-   absent; CDC series back to 1900 (needs a new source — NCHS life tables
-   / a Socrata dataset, not `w9j2-ggv5` which is death *rates*).
-6. **Deaths by age** — "at what age do Americans die?" + a survival curve.
-   WONDER supports Age Group grouping → a new pipeline era.
+5. ~~**Life expectancy**~~ **DONE (2026-09).** "Life Expectancy at Birth"
+   section on `/death-statistics`. `src/api/lifeExpectancy.js` reads
+   Socrata `w9j2-ggv5` (it *does* carry `average_life_expectancy`, not
+   just rates) for 1900–2018 + a small committed NCHS-final supplement
+   2019–2023 (flagged, dashed). Browser-direct, no pipeline. The 1918 flu
+   crater + COVID dip both show.
+6. ~~**Deaths by age**~~ **DONE (2026-09).** "Deaths by Age" section on
+   `/death-statistics`. `src/api/deathsByAge.js` rolls up Socrata
+   `y5bj-9g5w` ("Weekly Counts of Deaths by Jurisdiction and Age", US /
+   Unweighted) week→year client-side, keeping full-52-week years
+   (2015–2022 today). A WONDER `by_age` era would refresh + extend it.
 7. Leading causes of death **by age group** (WONDER Age × Cause) —
    "top causes of death for people in their 30s", very high intent.
 8. Drug overdose / suicide / firearm deaths as first-class topics
@@ -755,10 +783,12 @@ picked **1–4 first, then 5–6, rest later**.
 **Tier 3 — expansions:**
 9. State-level data — WONDER is national-only for the pipeline, but
    Socrata has state all-cause deaths + births → ~50× more rankable pages.
-10. "Since you were born" — birth year → "X million Americans have died
-    since." Novelty, shareable.
-11. Seasonality — deaths by month-of-year averaged (winter spike); the
-    monthly data already exists.
+10. ~~"Since you were born"~~ **DONE (2026-09).** `LifetimeTally.vue`
+    ("In one lifetime" on `/by-the-numbers`) — enter a year, get US
+    births + deaths since (sums the annual snapshots, clamps to 1968+).
+11. ~~Seasonality~~ **DONE (2026-09).** "When in the Year People Die" on
+    `/death-statistics` — mean deaths by calendar month over the last 6
+    complete years, length-adjusted to 30.4 days; the winter U-shape.
 12. International comparison — US vs peer countries on death rate / life
     expectancy / fertility (needs World Bank / UN / OWID data).
 

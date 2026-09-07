@@ -11,11 +11,11 @@ pages linked from the footer — `/articles` (a Markdown blog), `/api`
 | section | data | notes |
 |---|---|---|
 | Home | — | project overview + "pick a year" cross-section lookup + latest-articles teaser |
-| Death Statistics Over Time | CDC WONDER → `/data/mortality.json`, `/data/mortality_monthly.json` | annual all-cause deaths **1968–present** (D74/D16/D76/D176) with a Total-deaths / Age-adjusted-rate toggle (the rate spliced to **1900** from Socrata `w9j2-ggv5`) + monthly all-cause deaths (D176, 2018–present), each with time-range tabs |
+| Death Statistics Over Time | CDC WONDER + Socrata | annual all-cause deaths **1968–present** (D74/D16/D76/D176; counts / age-adjusted-rate toggle, rate to **1900**), monthly deaths (D176), **life expectancy at birth 1900–2023** (`w9j2-ggv5` + NCHS supplement), **seasonality** (mean deaths by month), **deaths by age** (`y5bj-9g5w`, 2015–22) |
 | Causes of Death | CDC WONDER via [`pipeline/`](pipeline/) → `/data/mortality.json` | ranked bars + trend; overlay multiple periods (years or decade ranges) and causes; friendly ↔ official cause names; per-cause 1999–2025 (113 list), ICD-chapter grain **1968–2025** ("Broad Chapters"); optional Sex / Race breakdown **1999–2025** (`/data/mortality_demographic.json`) |
 | Birth Statistics | CDC WONDER + Socrata | annual births 1960–present + fertility/birth-rate toggle (`/data/natality.json`), Pew generation bands with drill-down, `(i)` field explainer; monthly births (D192 `/data/natality_monthly.json`, Socrata fallback) |
 | Population Decline / Gain | CDC WONDER + Socrata | births vs. deaths + the shrinking natural increase (**1968–2025**), century-long birth history |
-| By the Numbers | Socrata + public estimates | births/deaths as a daily average + rotating scale-comparison facts |
+| By the Numbers | Socrata + public estimates | live projected counters (births/deaths "so far today / this year"), an "In one lifetime" tally (births/deaths since a chosen year), a daily average, and rotating scale-comparison facts (also ticking) |
 
 ## Tech stack
 
@@ -383,16 +383,18 @@ WONDER dataset, needs `CENSUS_API_KEY`); **11 rankable causes' trend
 lines extended to 1968** via the ICD sub-chapter approximation
 (`icd9_sub` / `icd8_sub` → `PREHISTORY_MAP`, grey + flagged).
 
-**Also shipped (site, not data):** `@unhead/vue` per-route head +
-`WebSite` / `Dataset` / `BlogPosting` JSON-LD; build-generated
-`sitemap.xml` / `robots.txt` / `feed.xml`; `favicon.svg` + `og.png`;
-Inter **self-hosted** (`@fontsource/inter`) so there are zero third-party
-requests; `.htaccess` open CORS on `*.json` + `index.html` `no-store` (+
-compression via cPanel "Optimize Website" — GoDaddy ignores `mod_deflate`
-in `.htaccess`); the four standalone pages (`/articles` blog, `/api`,
-`/contact`, `/privacy`) + footer + a sidebar Contact link;
-data-compilation licence set to **CC0 1.0**. Sitemap submitted to
-Google Search Console (DNS-verified).
+**Also shipped (site, not data):** SEO pass (per-route head + `WebSite` /
+`Dataset` / `BlogPosting` / `DataCatalog` JSON-LD; `sitemap.xml` /
+`robots.txt` / `feed.xml` / `notes.xml`; data tables in the DOM; prose
+lead paragraphs; search-phrased titles); Inter **self-hosted** (zero
+third-party requests); `.htaccess` open CORS on `*.json` + `index.html`
+`no-store`; **Data Notes** (`/notes`, short-form, separate from Articles);
+**embeddable charts** (`/embed/:slug` + a copy-paste `<iframe>` snippet in
+the chart toolbar); **chart → PNG** download; **live counters** on By the
+Numbers + Home; the standalone pages (`/articles`, `/notes`, `/api`,
+`/contact`, `/privacy`) grouped into the sidebar; licence **CC0 1.0**;
+sitemap submitted to Google Search Console (DNS-verified); GitHub repo
+metadata + topics.
 
 - [ ] Stand the pipeline up on a schedule (host + cron + publish, see
       `pipeline/README.md`) — only the D176/D192 provisional eras recur
