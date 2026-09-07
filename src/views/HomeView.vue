@@ -1,10 +1,17 @@
 <script setup>
+import { onMounted } from 'vue'
 import { sections } from '@/nav.js'
 import YearLookup from '@/components/YearLookup.vue'
+import LiveCounters from '@/components/LiveCounters.vue'
+import { useAsyncData } from '@/composables/useAsyncData.js'
+import { fetchDailyPace } from '@/api/dailyStats.js'
 import { articles, formatArticleDate } from '@/articles/index.js'
 
 const dataSections = sections.filter((s) => s.path !== '/')
 const latestArticles = articles.slice(0, 3)
+
+const pace = useAsyncData(fetchDailyPace)
+onMounted(pace.load)
 </script>
 
 <template>
@@ -36,6 +43,23 @@ const latestArticles = articles.slice(0, 3)
         </div>
       </div>
     </header>
+
+    <section v-if="pace.data.value" class="border-b border-line px-6 py-12 sm:px-10 sm:py-16">
+      <div class="mx-auto max-w-3xl">
+        <div class="mb-4 flex items-baseline justify-between gap-4">
+          <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">The US, so far today</h2>
+          <router-link to="/by-the-numbers" class="text-sm font-medium text-ink link-underline">
+            By the Numbers
+          </router-link>
+        </div>
+        <LiveCounters
+          compact
+          :births-per-year="pace.data.value.birthsPerYear"
+          :deaths-per-year="pace.data.value.deathsPerYear"
+          :period-label="pace.data.value.periodLabel"
+        />
+      </div>
+    </section>
 
     <section class="border-b border-line px-6 py-12 sm:px-10 sm:py-16">
       <div class="mx-auto max-w-3xl">

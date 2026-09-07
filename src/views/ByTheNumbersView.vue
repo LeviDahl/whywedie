@@ -3,6 +3,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useHead } from '@unhead/vue'
 import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
+import LiveCounters from '@/components/LiveCounters.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchDailyPace } from '@/api/dailyStats.js'
 import { DAILY_FACTS, perDay, pickFacts } from '@/data/dailyFacts.js'
@@ -93,9 +94,6 @@ function exportCsv() {
       <p v-if="summary" class="max-w-2xl text-base leading-relaxed text-ink-soft">
         {{ summary }}
       </p>
-      <p class="text-sm text-muted">
-        A "typical day" here just means an annual figure divided by 365 — not a live count.
-      </p>
 
       <div v-if="loading" class="card flex items-center justify-center py-20 text-sm text-muted">
         Loading…
@@ -111,27 +109,18 @@ function exportCsv() {
       </div>
 
       <template v-else-if="data">
-        <!-- Core: births / deaths / net -->
+        <!-- Live projected counters -->
         <section>
-          <h2 class="mb-4 text-base font-semibold text-ink">In a typical US day</h2>
-          <div class="grid gap-4 sm:grid-cols-3">
-            <div class="card">
-              <dt class="text-xs font-medium uppercase tracking-wide text-muted">Babies born</dt>
-              <dd class="mt-1.5 text-3xl font-semibold tracking-tight text-ink">~{{ human(birthsPerDay) }}</dd>
-            </div>
-            <div class="card">
-              <dt class="text-xs font-medium uppercase tracking-wide text-muted">People who die</dt>
-              <dd class="mt-1.5 text-3xl font-semibold tracking-tight text-ink">~{{ human(deathsPerDay) }}</dd>
-            </div>
-            <div class="card">
-              <dt class="text-xs font-medium uppercase tracking-wide text-muted">Net change</dt>
-              <dd class="mt-1.5 text-3xl font-semibold tracking-tight text-ink">
-                {{ netPerDay >= 0 ? '+' : '−' }}{{ human(Math.abs(netPerDay)) }}
-              </dd>
-            </div>
-          </div>
+          <h2 class="mb-4 text-base font-semibold text-ink">The US, ticking</h2>
+          <LiveCounters
+            :births-per-year="data.birthsPerYear"
+            :deaths-per-year="data.deathsPerYear"
+            :period-label="data.periodLabel"
+          />
           <p class="mt-3 text-xs text-muted">
-            Based on {{ data.periodLabel }}. Source: {{ data.source }}.
+            At this rate a full day is about {{ human(birthsPerDay) }} births and
+            {{ human(deathsPerDay) }} deaths, a net of
+            {{ netPerDay >= 0 ? '+' : '−' }}{{ human(Math.abs(netPerDay)) }}. Source: {{ data.source }}.
           </p>
         </section>
 
