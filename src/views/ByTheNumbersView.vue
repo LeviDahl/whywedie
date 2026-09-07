@@ -5,6 +5,7 @@ import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import LiveCounters from '@/components/LiveCounters.vue'
 import LiveNumber from '@/components/LiveNumber.vue'
+import LifetimeTally from '@/components/LifetimeTally.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchDailyPace } from '@/api/dailyStats.js'
 import { DAILY_FACTS, perDay, pickFacts } from '@/data/dailyFacts.js'
@@ -123,6 +124,12 @@ function exportCsv() {
             {{ human(deathsPerDay) }} deaths, a net of
             {{ netPerDay >= 0 ? '+' : '−' }}{{ human(Math.abs(netPerDay)) }}. Source: {{ data.source }}.
           </p>
+        </section>
+
+        <!-- Since a given year -->
+        <section>
+          <h2 class="mb-4 text-base font-semibold text-ink">In one lifetime</h2>
+          <LifetimeTally />
         </section>
 
         <!-- Rotating scale facts -->
