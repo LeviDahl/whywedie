@@ -868,6 +868,8 @@ function onAddChapterSelect(event) {
               :rows="rankedTable.rows"
               :note="rankedTable.note"
               filename="whywedie-leading-causes"
+              embed-slug="leading-causes-of-death"
+              :embed-params="{ metric: metric !== 'deaths' ? metric : undefined }"
             />
           </div>
           <p v-if="breakdownActive" class="mt-3 text-xs text-muted">

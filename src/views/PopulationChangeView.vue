@@ -291,6 +291,7 @@ const historyTable = computed(() => {
               :rows="bvdTable.rows"
               :note="bvdTable.note"
               filename="whywedie-births-vs-deaths"
+              embed-slug="births-vs-deaths"
             />
           </div>
           <p class="mt-3 text-xs text-muted">

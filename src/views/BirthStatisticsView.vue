@@ -458,6 +458,8 @@ const annualTable = computed(() => {
               :rows="annualTable.rows"
               :note="annualTable.note"
               filename="whywedie-annual-births"
+              embed-slug="us-births"
+              :embed-params="{ metric: annualMetric !== 'births' ? annualMetric : undefined }"
             />
           </div>
           <p v-if="genActive" class="mt-3 text-xs text-muted">

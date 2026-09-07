@@ -8,6 +8,9 @@ import { SITE_NAME, SITE_URL, OG_IMAGE, DEFAULT_DESCRIPTION, siteJsonLd } from '
 const sidebarOpen = ref(false)
 const route = useRoute()
 
+// Bare routes (/embed/*) render only the chart — no shell, no site head.
+const bare = computed(() => Boolean(route.meta?.bare))
+
 // One place sets the document head; views may add their own (e.g. a
 // Dataset JSON-LD block) on top. Title / description come from route meta
 // (src/router/index.js + src/nav.js + src/seo.js).
@@ -22,26 +25,28 @@ const pageDescription = computed(() =>
 )
 const canonical = computed(() => `${SITE_URL}${route.path === '/' ? '' : route.path}`)
 
-useHead(() => ({
-  title: pageTitle.value,
-  link: [{ rel: 'canonical', href: canonical.value }],
-  meta: [
-    { name: 'description', content: pageDescription.value },
-    { property: 'og:type', content: 'website' },
-    { property: 'og:site_name', content: SITE_NAME },
-    { property: 'og:title', content: pageTitle.value },
-    { property: 'og:description', content: pageDescription.value },
-    { property: 'og:url', content: canonical.value },
-    { property: 'og:image', content: OG_IMAGE },
-    { name: 'twitter:card', content: 'summary_large_image' },
-    { name: 'twitter:title', content: pageTitle.value },
-    { name: 'twitter:description', content: pageDescription.value },
-    { name: 'twitter:image', content: OG_IMAGE }
-  ],
-  script: [
-    { type: 'application/ld+json', innerHTML: JSON.stringify(siteJsonLd()) }
-  ]
-}))
+useHead(() =>
+  bare.value
+    ? { title: `${pageTitle.value}` }
+    : {
+        title: pageTitle.value,
+        link: [{ rel: 'canonical', href: canonical.value }],
+        meta: [
+          { name: 'description', content: pageDescription.value },
+          { property: 'og:type', content: 'website' },
+          { property: 'og:site_name', content: SITE_NAME },
+          { property: 'og:title', content: pageTitle.value },
+          { property: 'og:description', content: pageDescription.value },
+          { property: 'og:url', content: canonical.value },
+          { property: 'og:image', content: OG_IMAGE },
+          { name: 'twitter:card', content: 'summary_large_image' },
+          { name: 'twitter:title', content: pageTitle.value },
+          { name: 'twitter:description', content: pageDescription.value },
+          { name: 'twitter:image', content: OG_IMAGE }
+        ],
+        script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(siteJsonLd()) }]
+      }
+)
 
 // Auto-close the mobile drawer whenever navigation happens.
 watch(
@@ -53,7 +58,16 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen bg-paper text-ink lg:flex">
+  <!-- Bare: /embed/* — just the chart, for iframes on other sites. Keyed
+       on fullPath so a slug/query change remounts (EmbedView reads its
+       config at setup). -->
+  <div v-if="bare" class="min-h-screen bg-paper text-ink">
+    <router-view v-slot="{ Component, route: r }">
+      <component :is="Component" :key="r.fullPath" />
+    </router-view>
+  </div>
+
+  <div v-else class="min-h-screen bg-paper text-ink lg:flex">
     <!-- Mobile top bar -->
     <header
       class="sticky top-0 z-30 flex items-center justify-between border-b border-line

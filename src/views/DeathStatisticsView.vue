@@ -307,6 +307,8 @@ const monthlyTable = computed(() => {
               :rows="annualTable.rows"
               :note="annualTable.note"
               filename="whywedie-annual-deaths"
+              embed-slug="us-deaths"
+              :embed-params="{ metric: metric === 'ageAdjustedRate' ? 'rate' : undefined }"
             />
           </div>
           <p v-if="hasProvisional" class="mt-3 text-xs text-muted">

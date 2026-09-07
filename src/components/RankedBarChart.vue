@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { Bar } from 'vue-chartjs'
 import { chartToPngDataUrl, downloadDataUrl } from '@/lib/chartImage.js'
 import {
@@ -33,11 +33,29 @@ const props = defineProps({
 })
 
 const chartRef = ref(null)
+const wrapRef = ref(null)
 function savePng() {
   const chart = chartRef.value?.chart
   const url = chartToPngDataUrl(chart, { source: props.pngSource })
   downloadDataUrl(props.pngName, url)
 }
+
+// Chart.js's own responsive observer can latch onto a width-0 container on
+// first paint in a fresh context (notably inside an <iframe>) and never
+// self-correct. Watch the wrapper ourselves and force a re-measure whenever
+// it has a real width but the canvas doesn't match.
+let ro = null
+onMounted(() => {
+  ro = new ResizeObserver(() => {
+    const c = chartRef.value?.chart
+    const w = wrapRef.value?.clientWidth || 0
+    if (c && w > 0 && Math.abs((c.canvas?.clientWidth || 0) - w) > 1) {
+      c.resize()
+    }
+  })
+  if (wrapRef.value) ro.observe(wrapRef.value)
+})
+onBeforeUnmount(() => ro?.disconnect())
 
 const multi = computed(() => props.series.length > 1)
 const showLegend = computed(() => props.legend && multi.value)
@@ -142,6 +160,7 @@ const heightPx = computed(() => {
 
 <template>
   <div
+    ref="wrapRef"
     class="group relative"
     :style="{ height: heightPx + 'px' }"
     :role="ariaLabel ? 'img' : undefined"

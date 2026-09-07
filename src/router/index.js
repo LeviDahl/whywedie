@@ -65,6 +65,14 @@ routes.push(
     path: '/notes/:slug',
     name: 'note',
     component: () => import('@/views/NoteView.vue')
+  },
+  {
+    // Bare single-chart pages for <iframe> embeds on other sites. App.vue
+    // renders these without the sidebar / footer / site head.
+    path: '/embed/:slug',
+    name: 'embed',
+    component: () => import('@/views/EmbedView.vue'),
+    meta: { bare: true }
   }
 )
 
