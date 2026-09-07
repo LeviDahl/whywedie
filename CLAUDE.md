@@ -720,9 +720,17 @@ picked **1–4 first, then 5–6, rest later**.
    "typical day" cards); a `compact` one-row version on Home under the hero. The By-the-Numbers
    "Meanwhile" scale facts also tick, via `LiveNumber.vue` + the shared
    `src/composables/useClock.js` (one 4 Hz interval for the whole page).
-2. **Embeddable charts** — a bare `/embed/*` route + "copy embed code"
-   `<iframe>` snippet in `ChartToolbar`. Every blog that embeds one is a
-   backlink. (OWID's biggest backlink engine.) Biggest lift.
+2. ~~**Embeddable charts**~~ **DONE (2026-09).** `/embed/:slug` — bare
+   route (App.vue renders it chrome-less + `noindex`, `<router-view>`
+   keyed on `fullPath`). `src/views/EmbedView.vue` has 4 configs
+   (`us-deaths`, `us-births`, `births-vs-deaths`,
+   `leading-causes-of-death`) reusing the `api/` modules; `metric` /
+   `range` from the query. `ChartToolbar` gains an **Embed** panel
+   (`embedSlug` + optional `embedParams`) with a copy-paste `<iframe>`
+   snippet, wired on the four primary charts. `TimeSeriesChart` /
+   `RankedBarChart` grew a `ResizeObserver` that forces `chart.resize()`
+   — Chart.js's own observer latches onto a width-0 first paint inside a
+   fresh iframe and never self-corrects.
 3. ~~**Download chart as PNG**~~ **DONE (2026-09).** Hover-reveal "PNG"
    button on every `TimeSeriesChart` / `RankedBarChart`; `src/lib/chartImage.js`
    composites the canvas onto white + stamps a "whywedie.org" + source
