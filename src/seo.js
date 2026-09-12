@@ -8,7 +8,7 @@ export const SITE_URL = 'https://whywedie.org'
 export const OG_IMAGE = `${SITE_URL}/og.png` // 1200×630; drop the file in public/
 export const DEFAULT_DESCRIPTION =
   'Interactive US death, birth, and population statistics from the CDC: leading causes of ' +
-  'death, birth and fertility rates, and natural increase, tracked from 1900 to today.'
+  'death, birth and fertility rates, and natural increase since 1900.'
 
 // Non-section routes that still want their own title/description.
 export const STANDALONE_META = {

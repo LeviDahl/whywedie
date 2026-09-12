@@ -27,7 +27,7 @@ export const sections = [
       'Annual US deaths back to 1968 — with the age-adjusted rate spliced to 1900 — plus the most current monthly figures CDC has published.',
     seoTitle: 'US Deaths Per Year, 1968–2025',
     seoDescription:
-      'How many people die in the US each year, 1968 to today, plus the age-adjusted death rate back to 1900 and the latest monthly provisional counts. CDC data, charted.'
+      'How many people die in the US each year, 1968 to today, plus the age-adjusted death rate back to 1900 and the latest monthly provisional counts.'
   },
   {
     path: '/causes-of-death',
@@ -38,7 +38,7 @@ export const sections = [
       'Leading causes of death ranked by year (1999–present) with deaths, crude rate, and age-adjusted rate — plus trends over time, a sex/race breakdown, and broad ICD chapters back to 1968.',
     seoTitle: 'Leading Causes of Death in the US, by Year',
     seoDescription:
-      'The leading causes of death in the United States ranked by year (1999–2025) — heart disease, cancer, COVID-19 and more — with crude and age-adjusted rates, long-run trends, and a sex/race breakdown.'
+      'Leading causes of death in the US ranked by year (1999–2025): heart disease, cancer, COVID-19 and more, with crude/age-adjusted rates and long-run trends.'
   },
   {
     path: '/birth-statistics',
@@ -49,7 +49,7 @@ export const sections = [
       'Annual US births back to 1960 with the birth and fertility rates, Pew generation bands, and CDC\'s most current provisional monthly counts.',
     seoTitle: 'US Birth Rate & Fertility Rate Over Time',
     seoDescription:
-      'US births per year since 1960 with the general fertility rate (births per 1,000 women 15–44) and crude birth rate, generation cohorts, and current monthly provisional counts. CDC + Census data.'
+      'US births per year since 1960: general fertility rate (births per 1,000 women 15–44), crude birth rate, generation cohorts, and monthly provisional counts.'
   },
   {
     path: '/population-change',
@@ -60,7 +60,7 @@ export const sections = [
       'Births vs. deaths and the shrinking natural increase between them, plus a century of US births.',
     seoTitle: 'US Births vs. Deaths & Natural Increase',
     seoDescription:
-      'US births versus deaths and the shrinking natural increase between them, 1968–2025, plus a century of annual births with generation cohorts. Interactive charts from CDC data.'
+      'US births versus deaths and the shrinking natural increase between them, 1968–2025, plus a century of annual US births with generation cohorts.'
   },
   {
     path: '/by-the-numbers',
@@ -71,7 +71,7 @@ export const sections = [
       'US births and deaths as a daily average — next to a few other things that happen in the same 24 hours.',
     seoTitle: 'How Many People Are Born & Die in the US Each Day',
     seoDescription:
-      'Roughly how many babies are born and how many people die in the United States on a typical day — a rolling 12-month total divided by 365 — next to everyday things at the same scale.'
+      'Roughly how many babies are born and how many people die in the United States on a typical day, next to everyday things at the same scale.'
   }
 ]
 

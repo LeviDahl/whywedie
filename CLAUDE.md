@@ -696,8 +696,22 @@ prose); `TimeSeriesChart`/`RankedBarChart` take `ariaLabel` → `role="img"`;
 `nav.js` has `seoTitle`/`seoDescription` per section (search-phrased, and
 distinct from the 2024 book) that the router prefers over the UI label;
 `<h1>`s carry "US"/the keyword. Still SPA-rendered — a light prerender
-(bake text/tables, hydrate the canvas) is the next lever. **Articles/blog
-scaffold** — `/articles` + `/articles/:slug`,
+(bake text/tables, hydrate the canvas) is the next lever. **SEO audit
+(2026-09-12)** — checked indexing status (`site:whywedie.org` returns
+nothing yet — expected for a ~2-week-old domain with no inbound links;
+robots.txt/sitemap/meta-robots/canonical all check out clean, so this is
+age + backlinks, not a technical block), PageSpeed (blocked by the public
+API's daily quota — no key configured, unresolved), and on-page basics
+(no `<img>` tags site-wide so no alt-text gaps, single `<h1>` per page,
+JSON-LD types correct, TTFB ~300–400ms). One real finding, fixed: the 5
+`nav.js` `seoDescription`s + `DEFAULT_DESCRIPTION` were 163–198 characters
+— past Google's ~155–160 char snippet cutoff, so they'd get truncated
+mid-sentence in search results. Trimmed all to ≤155. **The bigger lever
+by far is still backlinks** (currently ~zero) — the tabled distribution
+checklist above (Wikipedia, Kaggle, r/dataisbeautiful, newsletters, HN)
+matters more than any further on-page tweak at this stage. Bing Webmaster
+Tools is still unclaimed (one click, "Import from Google Search
+Console") — cheapest remaining item. **Articles/blog scaffold** — `/articles` + `/articles/:slug`,
 Markdown-with-embedded-Vue via `unplugin-vue-markdown`; see the **Articles**
 section up top. One `draft: true` stub (`2011-heart-disease-drop`); real
 essays (COVID, 1918 flu, the 2011 heart-disease dip) still to be written.
