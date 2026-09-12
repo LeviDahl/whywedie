@@ -13,6 +13,7 @@ import { fetchHistoricalAnnualDeaths } from '@/api/historicalDeaths.js'
 import { fetchAnnualNatality } from '@/api/natality.js'
 import { fetchBirthsVsDeaths } from '@/api/populationChange.js'
 import { fetchCausesOfDeath } from '@/api/causesOfDeath.js'
+import { fetchInjuryDeaths } from '@/api/injuryDeaths.js'
 import { displayName } from '@/data/causeNames.js'
 import { SITE_URL, SITE_NAME } from '@/seo.js'
 
@@ -135,6 +136,46 @@ const CONFIGS = {
           legend: false
         },
         subtitle: `${yr}`
+      }
+    }
+  },
+  'suicide-deaths': {
+    title: 'US suicide deaths per year',
+    path: '/injury-deaths',
+    source: 'CDC WONDER',
+    fetch: fetchInjuryDeaths,
+    build(d) {
+      const n = rangeN()
+      return {
+        component: TimeSeriesChart,
+        props: {
+          labels: tail(d.suicide.years, n),
+          series: [
+            { label: 'Total', values: tail(d.suicide.deaths, n) },
+            { label: 'By firearm', values: tail(d.suicideFirearm?.deaths ?? [], n) }
+          ],
+          valueFormatter: int
+        }
+      }
+    }
+  },
+  'homicide-deaths': {
+    title: 'US homicide deaths per year',
+    path: '/injury-deaths',
+    source: 'CDC WONDER',
+    fetch: fetchInjuryDeaths,
+    build(d) {
+      const n = rangeN()
+      return {
+        component: TimeSeriesChart,
+        props: {
+          labels: tail(d.homicide.years, n),
+          series: [
+            { label: 'Total', values: tail(d.homicide.deaths, n) },
+            { label: 'By firearm', values: tail(d.homicideFirearm?.deaths ?? [], n) }
+          ],
+          valueFormatter: int
+        }
       }
     }
   }

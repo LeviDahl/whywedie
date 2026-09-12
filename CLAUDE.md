@@ -6,8 +6,9 @@ authentication.
 
 ## Current state
 
-All six sidebar sections are live (Home, Death Statistics Over Time, Causes
-of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
+All seven sidebar sections are live (Home, Death Statistics Over Time,
+Causes of Death, Birth Statistics, Population Decline/Gain, By the Numbers,
+Injury Deaths).
 
 - **Death Statistics** — five sections: annual all-cause deaths
   **1968–present** (WONDER D74/D16→D76→D176) with a counts/age-adjusted-rate
@@ -45,6 +46,21 @@ of Death, Birth Statistics, Population Decline/Gain, By the Numbers).
   numbers abbreviated ("5.9 billion"). Plus **"In one lifetime"**
   (`LifetimeTally.vue` — births/deaths since a chosen year) and the daily
   average (`src/api/dailyStats.js`, `hmz2-vwda` fallback).
+- **Injury Deaths** (`/injury-deaths`, added 2026-09) — Feature #8 from the
+  backlog below, Phase 1. Suicide and homicide annual trends since 1999,
+  each split into a total line and a by-firearm line, plus a drug-overdose
+  figure. All of it reads rows already in `/data/mortality.json` (the
+  113-cause list) — no new pipeline era needed for suicide/homicide/firearm.
+  `src/api/injuryDeaths.js` has the full picking logic + caveats. The
+  overdose series is a rough stand-in ("Accidental poisoning and exposure
+  to noxious substances") — it undercounts real overdose deaths (misses
+  suicide/undetermined-intent poisonings) and is visibly undercounted in
+  its last 1–2 years since overdose deaths take longer to certify than
+  most causes; the last 2 points render muted with a stronger caveat than
+  the site's usual "provisional" label. A proper fix needs a dedicated
+  WONDER pull (the "Drug/Alcohol Induced Causes" grouping) — Phase 2,
+  not done. Two new embed configs (`suicide-deaths`, `homicide-deaths`)
+  in `EmbedView.vue`.
 
 **The site itself is static — no server, no build-time data fetch.** It
 either calls Socrata directly from the browser, or reads a committed JSON
@@ -61,7 +77,7 @@ in [`pipeline/README.md`](pipeline/README.md). Note: **the WONDER API is
 national-only for vital statistics** — it refuses State/County/Region
 grouping, so every pipeline row is US-wide.
 
-**Beyond the 6 sections:** the sidebar's "Writing" + "Project" groups
+**Beyond the 7 sections:** the sidebar's "Writing" + "Project" groups
 (`nav.js` `secondaryGroups`) and a trimmed `App.vue` `<footer>` link the
 standalone routes — `/notes` + `/notes/:slug` (**Data Notes** — see
 below), `/privacy` (`PrivacyView.vue`, plain content; no
@@ -231,7 +247,7 @@ whether it would pass.
 ### State management & routing
 
 - **No Pinia yet — nothing in this project needs shared/global state at the
-  moment.** `src/nav.js` is the single source of truth for the 6 sidebar
+  moment.** `src/nav.js` is the single source of truth for the 7 sidebar
   sections (path, name, shortLabel, label, description); both the
   router and the sidebar read from it. When a real feature needs state
   shared across components (e.g. a chart's selected year range persisting
@@ -256,7 +272,7 @@ whether it would pass.
 
 ```
 src/
-  nav.js                     # single source of truth for the 6 sidebar sections
+  nav.js                     # single source of truth for the 7 sidebar sections
   router/index.js            # routes generated from nav.js
   App.vue                    # app shell: sidebar + mobile top bar + page transitions
   style.css                  # Tailwind import, black/white design tokens, component classes
@@ -292,7 +308,7 @@ src/
     useNamePreference.js     # friendly vs official cause names, persisted (localStorage)
     useClock.js              # one shared 4 Hz wall-clock ref + fractionOfDay/Year helpers (live counters)
   components/
-    AppSidebar.vue           # sidebar: 6 data sections + Writing/Project groups (nav.js secondaryGroups)
+    AppSidebar.vue           # sidebar: 7 data sections + Writing/Project groups (nav.js secondaryGroups)
     NavIcon.vue               # inline SVG icons per section (one v-if branch per section name)
     PageHeader.vue            # consistent page title/description header
     YearLookup.vue            # Home "in the year N" cross-section lookup
@@ -803,8 +819,12 @@ picked **1–4 first, then 5–6, rest later**.
    (2015–2022 today). A WONDER `by_age` era would refresh + extend it.
 7. Leading causes of death **by age group** (WONDER Age × Cause) —
    "top causes of death for people in their 30s", very high intent.
-8. Drug overdose / suicide / firearm deaths as first-class topics
-   (WONDER intent + multiple-cause breakdowns).
+8. ~~Drug overdose / suicide / firearm deaths as first-class topics~~
+   **Phase 1 DONE (2026-09)** — `/injury-deaths`, one combined section (not
+   3 separate ones — chosen to keep the sidebar from growing 6→9 at once).
+   Suicide + homicide + firearm-share ship from existing `mortality.json`
+   rows; overdose is a rough proxy pending Phase 2 (a real WONDER
+   Drug/Alcohol Induced Causes pull). See "Current state" above.
 
 **Tier 3 — expansions:**
 9. State-level data — WONDER is national-only for the pipeline, but
@@ -846,9 +866,13 @@ live.**
 - Google Dataset Search — no submission; `/api` `DataCatalog` + per-view
   `Dataset` JSON-LD feed it. Re-check ~1 month out.
 - ~~Cookieless analytics~~ **DONE (2026-09)** — see above.
-- Support/donation link → footer; pipeline hosting (unblocks features 7, 8,
-  and refreshing deaths-by-age past 2022); the Death Statistics →
-  "Mortality" nav regroup once 5 sections feels heavy.
+- Support/donation link → footer; pipeline hosting (unblocks feature 7,
+  #8 Phase 2's proper overdose pull, and refreshing deaths-by-age past
+  2022); the "Mortality" (Death Statistics + Causes of Death + Injury
+  Deaths) vs. "Births & Population" nav regroup — owner flagged the
+  sidebar getting crowded (2026-09-12, now at 7 top-level items with
+  Injury Deaths added) but said current shape is fine for now; revisit
+  if 8 or 9 gets added too.
 
 **Done for discovery (2026-09):** GitHub repo description + homepage +
 topics (were blank); `DataCatalog` JSON-LD on `/api` with real

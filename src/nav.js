@@ -72,6 +72,17 @@ export const sections = [
     seoTitle: 'How Many People Are Born & Die in the US Each Day',
     seoDescription:
       'Roughly how many babies are born and how many people die in the United States on a typical day, next to everyday things at the same scale.'
+  },
+  {
+    path: '/injury-deaths',
+    name: 'injury-deaths',
+    label: 'Injury Deaths',
+    shortLabel: 'Injury Deaths',
+    description:
+      'Suicide, homicide, and drug overdose deaths since 1999, plus how much of each involves a firearm.',
+    seoTitle: 'US Suicide, Homicide & Drug Overdose Deaths',
+    seoDescription:
+      'US suicide, homicide, and drug overdose deaths since 1999, including the share that involved a firearm. CDC data on three leading causes of injury death.'
   }
 ]
 

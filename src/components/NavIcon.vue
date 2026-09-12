@@ -29,6 +29,8 @@ defineProps({
 
     <path v-else-if="name === 'by-the-numbers'" d="M4.5 4.5h15a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1Z M3.5 9h17 M8 4.5V3 M16 4.5V3 M8 13h.01 M12 13h.01 M16 13h.01 M8 16.5h.01 M12 16.5h.01" />
 
+    <path v-else-if="name === 'injury-deaths'" d="M12 3.5 19 6v5.5c0 5-3 8.2-7 9.5-4-1.3-7-4.5-7-9.5V6l7-2.5Z M12 8v4.5 M12 15.5h.01" />
+
     <path v-else d="M12 6v12m-6-6h12" />
   </svg>
 </template>
