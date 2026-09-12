@@ -2,6 +2,7 @@
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { Line } from 'vue-chartjs'
 import { chartToPngDataUrl, downloadDataUrl } from '@/lib/chartImage.js'
+import { trackEvent } from '@/lib/analytics.js'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -56,6 +57,7 @@ function savePng() {
   const chart = chartRef.value?.chart
   const url = chartToPngDataUrl(chart, { source: props.pngSource })
   downloadDataUrl(props.pngName, url)
+  if (url) trackEvent('png_download', { chart: props.pngName })
 }
 
 // Chart.js's own responsive observer can latch onto a width-0 container on

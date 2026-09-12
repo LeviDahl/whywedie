@@ -13,6 +13,7 @@ import { fetchMonthlyDeaths } from '@/api/monthlyDeaths.js'
 import { fetchLifeExpectancy } from '@/api/lifeExpectancy.js'
 import { fetchDeathsByAge } from '@/api/deathsByAge.js'
 import { sections } from '@/nav.js'
+import { trackEvent } from '@/lib/analytics.js'
 
 const section = sections.find((s) => s.name === 'death-statistics')
 
@@ -72,6 +73,10 @@ const ANNUAL_METRICS = {
 }
 const metric = ref('deaths')
 const metricFmt = computed(() => ANNUAL_METRICS[metric.value].fmt)
+function setMetric(key) {
+  metric.value = key
+  trackEvent('chart_toggle', { page: 'death-statistics', control: 'metric', value: key })
+}
 
 // --- Historical annual (1900–present for the rate, 1968+ for counts) ---
 const annualYears = computed(() => historical.data.value?.years ?? [])
@@ -383,7 +388,7 @@ const byAgeTable = computed(() => {
                 type="button"
                 class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
                 :class="metric === key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
-                @click="metric = key"
+                @click="setMetric(key)"
               >
                 {{ m.label }}
               </button>

@@ -83,6 +83,8 @@ defineEmits(['close'])
           target="_blank"
           rel="noopener noreferrer"
           class="text-paper/80 underline decoration-paper/30 underline-offset-2 transition-colors hover:text-paper hover:decoration-paper"
+          data-umami-event="outbound_click"
+          data-umami-event-host="data.cdc.gov"
         >data.cdc.gov</a>. Not affiliated with the CDC.
       </p>
     </div>

@@ -21,8 +21,8 @@ export const STANDALONE_META = {
   privacy: {
     title: 'Privacy',
     description:
-      "Why We Die's privacy practices: no cookies, no ads, no third-party requests. Cookieless " +
-      'aggregate analytics is planned and will be named here before it goes live.'
+      "Why We Die's privacy practices: no cookies, no ads. Analytics is Umami, a cookieless, " +
+      'aggregate-only tool that respects Do Not Track.'
   },
   articles: {
     title: 'Articles',

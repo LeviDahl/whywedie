@@ -707,13 +707,25 @@ footer link): bugs → GitHub Issues (`github.com/LeviDahl/whywedie/issues`),
 ideas/feedback → `feedback@whywedie.org` (address assembled at runtime, not
 a literal in the markup). The alias is a free **ImprovMX** inbound forward
 → owner's Gmail (MX + merged SPF at GoDaddy, DNS live). `/privacy` has an
-"If you contact us" note.
+"If you get in touch" note.
+
+**Cookieless analytics — DONE (2026-09).** **Umami Cloud**
+(`data-website-id="94f0b47e-1d83-4076-b3b8-534a4618df91"`), script tag in
+`index.html` with `data-do-not-track="true"`. `src/lib/analytics.js`
+exports `trackEvent(name, data)` — a thin, silently-no-op wrapper around
+`window.umami.track()`. Events wired: `csv_download` / `png_download` /
+`link_copy` / `embed_copy` (`ChartToolbar.vue` + the two chart components,
+keyed by the chart's filename/pngName), `chart_toggle` (`{ page, control,
+value }` — metric/names/breakdown/generations toggles across all 4 data
+views), `outbound_click` (`{ host }` — CDC/WONDER links in Home, Contact,
+API, the sidebar, and the footer, via `data-umami-event` HTML attributes,
+not JS), `contact_click` (`{ type: 'issue' | 'email' }` on `/contact`),
+`embed_preview` (the `/embed/:slug` preview link in the Embed panel).
+`/privacy`'s "Analytics" section names Umami + links its policy
+(umami.is/privacy) instead of saying "planned."
 
 **Deferred backlog (low priority, owner will decide when):**
 - Bing Webmaster Tools — "Import from Google Search Console" is one click.
-- Cookieless analytics — GoatCounter / Umami Cloud (free) or Plausible
-  (paid); wire it + ~10 custom events on key interactions + update
-  `/privacy`.
 - Support / donation link — Ko-fi / GitHub Sponsors / Liberapay → footer.
 - Prerendering (vite-ssg) — deferred: Chart.js needs SSR guards, and a
   risky Apache rewrite. (The `@unhead/vue` version friction that also
@@ -819,10 +831,10 @@ live.**
 - **Bing Webmaster Tools** — "Import from Google Search Console".
 - Google Dataset Search — no submission; `/api` `DataCatalog` + per-view
   `Dataset` JSON-LD feed it. Re-check ~1 month out.
-- Cookieless analytics (pick a tool → Claude wires it + events +
-  `/privacy`); support/donation link → footer; pipeline hosting (unblocks
-  features 7, 8, and refreshing deaths-by-age past 2022); the Death
-  Statistics → "Mortality" nav regroup once 5 sections feels heavy.
+- ~~Cookieless analytics~~ **DONE (2026-09)** — see above.
+- Support/donation link → footer; pipeline hosting (unblocks features 7, 8,
+  and refreshing deaths-by-age past 2022); the Death Statistics →
+  "Mortality" nav regroup once 5 sections feels heavy.
 
 **Done for discovery (2026-09):** GitHub repo description + homepage +
 topics (were blank); `DataCatalog` JSON-LD on `/api` with real

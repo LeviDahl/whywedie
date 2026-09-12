@@ -127,8 +127,8 @@ useHead({
           </h2>
           <p class="mt-4 text-sm leading-relaxed text-muted">
             The underlying figures are U.S. Government works (CDC / NCHS, via
-            <a href="https://wonder.cdc.gov/" target="_blank" rel="noopener" class="link-underline">CDC
-            WONDER</a> and <a href="https://data.cdc.gov/" target="_blank" rel="noopener" class="link-underline">data.cdc.gov</a>)
+            <a href="https://wonder.cdc.gov/" target="_blank" rel="noopener" class="link-underline" data-umami-event="outbound_click" data-umami-event-host="wonder.cdc.gov">CDC
+            WONDER</a> and <a href="https://data.cdc.gov/" target="_blank" rel="noopener" class="link-underline" data-umami-event="outbound_click" data-umami-event-host="data.cdc.gov">data.cdc.gov</a>)
             and carry no copyright. This project's compilation of them is released under
             <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener" class="link-underline">CC0 1.0</a>,
             which is effectively public domain: use it for anything, with no permission or attribution

@@ -15,6 +15,7 @@ import { fetchCauseBreakdown } from '@/api/causeBreakdown.js'
 import { displayName } from '@/data/causeNames.js'
 import { SERIES, SERIES_DASH } from '@/charts/palette.js'
 import { sections } from '@/nav.js'
+import { trackEvent } from '@/lib/analytics.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,6 +52,10 @@ useHead({
 // Friendly vs official cause names (persisted, shared app-wide).
 const { nameStyle } = useNamePreference()
 const label = (officialName) => displayName(officialName, nameStyle.value)
+function setNameStyle(opt) {
+  nameStyle.value = opt
+  trackEvent('chart_toggle', { page: 'causes-of-death', control: 'names', value: opt })
+}
 
 const { data, error, loading, load } = useAsyncData(fetchCausesOfDeath)
 // Optional demographic (Sex / Race) breakdown — lives in its own ~6 MB
@@ -79,6 +84,10 @@ const metric = ref(METRICS[route.query.metric] ? route.query.metric : 'deaths')
 if (route.query.names === 'friendly' || route.query.names === 'official') {
   nameStyle.value = route.query.names
 }
+function setMetric(key) {
+  metric.value = key
+  trackEvent('chart_toggle', { page: 'causes-of-death', control: 'metric', value: key })
+}
 
 // --- demographic breakdown -----------------------------------------
 // 'none' | 'sex' | 'race'. When not 'none' the ranked chart splits by
@@ -88,6 +97,10 @@ const BREAKDOWN_LABELS = { none: 'None', sex: 'Sex', race: 'Race' }
 const breakdown = ref(
   ['sex', 'race'].includes(route.query.breakdown) ? route.query.breakdown : 'none'
 )
+function setBreakdown(opt) {
+  breakdown.value = opt
+  trackEvent('chart_toggle', { page: 'causes-of-death', control: 'breakdown', value: opt })
+}
 // Landing straight on a race breakdown with no explicit metric: age-adjusted
 // is the honest default (crude rate mostly tracks age structure).
 if (breakdown.value === 'race' && !METRICS[route.query.metric]) {
@@ -662,7 +675,7 @@ function onAddChapterSelect(event) {
                 type="button"
                 class="px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
                 :class="metric === key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
-                @click="metric = key"
+                @click="setMetric(key)"
               >
                 {{ m.label }}
               </button>
@@ -678,7 +691,7 @@ function onAddChapterSelect(event) {
                 type="button"
                 class="px-3.5 py-1.5 text-sm font-medium capitalize transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
                 :class="nameStyle === opt ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
-                @click="nameStyle = opt"
+                @click="setNameStyle(opt)"
               >
                 {{ opt }}
               </button>
@@ -694,7 +707,7 @@ function onAddChapterSelect(event) {
                 type="button"
                 class="px-3.5 py-1.5 text-sm font-medium capitalize transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
                 :class="breakdown === opt ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
-                @click="breakdown = opt"
+                @click="setBreakdown(opt)"
               >
                 {{ BREAKDOWN_LABELS[opt] ?? opt }}
               </button>

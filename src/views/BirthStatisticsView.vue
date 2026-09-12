@@ -11,6 +11,7 @@ import { fetchMonthlyBirths } from '@/api/monthlyBirths.js'
 import { fetchAnnualNatality } from '@/api/natality.js'
 import { PEW_GENERATIONS, generationChoices } from '@/data/generations.js'
 import { sections } from '@/nav.js'
+import { trackEvent } from '@/lib/analytics.js'
 
 const section = sections.find((s) => s.name === 'birth-statistics')
 
@@ -127,6 +128,10 @@ const ANNUAL_METRICS = {
 }
 const annualMetric = ref('births')
 const annualFmt = computed(() => ANNUAL_METRICS[annualMetric.value].fmt)
+function setAnnualMetric(key) {
+  annualMetric.value = key
+  trackEvent('chart_toggle', { page: 'birth-statistics', control: 'metric', value: key })
+}
 
 // Pew generation cohorts — shown only under the Births metric (birth cohorts).
 // Ones that overlap the births data (starts 1960) are offered as drill-downs.
@@ -136,6 +141,10 @@ const GEN_CHOICES = generationChoices(1960, 2025)
 // apply only to the Births metric.
 const showGenerations = ref(true)
 const genActive = computed(() => annualMetric.value === 'births' && showGenerations.value)
+function setShowGenerations(v) {
+  showGenerations.value = v
+  trackEvent('chart_toggle', { page: 'birth-statistics', control: 'generations', value: String(v) })
+}
 
 // One selector drives the annual window: a numeric range key OR a cohort
 // label. Numeric keys live in ANNUAL_RANGES (below); cohort keys are the
@@ -347,7 +356,7 @@ const annualTable = computed(() => {
                 type="button"
                 class="px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
                 :class="annualMetric === key ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
-                @click="annualMetric = key"
+                @click="setAnnualMetric(key)"
               >
                 {{ m.label }}
               </button>
@@ -375,7 +384,7 @@ const annualTable = computed(() => {
                   type="button"
                   class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
                   :class="showGenerations === opt.v ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
-                  @click="showGenerations = opt.v"
+                  @click="setShowGenerations(opt.v)"
                 >
                   {{ opt.l }}
                 </button>

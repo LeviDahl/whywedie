@@ -1,9 +1,9 @@
 <script setup>
 // Static content page. Describes the site's actual privacy practices.
-// Current state: no cookies, no ads, no third-party requests, and no
-// analytics yet. A cookieless aggregate analytics tool is planned; the
-// "Analytics" section says so. When it ships, update that section to name
-// the tool and link its policy.
+// Current state: no cookies, no ads, no third-party requests. Analytics is
+// Umami Cloud (index.html + src/lib/analytics.js) — cookieless, aggregate
+// only, respects Do Not Track. Keep the "Analytics" section in sync with
+// what src/lib/analytics.js actually tracks if that list changes.
 const updated = 'September 2026'
 </script>
 
@@ -14,9 +14,9 @@ const updated = 'September 2026'
         <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-muted">The short version</p>
         <h1 class="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Privacy</h1>
         <p class="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-          This site sets no cookies, shows no ads, and makes no third-party requests. It doesn't
-          identify you or follow you around the web. The one planned addition is basic, cookieless
-          visitor counts, described below.
+          This site sets no cookies and shows no ads. It doesn't identify you or follow you around
+          the web. The one third-party request it makes is a cookieless analytics script, described
+          below.
         </p>
       </div>
     </header>
@@ -31,25 +31,27 @@ const updated = 'September 2026'
             <li>No cookies. No local storage, apart from one optional display setting (friendly vs.
               official cause names) that stays in your browser and is never sent anywhere.</li>
             <li>No session recording, no per-visitor heatmaps, no fingerprinting, no cross-site
-              tracking, no profiles of individual visitors. That won't change; any analytics added
-              later stays aggregate (see below).</li>
+              tracking, no profiles of individual visitors. That won't change; the analytics below
+              stays aggregate.</li>
             <li>No ads and no ad networks.</li>
             <li>No accounts, no sign-in, no email collection.</li>
-            <li>No third-party embeds, fonts, scripts, or CDNs. Everything the page loads comes from
-              this domain: its own code, plus the public data files it charts.</li>
+            <li>No third-party embeds, fonts, or CDNs. The one third-party script is the analytics
+              tool below; everything else comes from this domain.</li>
           </ul>
         </div>
 
         <div>
           <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">Analytics</h2>
           <p class="mt-4 max-w-2xl">
-            The site currently runs no analytics. A lightweight, cookieless tool is planned
-            (GoatCounter or Plausible, most likely) to show which parts of the site get used:
-            page views per section, plus a count of a few specific actions such as a chart toggle
-            or a CSV download. Aggregate counts only. No cookies, no personal data, no cross-site
-            tracking, no per-visitor profiles, and nothing that records what an individual did.
-            Whatever tool is chosen will respect Do Not Track and analytics blockers. This section
-            will name it and link its policy once it is live.
+            The site uses
+            <a href="https://umami.is/" target="_blank" rel="noopener noreferrer" class="link-underline">Umami</a>,
+            a lightweight, cookieless analytics tool, to see which parts of the site get used: page
+            views per section, plus a count of a handful of specific actions such as a chart toggle,
+            a CSV or PNG download, or a click through to the CDC. Aggregate counts only. No cookies,
+            no personal data, no cross-site tracking, no per-visitor profiles, and nothing that
+            records what an individual did. The script honours your browser's Do Not Track setting
+            and stops tracking entirely if it's on. Umami's own privacy practices are at
+            <a href="https://umami.is/privacy" target="_blank" rel="noopener noreferrer" class="link-underline">umami.is/privacy</a>.
           </p>
         </div>
 

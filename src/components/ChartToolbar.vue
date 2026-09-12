@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import DataTable from '@/components/DataTable.vue'
 import { downloadCsv } from '@/lib/csv.js'
+import { trackEvent } from '@/lib/analytics.js'
 import { SITE_URL } from '@/seo.js'
 
 // A small row under a chart: an optional left-side note (e.g. data vintage),
@@ -28,6 +29,7 @@ const embedCopied = ref(false)
 
 function csv() {
   downloadCsv(props.filename, props.columns, props.rows)
+  trackEvent('csv_download', { chart: props.filename })
 }
 
 async function copyText(text, flag) {
@@ -39,7 +41,14 @@ async function copyText(text, flag) {
   flag.value = true
   setTimeout(() => (flag.value = false), 1800)
 }
-const copyLink = () => copyText(window.location.href, copied)
+const copyLink = () => {
+  copyText(window.location.href, copied)
+  trackEvent('link_copy', { chart: props.filename })
+}
+const copyEmbed = () => {
+  copyText(embedCode.value, embedCopied)
+  trackEvent('embed_copy', { chart: props.embedSlug })
+}
 
 const embedSrc = computed(() => {
   const qs = Object.entries(props.embedParams)
@@ -109,11 +118,18 @@ const embedCode = computed(
             <button
               type="button"
               class="btn-secondary px-2.5 py-1 text-xs"
-              @click="copyText(embedCode, embedCopied)"
+              @click="copyEmbed"
             >
               {{ embedCopied ? 'Copied' : 'Copy code' }}
             </button>
-            <a :href="embedSrc" target="_blank" rel="noopener" class="text-xs text-muted link-underline">
+            <a
+              :href="embedSrc"
+              target="_blank"
+              rel="noopener"
+              class="text-xs text-muted link-underline"
+              data-umami-event="embed_preview"
+              :data-umami-event-chart="embedSlug"
+            >
               Preview
             </a>
           </div>

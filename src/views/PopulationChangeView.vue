@@ -10,6 +10,7 @@ import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchBirthsVsDeaths, fetchBirthHistory } from '@/api/populationChange.js'
 import { PEW_GENERATIONS, generationChoices } from '@/data/generations.js'
 import { sections } from '@/nav.js'
+import { trackEvent } from '@/lib/analytics.js'
 
 const section = sections.find((s) => s.name === 'population-change')
 
@@ -131,6 +132,10 @@ const HISTORY_RANGES = [
   { key: 'max', label: 'Max', n: Infinity }
 ]
 const showGenerations = ref(true)
+function setShowGenerations(v) {
+  showGenerations.value = v
+  trackEvent('chart_toggle', { page: 'population-change', control: 'generations', value: String(v) })
+}
 const historyWindowKey = ref('max')
 const historySpan = computed(() => {
   const ys = history.data.value?.years ?? []
@@ -366,7 +371,7 @@ const historyTable = computed(() => {
                 type="button"
                 class="px-3 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"
                 :class="showGenerations === opt.v ? 'bg-ink text-paper' : 'bg-transparent text-ink hover:bg-paper-soft'"
-                @click="showGenerations = opt.v"
+                @click="setShowGenerations(opt.v)"
               >
                 {{ opt.l }}
               </button>

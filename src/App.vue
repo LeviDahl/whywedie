@@ -153,6 +153,8 @@ watch(
               target="_blank"
               rel="noopener noreferrer"
               class="transition-colors hover:text-ink"
+              data-umami-event="outbound_click"
+              data-umami-event-host="data.cdc.gov"
               >Data source</a
             >
           </nav>

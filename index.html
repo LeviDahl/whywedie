@@ -13,7 +13,7 @@
     <title>Why We Die — US Mortality &amp; Population Statistics</title>
     <meta
       name="description"
-      content="Interactive US death, birth, and population statistics from the CDC — leading causes of death, birth and fertility rates, and natural increase, tracked from 1900 to today."
+      content="Interactive US death, birth, and population statistics from the CDC: leading causes of death, birth and fertility rates, and natural increase, tracked from 1900 to today."
     />
     <link rel="canonical" href="https://whywedie.org/" />
     <link
@@ -41,6 +41,18 @@
 
     <!-- Inter is self-hosted (src/main.js imports @fontsource/inter); no
          third-party font request. -->
+
+    <!-- Umami Cloud: cookieless, aggregate-only pageview + custom-event
+         analytics (see src/lib/analytics.js for the event wiring and
+         /privacy for what this does and doesn't collect). Respects
+         Do Not Track — data-do-not-track makes the script skip tracking
+         entirely when the browser sends DNT. -->
+    <script
+      defer
+      src="https://cloud.umami.is/script.js"
+      data-website-id="94f0b47e-1d83-4076-b3b8-534a4618df91"
+      data-do-not-track="true"
+    ></script>
   </head>
   <body>
     <div id="app"></div>

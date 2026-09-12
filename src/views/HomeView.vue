@@ -37,7 +37,7 @@ onMounted(pace.load)
               <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12l-7.5 7.5M21 12H3" />
             </svg>
           </router-link>
-          <a href="https://data.cdc.gov/" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+          <a href="https://data.cdc.gov/" target="_blank" rel="noopener noreferrer" class="btn-secondary" data-umami-event="outbound_click" data-umami-event-host="data.cdc.gov">
             View the data source
           </a>
         </div>
@@ -72,7 +72,7 @@ onMounted(pace.load)
         <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">What this site does</h2>
         <p class="mt-4 max-w-2xl text-base leading-relaxed text-ink">
           Every chart on this site is built from public data published on
-          <a href="https://data.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline">data.cdc.gov</a>,
+          <a href="https://data.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline" data-umami-event="outbound_click" data-umami-event-host="data.cdc.gov">data.cdc.gov</a>,
           CDC's open data platform. Rather than a single snapshot, the goal is to make it
           easy to see how these numbers move over time: which causes of death are rising or
           falling, how birth counts compare across recent years, and what that means for

@@ -37,6 +37,8 @@ const mailto = `mailto:${email}?subject=${encodeURIComponent('whywedie.org feedb
             target="_blank"
             rel="noopener noreferrer"
             class="btn-secondary mt-4"
+            data-umami-event="contact_click"
+            data-umami-event-type="issue"
           >
             Open an issue on GitHub
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="h-4 w-4">
@@ -48,7 +50,15 @@ const mailto = `mailto:${email}?subject=${encodeURIComponent('whywedie.org feedb
         <div class="card">
           <h2 class="text-base font-semibold text-ink">Ideas, corrections, or general feedback?</h2>
           <p class="mt-2 text-sm leading-relaxed text-muted">
-            Email <a :href="mailto" class="link-underline" rel="nofollow">{{ email }}</a>. Feature
+            Email
+            <a
+              :href="mailto"
+              class="link-underline"
+              rel="nofollow"
+              data-umami-event="contact_click"
+              data-umami-event-type="email"
+              >{{ email }}</a
+            >. Feature
             requests, "you should chart X", methodology questions, or anything that doesn't fit an
             issue.
           </p>
@@ -56,8 +66,8 @@ const mailto = `mailto:${email}?subject=${encodeURIComponent('whywedie.org feedb
 
         <p class="border-t border-line pt-6 text-sm text-muted">
           For questions about the underlying figures themselves, the primary source is
-          <a href="https://wonder.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline">CDC
-          WONDER</a> and <a href="https://data.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline">data.cdc.gov</a>.
+          <a href="https://wonder.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline" data-umami-event="outbound_click" data-umami-event-host="wonder.cdc.gov">CDC
+          WONDER</a> and <a href="https://data.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline" data-umami-event="outbound_click" data-umami-event-host="data.cdc.gov">data.cdc.gov</a>.
           This project is independent and not affiliated with the CDC.
         </p>
       </div>
