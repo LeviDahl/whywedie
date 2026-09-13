@@ -274,7 +274,7 @@ whether it would pass.
 ### State management & routing
 
 - **No Pinia yet — nothing in this project needs shared/global state at the
-  moment.** `src/nav.js` is the single source of truth for the 7 sidebar
+  moment.** `src/nav.js` is the single source of truth for the sidebar
   sections (path, name, shortLabel, label, description); both the
   router and the sidebar read from it. When a real feature needs state
   shared across components (e.g. a chart's selected year range persisting
@@ -299,7 +299,7 @@ whether it would pass.
 
 ```
 src/
-  nav.js                     # single source of truth for the 7 sidebar sections
+  nav.js                     # single source of truth for the sidebar sections
   router/index.js            # routes generated from nav.js
   App.vue                    # app shell: sidebar + mobile top bar + page transitions
   style.css                  # Tailwind import, black/white design tokens, component classes
@@ -371,10 +371,10 @@ src/
 public/
   .htaccess                  # Apache: HTTPS redirect + Vue Router history-mode fallback
   data/mortality.json        # committed baseline snapshot; pipeline/ refreshes it in prod
-  data/mortality_demographic.json  # Sex/Race breakdown; committed stub (empty dimensions) until pipeline eras run
+  data/mortality_demographic.json  # Sex/Race/Age breakdown for Causes of Death
   data/mortality_monthly.json # D176 monthly all-cause deaths
   data/natality.json         # committed Socrata baseline 1960-2018; pipeline/ extends it
-  data/natality_monthly.json # D192 monthly births; committed stub until the era runs (Socrata fallback)
+  data/natality_monthly.json # D192 monthly births, 2023–present (Socrata fallback if ever empty)
 pipeline/                    # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
                              #   own package.json (axios, mysql2, fast-xml-parser); see its README
 ```
@@ -526,7 +526,7 @@ Socrata query.
   (`coverage.yearMax` 2025). Committed in `mortality.json`.
 
 **Tabled — possible enhancement:** period/decade comparison *inside* a
-Sex/Race breakdown. Blocked today because the ranked bar chart has one
+Sex/Race/Age breakdown. Blocked today because the ranked bar chart has one
 color axis and the breakdown already spends it on the subgroup. Paths if
 revisited: (a) a **single-cause** mode — bars grouped subgroup × decade
 (~8 bars, readable); (b) a different chart type (small multiples, or
@@ -591,7 +591,7 @@ codes" line.
 | Death Statistics — **deaths by age** | **2015–2022** | Socrata `y5bj-9g5w` weekly→annual rollup, US/Unweighted, 6 NCHS age bands; ends 2022 (dataset not refreshed past ~2023) |
 | Causes of Death — ranked | **1999–2025** | 113 list; a bar is a snapshot so no pre-1999 |
 | Causes of Death — trend | ranked causes 1999–2025; **11 of them back to 1968** | pre-1999 = the ICD sub-chapter approximation (`PREHISTORY_MAP` in `causesOfDeath.js`), grey + flagged; `icd9_sub` / `icd8_sub` eras ran, deployed 2026-09 |
-| Causes of Death — Sex/Race breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race) |
+| Causes of Death — Sex/Race/Age breakdown | 1999–2025 | race categories change at the 2020/2021 seam (bridged → single-race); Age has no age-adjusted-rate option (WONDER won't compute one grouped by age) |
 | Causes of Death — Broad Chapters | **1968–2025** | ICD-8/9/10 chapters (D74/D16/D76/D176); seams at 1979 and 1999; ICD-10 eye/ear folded into "Nervous system & sense organs"; "Special-purpose codes" line = COVID-19 (U07.1), from 2020 |
 | Birth Statistics — annual births | 1960–2025 | + generation bands |
 | Birth Statistics — fertility rate | **1960–2023** | 2021–2023 from Census PEP (`fetch-census-fertility.js`; see Remaining #2); deployed 2026-09 |

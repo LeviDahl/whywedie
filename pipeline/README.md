@@ -122,8 +122,8 @@ manual loop needs a sleep between chunks:
 ```
 for chunk in \
   "mortality icd10" "mortality icd10_total" \
-  "mortality icd10_sex" "mortality icd10_race" \
-  "mortality provisional" "mortality provisional_causes" "mortality provisional_sex" "mortality provisional_race" "mortality monthly" \
+  "mortality icd10_sex" "mortality icd10_race" "mortality icd10_age" \
+  "mortality provisional" "mortality provisional_causes" "mortality provisional_sex" "mortality provisional_race" "mortality provisional_age" "mortality monthly" \
   "mortality icd9" "mortality icd8" \
   "mortality icd10_chapter" "mortality provisional_chapter" \
   "mortality icd9_sub" "mortality icd8_sub" \
@@ -145,7 +145,11 @@ the ICD-10 chapter roll-up that extends "Broad Chapters" past 1998; pass
 D74.V2-level2, ~130 groups); `src/api/causesOfDeath.js` `PREHISTORY_MAP`
 sums the ones that map to a 113-list cause so ~11 rankable causes' trend
 lines run back to 1968. Non-`#` codes, distinct from the chapter rows —
-no key collision.)
+no key collision. `icd10_age` (D76 1999-2020) / `provisional_age` (D176
+2021+) = the Causes of Death "Age" breakdown, same `mortality_demographic`
+table as `icd10_sex`/`icd10_race` — no age-adjusted rate (WONDER refuses
+to compute one grouped by age); see the two templates' file headers for
+the column-order gotcha between D76 and D176 that bit this one.)
 
 `ON DUPLICATE KEY UPDATE` makes every run re-runnable. If a mortality era
 errors on size/timeout, slice it (needs the `{{YEAR_LIST}}` token in that
@@ -252,13 +256,15 @@ locally, point `.env` at any MySQL 8 / MariaDB 10 (`brew install mysql` or a
   D192 `natality/monthly` era. Empty `months` ⇒ `src/api/monthlyBirths.js`
   falls back to Socrata `hmz2-vwda`.
 - **`mortality_demographic.json`** — the Causes-of-Death "Breakdown" data
-  (eras `icd10_sex` / `icd10_race`): `{ source, fetchedAt, coverage, years,
+  (eras `icd10_sex`/`icd10_race`/`icd10_age` + their `provisional_*`
+  D176 continuations): `{ source, fetchedAt, coverage, years,
   dimensions: { sex: { subgroups[], byYear: { <year>: [ { cause, causeName,
   leading, subgroup, deaths, population, crudeRate, ageAdjustedRate,
   suppressed } ] }, byCause: { "<cause_code>": { name, leading, subgroups:
   { "<label>": { years[], deaths[], crudeRate[], ageAdjustedRate[] } } } } },
-  race: { ...same... } } }`. Empty `dimensions` ⇒ the frontend hides the
-  Breakdown control.
+  race: { ...same... }, age: { ...same, but every row's `ageAdjustedRate`
+  is null — WONDER won't compute one grouped by age } } }`. Empty
+  `dimensions` ⇒ the frontend hides the Breakdown control.
 - **`meta.json`** — generation time, per-era row counts + year spans,
   caveats.
 
