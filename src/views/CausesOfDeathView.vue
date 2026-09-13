@@ -93,9 +93,9 @@ function setMetric(key) {
 // 'none' | 'sex' | 'race'. When not 'none' the ranked chart splits by
 // subgroup for ONE period (period comparison is suspended), and the trend
 // chart splits the first selected cause by subgroup.
-const BREAKDOWN_LABELS = { none: 'None', sex: 'Sex', race: 'Race' }
+const BREAKDOWN_LABELS = { none: 'None', sex: 'Sex', race: 'Race', age: 'Age' }
 const breakdown = ref(
-  ['sex', 'race'].includes(route.query.breakdown) ? route.query.breakdown : 'none'
+  ['sex', 'race', 'age'].includes(route.query.breakdown) ? route.query.breakdown : 'none'
 )
 function setBreakdown(opt) {
   breakdown.value = opt
@@ -161,11 +161,15 @@ function toggleSubgroup(sg) {
 
 // Picking a breakdown collapses the comparison to a single period and, for
 // Race, defaults to the age-adjusted rate (crude rate mostly tracks age
-// structure). Switching back to 'none' leaves those as they are.
+// structure). Age-adjusted rate is meaningless when already broken down BY
+// age (WONDER won't even compute it — see src/api/injuryDeaths.js's note
+// on the same limitation), so switch away from it if the reader had it
+// selected. Switching back to 'none' leaves the metric as-is either way.
 watch(breakdown, (b) => {
   if (b === 'none') return
   if (periods.value.length > 1) periods.value = [periods.value[0]]
   if (b === 'race' && metric.value === 'deaths') metric.value = 'ageAdjustedRate'
+  if (b === 'age' && metric.value === 'ageAdjustedRate') metric.value = 'deaths'
 })
 
 // Metric explainer popover (age-adjusted vs crude isn't common knowledge).
@@ -241,6 +245,14 @@ const valueFormatter = computed(() =>
   metric.value === 'deaths' ? integerFormatter : rateFormatter
 )
 const metricUnit = computed(() => METRICS[metric.value].unit)
+// Age-adjusted rate is hidden (not just auto-switched-away-from) once the
+// breakdown is by age — WONDER can't compute it grouped that way, so
+// offering the button at all would just invite a blank chart.
+const visibleMetrics = computed(() =>
+  breakdown.value === 'age'
+    ? Object.fromEntries(Object.entries(METRICS).filter(([k]) => k !== 'ageAdjustedRate'))
+    : METRICS
+)
 
 // --- periods ---------------------------------------------------------
 const periodLabel = (p) => (p.from === p.to ? `${p.from}` : `${p.from}–${p.to}`)
@@ -670,7 +682,7 @@ function onAddChapterSelect(event) {
             </span>
             <div class="inline-flex overflow-hidden rounded-lg border border-line-strong">
               <button
-                v-for="(m, key) in METRICS"
+                v-for="(m, key) in visibleMetrics"
                 :key="key"
                 type="button"
                 class="px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 [&:not(:first-child)]:border-l [&:not(:first-child)]:border-line-strong"

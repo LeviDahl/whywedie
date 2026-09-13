@@ -243,6 +243,40 @@ export const DATASETS = {
         { kind: 'measure', field: 'age_adjusted_rate' },
       ],
     },
+    // Feature #7: leading causes of death by age group. Same
+    // mortality_demographic table + 7-col contract, third `dimension`
+    // value ('age') alongside sex/race — B_3 = D76.V5 (Ten-Year Age
+    // Groups), the standard D76 demographic variable, same shape as the
+    // sex/race eras (verified via WONDER's own request-builder form before
+    // adapting the sex template: Group Results By = Year, And By = 113
+    // Cause List, And By = Ten-Year Age Groups all combine without issue).
+    // No age_adjusted_rate here — WONDER refuses to compute it when the
+    // data is already grouped by age ("Age Adjusted Rates cannot be
+    // produced when the data is grouped by Age", confirmed live), which
+    // makes sense: age-adjustment exists to compare ACROSS age structures,
+    // meaningless within one age band. 6-col contract, not 7.
+    // B_2/B_3 order is swapped vs icd10_sex/icd10_race (age group, THEN
+    // cause list) — WONDER accepted this order but 500'd with the reverse
+    // (cause list, then age group) even with age-adjusted rate already
+    // stripped; confirmed live via the request-builder UI before adapting
+    // this template. Response column order follows: year, age group,
+    // cause, then measures.
+    icd10_age: {
+      databaseId: 'D76',
+      templateFile: 'mortality_icd10_age.xml',
+      table: 'mortality_demographic',
+      fixed: { icd_version: 10, dimension: 'age' },
+      yearMin: 1999,
+      yearMax: 2020,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'subgroup', name: 'subgroup' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
+      ],
+    },
     // D176 continuation of the Sex/Race breakdown for 2021+ (D76 stops at
     // 2020). Same `mortality_demographic` table + 7-col contract as the
     // `icd10_sex` / `icd10_race` eras, so build-snapshots just sees extra
@@ -281,6 +315,24 @@ export const DATASETS = {
         { kind: 'measure', field: 'population' },
         { kind: 'measure', field: 'crude_rate' },
         { kind: 'measure', field: 'age_adjusted_rate' },
+      ],
+    },
+    // D176 continuation of icd10_age for 2021+. Same 6-col (no
+    // age_adjusted_rate) contract as icd10_age, same reason.
+    provisional_age: {
+      databaseId: 'D176',
+      templateFile: 'mortality_provisional_age.xml',
+      table: 'mortality_demographic',
+      fixed: { icd_version: 10, dimension: 'age' },
+      yearMin: 2021,
+      yearMax: 2030,
+      columns: [
+        { kind: 'year' },
+        { kind: 'coded', code: 'subgroup', name: 'subgroup' },
+        { kind: 'coded', code: 'cause_code', name: 'cause_name', level: 'cause_level' },
+        { kind: 'measure', field: 'death_count', countField: true },
+        { kind: 'measure', field: 'population' },
+        { kind: 'measure', field: 'crude_rate' },
       ],
     },
 

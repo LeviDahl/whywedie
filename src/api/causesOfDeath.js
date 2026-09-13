@@ -31,17 +31,17 @@ const META_URL = `${import.meta.env.BASE_URL}data/meta.json`
 async function breakdownAxes() {
   try {
     const res = await fetch(META_URL, { headers: { accept: 'application/json' } })
-    if (!res.ok) return ['sex', 'race']
+    if (!res.ok) return ['sex', 'race', 'age']
     const meta = await res.json()
     const eras = meta?.sources?.mortality ?? []
     const axes = new Set()
     for (const e of eras) {
-      const m = /_(sex|race)$/.exec(e.era)
+      const m = /_(sex|race|age)$/.exec(e.era)
       if (m && (e.rows ?? 0) > 0) axes.add(m[1])
     }
-    return axes.size ? [...axes] : ['sex', 'race']
+    return axes.size ? [...axes] : ['sex', 'race', 'age']
   } catch {
-    return ['sex', 'race']
+    return ['sex', 'race', 'age']
   }
 }
 
