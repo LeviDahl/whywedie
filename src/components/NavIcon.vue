@@ -33,6 +33,8 @@ defineProps({
 
     <path v-else-if="name === 'state-comparison'" d="M4 6.5 9 4l6 2.5 5-2.5v13.5l-5 2.5-6-2.5-5 2.5V6.5Z M9 4v13.5 M15 6.5V20" />
 
+    <path v-else-if="name === 'international'" d="M12 3.5a13 13 0 0 0 0 17 13 13 0 0 0 0-17ZM3.5 12h17M12 3.5a9 9 0 1 0 0 17 9 9 0 0 0 0-17Z" />
+
     <path v-else d="M12 6v12m-6-6h12" />
   </svg>
 </template>

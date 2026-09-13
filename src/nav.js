@@ -94,6 +94,17 @@ export const sections = [
     seoTitle: 'US Death Rates by State',
     seoDescription:
       'Age-adjusted death rates by US state for leading causes, from suicide and drug overdose to heart disease and cancer — a quarterly snapshot.'
+  },
+  {
+    path: '/international',
+    name: 'international',
+    label: 'US vs. Peer Countries',
+    shortLabel: 'International',
+    description:
+      'How the US compares with the UK, France, and Japan on death rate, life expectancy, and fertility rate.',
+    seoTitle: 'US Life Expectancy vs. UK, France & Japan',
+    seoDescription:
+      'How the US compares with the UK, France, and Japan on death rate, life expectancy, and fertility rate, 1968 to today. From the World Bank.'
   }
 ]
 
@@ -114,7 +125,7 @@ export const primaryGroups = [
     sections: ['death-statistics', 'causes-of-death', 'injury-deaths', 'state-comparison']
   },
   { label: 'Births & Population', sections: ['birth-statistics', 'population-change'] },
-  { label: null, sections: ['by-the-numbers'] }
+  { label: null, sections: ['by-the-numbers', 'international'] }
 ]
 
 // Secondary sidebar groups — rendered below the data sections as labelled,
