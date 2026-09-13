@@ -8,7 +8,7 @@ import ChartToolbar from '@/components/ChartToolbar.vue'
 import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchBirthsVsDeaths, fetchBirthHistory } from '@/api/populationChange.js'
-import { PEW_GENERATIONS, generationChoices } from '@/data/generations.js'
+import { GENERATIONS, generationChoices } from '@/data/generations.js'
 import { sections } from '@/nav.js'
 import { trackEvent } from '@/lib/analytics.js'
 
@@ -23,7 +23,7 @@ useHead({
           name: 'US births vs deaths and natural increase',
           description:
             'United States births minus deaths — the natural increase — since 1968, plus a ' +
-            'century of annual births (1909–present) with Pew generation bands. National, from ' +
+            'century of annual births (1909–present) with generation cohort bands. National, from ' +
             'CDC WONDER.',
           path: '/population-change',
           temporal: '1909/..',
@@ -124,7 +124,7 @@ const dropPct = computed(() => {
   return ((last.value.ni - first.value.ni) / first.value.ni) * 100
 })
 
-// --- long birth history: Pew generation bands + drill-down ---
+// --- long birth history: generation cohort bands + drill-down ---
 // One selector drives the window: a numeric range key OR a cohort label.
 const HISTORY_RANGES = [
   { key: '40y', label: '40 yr', n: 40 },
@@ -143,7 +143,7 @@ const historySpan = computed(() => {
 })
 const GEN_CHOICES = computed(() => generationChoices(...historySpan.value))
 const selectedGen = computed(
-  () => PEW_GENERATIONS.find((g) => g.label === historyWindowKey.value) ?? null
+  () => GENERATIONS.find((g) => g.label === historyWindowKey.value) ?? null
 )
 function pickHistoryWindow(key) {
   historyWindowKey.value = key
@@ -157,7 +157,7 @@ watch(showGenerations, (on) => {
 })
 const historyBands = computed(() =>
   showGenerations.value
-    ? PEW_GENERATIONS.map((g) => ({ ...g, active: g.label === historyWindowKey.value }))
+    ? GENERATIONS.map((g) => ({ ...g, active: g.label === historyWindowKey.value }))
     : []
 )
 
@@ -427,8 +427,9 @@ const historyTable = computed(() => {
             />
           </div>
           <p v-if="showGenerations" class="mt-3 text-xs text-muted">
-            Shaded bands are the <a class="link-underline" href="https://www.pewresearch.org/short-reads/2019/01/17/where-millennials-end-and-generation-z-begins/" target="_blank" rel="noopener">Pew Research Center</a>
-            generation cutoffs by birth year. Click a band — or a cohort button above — to zoom to
+            Shaded bands are generation cutoffs by birth year: <a class="link-underline" href="https://www.pewresearch.org/short-reads/2019/01/17/where-millennials-end-and-generation-z-begins/" target="_blank" rel="noopener">Pew Research Center</a>
+            through Gen Z, and McCrindle Research for Gen Alpha and Gen Beta, since Pew hasn't
+            published cutoffs for those yet. Click a band — or a cohort button above — to zoom to
             just those years; <em>Generations: Off</em> hides them. The 1946–1964 baby boom, the
             1970s "baby bust", and the decline since 2007 are all visible here.
           </p>

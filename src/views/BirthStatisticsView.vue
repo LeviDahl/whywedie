@@ -9,7 +9,7 @@ import RangeTabs from '@/components/RangeTabs.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchMonthlyBirths } from '@/api/monthlyBirths.js'
 import { fetchAnnualNatality } from '@/api/natality.js'
-import { PEW_GENERATIONS, generationChoices } from '@/data/generations.js'
+import { GENERATIONS, generationChoices } from '@/data/generations.js'
 import { sections } from '@/nav.js'
 import { trackEvent } from '@/lib/analytics.js'
 
@@ -24,7 +24,7 @@ useHead({
           name: 'US birth statistics and fertility rate',
           description:
             'Annual United States births since 1960, the general fertility rate (births per ' +
-            '1,000 women 15–44) and crude birth rate, Pew generation bands, and current monthly ' +
+            '1,000 women 15–44) and crude birth rate, generation cohort bands, and current monthly ' +
             'provisional counts. National, from CDC WONDER + Census.',
           path: '/birth-statistics',
           temporal: '1909/..',
@@ -133,7 +133,7 @@ function setAnnualMetric(key) {
   trackEvent('chart_toggle', { page: 'birth-statistics', control: 'metric', value: key })
 }
 
-// Pew generation cohorts — shown only under the Births metric (birth cohorts).
+// Generation cohorts — shown only under the Births metric (birth cohorts).
 // Ones that overlap the births data (starts 1960) are offered as drill-downs.
 const GEN_CHOICES = generationChoices(1960, 2025)
 
@@ -151,7 +151,7 @@ function setShowGenerations(v) {
 // generation labels.
 const annualWindow = ref('25y')
 const selectedGen = computed(() =>
-  PEW_GENERATIONS.find((g) => g.label === annualWindow.value) ?? null
+  GENERATIONS.find((g) => g.label === annualWindow.value) ?? null
 )
 function pickWindow(key) {
   annualWindow.value = key
@@ -163,7 +163,7 @@ function onBandClick(band) {
 }
 const annualBands = computed(() =>
   genActive.value
-    ? PEW_GENERATIONS.map((g) => ({ ...g, active: g.label === annualWindow.value }))
+    ? GENERATIONS.map((g) => ({ ...g, active: g.label === annualWindow.value }))
     : []
 )
 
@@ -472,8 +472,9 @@ const annualTable = computed(() => {
             />
           </div>
           <p v-if="genActive" class="mt-3 text-xs text-muted">
-            Shaded bands are the <a class="link-underline" href="https://www.pewresearch.org/short-reads/2019/01/17/where-millennials-end-and-generation-z-begins/" target="_blank" rel="noopener">Pew Research Center</a>
-            generation cutoffs by birth year (Gen X 1965–1980, Millennials 1981–1996, Gen Z 1997 on).
+            Shaded bands are generation cutoffs by birth year: <a class="link-underline" href="https://www.pewresearch.org/short-reads/2019/01/17/where-millennials-end-and-generation-z-begins/" target="_blank" rel="noopener">Pew Research Center</a>
+            through Gen Z (Gen X 1965–1980, Millennials 1981–1996, Gen Z 1997–2012), and McCrindle
+            Research for Gen Alpha and Gen Beta, since Pew hasn't published cutoffs for those yet.
             Click a band — or a cohort button above — to zoom to just those years; <em>Generations: Off</em> hides them.
           </p>
           <p v-for="p in partialYears" :key="p.year" class="mt-3 text-xs text-muted">

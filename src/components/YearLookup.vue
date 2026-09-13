@@ -80,7 +80,7 @@ const signed = (v) => (v == null ? null : (v >= 0 ? '+' : '−') + Math.abs(v).t
             {{ facts.birthRate }} per 1,000 people
           </dd>
           <dd v-if="generation" class="mt-0.5 text-xs text-muted">
-            {{ generation }} generation (Pew)
+            {{ generation }} generation
           </dd>
         </div>
 
@@ -114,7 +114,8 @@ const signed = (v) => (v == null ? null : (v >= 0 ? '+' : '−') + Math.abs(v).t
           data.maxYear
         }}
         · leading cause 1999 on (the NCHS 113-cause era) · generation labels from Pew's cutoffs
-        (Silent onward). Source: {{ data.source }}.
+        through Gen Z, McCrindle Research's for Gen Alpha/Beta (Silent onward). Source:
+        {{ data.source }}.
       </p>
 
       <ChartToolbar
