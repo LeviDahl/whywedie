@@ -9,7 +9,8 @@ const viewComponents = {
   'birth-statistics': () => import('@/views/BirthStatisticsView.vue'),
   'population-change': () => import('@/views/PopulationChangeView.vue'),
   'by-the-numbers': () => import('@/views/ByTheNumbersView.vue'),
-  'injury-deaths': () => import('@/views/InjuryDeathsView.vue')
+  'injury-deaths': () => import('@/views/InjuryDeathsView.vue'),
+  'state-comparison': () => import('@/views/StateComparisonView.vue')
 }
 
 const routes = sections.map((section) => ({

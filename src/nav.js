@@ -83,6 +83,17 @@ export const sections = [
     seoTitle: 'US Suicide, Homicide & Drug Overdose Deaths',
     seoDescription:
       'US suicide, homicide, and drug overdose deaths since 1999, including the share that involved a firearm. CDC data on three leading causes of injury death.'
+  },
+  {
+    path: '/state-comparison',
+    name: 'state-comparison',
+    label: 'State Comparison',
+    shortLabel: 'By State',
+    description:
+      'Age-adjusted death rates by US state, for about 20 leading causes, updated quarterly.',
+    seoTitle: 'US Death Rates by State',
+    seoDescription:
+      'Age-adjusted death rates by US state for leading causes, from suicide and drug overdose to heart disease and cancer — a quarterly snapshot.'
   }
 ]
 
@@ -98,7 +109,10 @@ export const sections = [
 // picker inside it, not dozens of rows.
 export const primaryGroups = [
   { label: null, sections: ['home'] },
-  { label: 'Mortality', sections: ['death-statistics', 'causes-of-death', 'injury-deaths'] },
+  {
+    label: 'Mortality',
+    sections: ['death-statistics', 'causes-of-death', 'injury-deaths', 'state-comparison']
+  },
   { label: 'Births & Population', sections: ['birth-statistics', 'population-change'] },
   { label: null, sections: ['by-the-numbers'] }
 ]
