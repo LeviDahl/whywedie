@@ -215,6 +215,23 @@ whether it would pass.
   than living in this repo's source `.htaccess`. Now that it's folded into
   the same file/block, it survives every future build — don't regenerate
   `.htaccess` from scratch without carrying both rules forward.
+- **Security headers (2026-09-13)** — CSP / `X-Content-Type-Options` /
+  `Referrer-Policy` / `Permissions-Policy`, scoped to `.html` responses in
+  `public/.htaccess`. Two things to know before touching the CSP again:
+  (1) it deliberately does **not** set `frame-ancestors` or
+  `X-Frame-Options` — `/embed/:slug` pages are meant to be `<iframe>`'d on
+  other sites, and either would break that; (2) `script-src` needs
+  `'unsafe-inline'` because every route injects a per-page JSON-LD
+  `<script>` block with real data baked in — no nonce is possible on
+  static hosting with no per-request server logic. Before changing the
+  policy, verify locally first: a throwaway Node server can mirror the
+  exact headers against a real `npm run build` output, browsed to check
+  the console for violations — a real `.htaccess` deploy is otherwise the
+  only way to observe a break, in production, in front of every visitor.
+  This is exactly how one bug was caught pre-deploy: the initial
+  `connect-src` allowed the Umami script's origin (`cloud.umami.is`) but
+  not the different origin its tracking beacon actually posts to
+  (`gateway.umami.is`), which would have silently killed all analytics.
 - **⚠️ GoDaddy zip-extract permissions, hit more than once:** extracting an
   upload in cPanel File Manager can leave files/dirs with permissions Apache
   can't read → a generic 403 for the whole site even though every file looks

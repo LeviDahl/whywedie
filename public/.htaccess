@@ -63,3 +63,34 @@
     Header set Access-Control-Allow-Headers "Accept, Content-Type"
   </FilesMatch>
 </IfModule>
+
+# 6. Security headers. This is a static SPA with no v-html/innerHTML, no
+#    forms that submit anywhere, and no user-generated content, so the
+#    actual exploitable surface is already small — these are still cheap
+#    and close off a few classes of attack outright. Scoped to .html (i.e.
+#    index.html, served for every route by the SPA fallback above) since
+#    that's the only response type these are meaningful for.
+#
+#    frame-ancestors is intentionally NOT restricted, and this doesn't set
+#    X-Frame-Options either — /embed/:slug pages are meant to be <iframe>'d
+#    on other sites (see src/views/EmbedView.vue). Restricting either would
+#    break that feature outright.
+#
+#    script-src needs 'unsafe-inline': every route injects a per-page
+#    <script type="application/ld+json"> block (@unhead/vue, src/seo.js)
+#    with real data baked in at request time, so neither a static hash nor
+#    a nonce (no per-request server logic exists on static hosting) can
+#    cover it. Verified locally against a server mimicking these exact
+#    headers before deploying — a first pass without gateway.umami.is in
+#    connect-src silently broke analytics (the script loads from
+#    cloud.umami.is but its tracking beacon posts to a DIFFERENT host,
+#    gateway.umami.is) — caught via the browser console before this ever
+#    reached production, not after.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set X-Content-Type-Options "nosniff"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cloud.umami.is https://gateway.umami.is https://data.cdc.gov https://api.worldbank.org; object-src 'none'; base-uri 'self'; form-action 'self'"
+  </FilesMatch>
+</IfModule>
