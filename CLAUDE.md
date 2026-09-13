@@ -6,9 +6,16 @@ authentication.
 
 ## Current state
 
-All seven sidebar sections are live (Home, Death Statistics Over Time,
+All nine sidebar sections are live (Home, Death Statistics Over Time,
 Causes of Death, Birth Statistics, Population Decline/Gain, By the Numbers,
-Injury Deaths).
+Injury Deaths, State Comparison, International). The sidebar groups the
+first five into "Mortality" and "Births & Population" (`nav.js`
+`primaryGroups`, display-only — routing/SEO still read the flat
+`sections` list); Home, By the Numbers, and International stay ungrouped.
+Decided 2026-09-13 after looking at how OWID/USAFacts/Worldometers handle
+a growing topic list — see the **Feature backlog & distribution** section
+near the bottom for the reasoning and what it means for any future
+section.
 
 - **Death Statistics** — five sections: annual all-cause deaths
   **1968–present** (WONDER D74/D16→D76→D176) with a counts/age-adjusted-rate
@@ -21,12 +28,16 @@ Injury Deaths).
   age-adjusted-rate toggle, overlay multiple **periods** (years or decade
   ranges, as mean annual values) and multiple **causes**, friendly ↔
   official cause-name toggle, and an optional **Breakdown** (None / Sex /
-  Race) that splits the bars/lines by subgroup for one period. Data: CDC
-  WONDER national, from `/data/mortality.json` — 113-cause list 1999–2025
-  (D76 + D176); a separate **"Broad Chapters, 1968–1998"** section shows the
-  D74/D16 ICD-chapter data as a multi-line trend. The breakdown reads
-  `/data/mortality_demographic.json` (`src/api/causeBreakdown.js`, 1999–2025)
-  and the control stays hidden until that file has real `dimensions`.
+  Race / **Age**) that splits the bars/lines by subgroup for one period —
+  Age added 2026-09 (feature #7), no age-adjusted rate for that axis (see
+  the **Feature backlog** entry for why, and the WONDER quirks that took
+  real trial-and-error to find). Data: CDC WONDER national, from
+  `/data/mortality.json` — 113-cause list 1999–2025 (D76 + D176); a
+  separate **"Broad Chapters, 1968–1998"** section shows the D74/D16
+  ICD-chapter data as a multi-line trend. The breakdown reads
+  `/data/mortality_demographic.json` (`src/api/causeBreakdown.js`,
+  1999–2025 for sex/race, 1999–2025 for age too) and the control stays
+  hidden until that file has real `dimensions`.
 - **Birth Statistics** — annual births 1960–present + fertility/birth-rate
   toggle (`src/api/natality.js` reads `/data/natality.json`: Socrata
   baseline 1960–2018, then WONDER D27/D66 + D192 provisional; rate series
@@ -47,21 +58,32 @@ Injury Deaths).
   numbers abbreviated ("5.9 billion"). Plus **"In one lifetime"**
   (`LifetimeTally.vue` — births/deaths since a chosen year) and the daily
   average (`src/api/dailyStats.js`, `hmz2-vwda` fallback).
-- **Injury Deaths** (`/injury-deaths`, added 2026-09) — Feature #8 from the
-  backlog below, Phase 1. Suicide and homicide annual trends since 1999,
-  each split into a total line and a by-firearm line, plus a drug-overdose
-  figure. All of it reads rows already in `/data/mortality.json` (the
-  113-cause list) — no new pipeline era needed for suicide/homicide/firearm.
-  `src/api/injuryDeaths.js` has the full picking logic + caveats. The
-  overdose series is a rough stand-in ("Accidental poisoning and exposure
-  to noxious substances") — it undercounts real overdose deaths (misses
-  suicide/undetermined-intent poisonings) and is visibly undercounted in
-  its last 1–2 years since overdose deaths take longer to certify than
-  most causes; the last 2 points render muted with a stronger caveat than
-  the site's usual "provisional" label. A proper fix needs a dedicated
-  WONDER pull (the "Drug/Alcohol Induced Causes" grouping) — Phase 2,
-  not done. Two new embed configs (`suicide-deaths`, `homicide-deaths`)
-  in `EmbedView.vue`.
+- **Injury Deaths** (`/injury-deaths`, added 2026-09) — feature #8, both
+  phases done. Suicide and homicide annual trends since 1999, each split
+  into a total line and a by-firearm line, reading rows already in
+  `/data/mortality.json` (the 113-cause list) — no pipeline era needed for
+  those. `src/api/injuryDeaths.js` has the full picking logic + caveats.
+  Drug overdose leads with the **real** CDC age-adjusted overdose rate
+  (Phase 2, done without ever needing the WONDER pull originally planned —
+  NCHS's quarterly VSRR Socrata dataset, `489q-934x`, the same one State
+  Comparison uses, already carries the actual "Drug overdose" figure,
+  2023+), with the older "accidental poisoning" 113-cause proxy kept
+  further down the page as a longer-run (1999+) but less precise backdrop.
+  Two embed configs (`suicide-deaths`, `homicide-deaths`) in `EmbedView.vue`.
+- **State Comparison** (`/state-comparison`, "By State" in the sidebar,
+  added 2026-09) — feature #9. Age-adjusted death rate by US state for
+  ~20 leading causes (pick one via a pill row), from the same NCHS VSRR
+  quarterly Socrata dataset (`489q-934x`) as Injury Deaths' overdose rate —
+  browser-direct, no pipeline. Only runs 2023–present (a rolling quarterly
+  release, not a historical archive); each cause tracks its own latest
+  fully-populated quarter independently. `src/api/stateComparison.js`.
+- **International** (`/international`, added 2026-09) — feature #12. US
+  vs. UK, France, and Japan on crude death rate, life expectancy, and
+  fertility rate, 1968–2023. The only section not sourced from CDC — the
+  World Bank's open API (`api.worldbank.org`, browser-direct, permissive
+  CORS, no key). Four countries, chosen to match the site's 4 validated
+  chart colors exactly rather than needing a fresh palette-validator run.
+  `src/api/international.js`.
 
 **The site itself is static — no server, no build-time data fetch.** It
 either calls Socrata directly from the browser, or reads a committed JSON
@@ -296,7 +318,10 @@ src/
     lifeExpectancy.js         # Socrata w9j2-ggv5 life expectancy 1900-2018 + NCHS 2019-23 supplement
     deathsByAge.js            # Socrata y5bj-9g5w weekly deaths by age group, rolled up to years (2015-22)
     causesOfDeath.js          # reads /data/mortality.json (from pipeline/), reshapes for the view
-    causeBreakdown.js         # reads /data/mortality_demographic.json — Sex/Race breakdown (optional)
+    causeBreakdown.js         # reads /data/mortality_demographic.json — Sex/Race/Age breakdown (optional)
+    injuryDeaths.js           # mortality.json (suicide/homicide/firearm) + Socrata 489q-934x (real overdose rate)
+    stateComparison.js        # Socrata 489q-934x — age-adjusted death rate by US state, ~20 causes, 2023+
+    international.js          # World Bank API — US vs UK/France/Japan, death rate/life expectancy/fertility
     populationChange.js       # births (natality.json + e6fc-ccez) vs deaths (mortality.json) + natural increase
     dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
     yearFacts.js              # per-year births/deaths/leading-cause for the Home "pick a year" panel
@@ -309,7 +334,7 @@ src/
     useNamePreference.js     # friendly vs official cause names, persisted (localStorage)
     useClock.js              # one shared 4 Hz wall-clock ref + fractionOfDay/Year helpers (live counters)
   components/
-    AppSidebar.vue           # sidebar: 7 data sections + Writing/Project groups (nav.js secondaryGroups)
+    AppSidebar.vue           # sidebar: 9 data sections grouped via nav.js primaryGroups + Writing/Project
     NavIcon.vue               # inline SVG icons per section (one v-if branch per section name)
     PageHeader.vue            # consistent page title/description header
     YearLookup.vue            # Home "in the year N" cross-section lookup
@@ -329,6 +354,9 @@ src/
     BirthStatisticsView.vue   # provisional monthly births + YoY
     PopulationChangeView.vue  # births vs deaths, natural increase, century birth history
     ByTheNumbersView.vue      # live counters + "In one lifetime" + rotating scale facts + daily average
+    InjuryDeathsView.vue      # suicide/homicide (+ firearm share) + the real drug-overdose rate
+    StateComparisonView.vue   # age-adjusted death rate by US state, cause picker
+    InternationalView.vue     # US vs UK/France/Japan, metric picker (death rate/life expectancy/fertility)
     ArticlesView.vue          # /articles index (card list)
     ArticleView.vue           # /articles/:slug — chrome + .article-prose + head/JSON-LD from frontmatter
     NotesView.vue             # /notes index (tight dated list)
@@ -347,10 +375,14 @@ pipeline/                    # standalone Node job: CDC WONDER -> MySQL -> /data
                              #   own package.json (axios, mysql2, fast-xml-parser); see its README
 ```
 
-Adding a 6th sidebar section: add an entry to `nav.js`, add a view file, add
-it to the `viewComponents` map in `router/index.js`. Adding a new live-data
-section: see "data.cdc.gov / Socrata API" below, or `pipeline/README.md` for
-a WONDER-backed one.
+Adding a new sidebar section: add an entry to `nav.js`'s `sections` array,
+add a view file, add it to the `viewComponents` map in `router/index.js`,
+and add its name to a group (or leave it out for standalone) in `nav.js`'s
+`primaryGroups`. Before reaching for a new top-level nav row at all, though,
+see the sidebar-regroup note above — a picker inside an existing or new
+single page (à la State Comparison / International) beats a row per new
+data cut. Adding a new live-data section: see "data.cdc.gov / Socrata API"
+below, or `pipeline/README.md` for a WONDER-backed one.
 
 Adding an article: `mkdir src/articles/<slug>/`, write `index.md` with
 frontmatter (`title`, `date`, `description`; `draft: true` while WIP) + prose;
@@ -831,26 +863,46 @@ picked **1–4 first, then 5–6, rest later**.
    `y5bj-9g5w` ("Weekly Counts of Deaths by Jurisdiction and Age", US /
    Unweighted) week→year client-side, keeping full-52-week years
    (2015–2022 today). A WONDER `by_age` era would refresh + extend it.
-7. Leading causes of death **by age group** (WONDER Age × Cause) —
-   "top causes of death for people in their 30s", very high intent.
+7. ~~Leading causes of death **by age group**~~ **DONE (2026-09-13).** The
+   Causes of Death "Breakdown" control's third option, "Age" (alongside
+   Sex/Race) — reused that infrastructure entirely rather than a new page.
+   New WONDER eras `icd10_age` (D76, 1999–2020) + `provisional_age` (D176,
+   2021–2025), same `mortality_demographic` table, 6-column contract (no
+   age-adjusted rate — WONDER refuses to compute it grouped by age; the
+   metric picker hides that option when Age is active). Getting the query
+   shape right needed real trial-and-error against the live API — full
+   story, including a column-order bug caught before the corrupted rows
+   ever reached the committed snapshot, in the two new templates' file
+   headers (`pipeline/templates/mortality_icd10_age.xml` /
+   `mortality_provisional_age.xml`) and their `lib/datasets.js` entries.
 8. ~~Drug overdose / suicide / firearm deaths as first-class topics~~
-   **Phase 1 DONE (2026-09)** — `/injury-deaths`, one combined section (not
-   3 separate ones — chosen to keep the sidebar from growing 6→9 at once).
-   Suicide + homicide + firearm-share ship from existing `mortality.json`
-   rows; overdose is a rough proxy pending Phase 2 (a real WONDER
-   Drug/Alcohol Induced Causes pull). See "Current state" above.
+   **DONE (2026-09), both phases.** `/injury-deaths`, one combined section
+   (not 3 separate ones — chosen to keep the sidebar from growing 6→9 at
+   once). Suicide + homicide + firearm-share ship from existing
+   `mortality.json` rows. Phase 2 (a real overdose figure) turned out not
+   to need the WONDER pull originally planned — NCHS's quarterly VSRR
+   Socrata dataset (`489q-934x`) already publishes the actual "Drug
+   overdose" age-adjusted rate; the old 113-cause-list proxy stays as a
+   longer-run (1999+) backdrop. See "Current state" above.
 
 **Tier 3 — expansions:**
-9. State-level data — WONDER is national-only for the pipeline, but
-   Socrata has state all-cause deaths + births → ~50× more rankable pages.
+9. ~~State-level data~~ **DONE (2026-09-13).** `/state-comparison` ("By
+   State" in the sidebar) — one page with a cause picker, not fifty pages
+   or fifty nav rows (see the sidebar-regroup note below). Socrata
+   `489q-934x` (the same quarterly VSRR dataset Injury Deaths' overdose
+   rate uses), ~20 causes × 51 states, browser-direct, no pipeline. Only
+   2023–present — a rolling release, not an archive.
 10. ~~"Since you were born"~~ **DONE (2026-09).** `LifetimeTally.vue`
     ("In one lifetime" on `/by-the-numbers`) — enter a year, get US
     births + deaths since (sums the annual snapshots, clamps to 1968+).
 11. ~~Seasonality~~ **DONE (2026-09).** "When in the Year People Die" on
     `/death-statistics` — mean deaths by calendar month over the last 6
     complete years, length-adjusted to 30.4 days; the winter U-shape.
-12. International comparison — US vs peer countries on death rate / life
-    expectancy / fertility (needs World Bank / UN / OWID data).
+12. ~~International comparison~~ **DONE (2026-09-13).** `/international` —
+    US vs. UK, France, and Japan on death rate, life expectancy, and
+    fertility rate, 1968–2023. The World Bank's open API, not CDC — the
+    one section of the site with a non-government-of-the-US data source.
+    Four countries, matching the site's 4 validated chart colors exactly.
 
 **Distribution / backlinks checklist.** Owner decided (2026-09): **do the
 first Note + the Wikipedia adds first, table the rest until those two are
@@ -880,13 +932,28 @@ live.**
 - Google Dataset Search — no submission; `/api` `DataCatalog` + per-view
   `Dataset` JSON-LD feed it. Re-check ~1 month out.
 - ~~Cookieless analytics~~ **DONE (2026-09)** — see above.
-- Support/donation link → footer; pipeline hosting (unblocks feature 7,
-  #8 Phase 2's proper overdose pull, and refreshing deaths-by-age past
-  2022); the "Mortality" (Death Statistics + Causes of Death + Injury
-  Deaths) vs. "Births & Population" nav regroup — owner flagged the
-  sidebar getting crowded (2026-09-12, now at 7 top-level items with
-  Injury Deaths added) but said current shape is fine for now; revisit
-  if 8 or 9 gets added too.
+- ~~Features 7, 8 Phase 2, 9, 12~~ **ALL DONE (2026-09-13)** — see
+  "Current state" above and the Tier 2/3 backlog entries. Pipeline
+  hosting is still open (would unblock refreshing deaths-by-age past
+  2022, and re-running icd10_age/provisional_age's D176 continuation
+  each month instead of manually).
+- ~~The sidebar nav regroup~~ **DONE (2026-09-13).** Owner asked for a
+  real decision, not just "add more rows": looked at how Our World in
+  Data (a full mega-menu — built for 500+ articles, wrong scale here),
+  USAFacts (flat topic list; new content lives inside a hub page, not as
+  new nav rows), and Worldometers (its biggest drill-down, "Countries",
+  is ONE nav link with a picker inside, not one row per country) each
+  handle a growing topic list, then applied the same idea at this site's
+  scale: `nav.js`'s new `primaryGroups` groups the 5 domain sections
+  under two labelled headers ("Mortality", "Births & Population"),
+  reusing the exact pattern already proven in the sidebar's Writing/
+  Project secondary groups rather than inventing a collapsible/flyout
+  mechanism that's disproportionate for ~9 total items. Home, By the
+  Numbers, and International stay ungrouped (International genuinely
+  spans both domains). State Comparison and International each landed as
+  ONE nav row with a picker inside, not a row per state or country —
+  the Worldometers pattern, applied directly to features 9 and 12.
+  Support/donation link → footer is still open.
 
 **Done for discovery (2026-09):** GitHub repo description + homepage +
 topics (were blank); `DataCatalog` JSON-LD on `/api` with real
