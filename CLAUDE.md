@@ -4,6 +4,10 @@ Interactive site tracking US death, birth, and population statistics,
 sourced live from CDC's open data platform (data.cdc.gov). Open site, no
 authentication.
 
+**Open work lives in [`BACKLOG.md`](BACKLOG.md)** — check there first for
+"what's left." This file is history/reasoning/architecture; BACKLOG.md is
+the flat todo list, kept current as things ship.
+
 ## Current state
 
 All nine sidebar sections are live (Home, Death Statistics Over Time,
@@ -801,8 +805,11 @@ sources. If Pew ever does publish official Alpha/Beta years, prefer
 those over McCrindle's for consistency with the rest of the file.
 
 **Deferred backlog (low priority, owner will decide when):**
-- Bing Webmaster Tools — "Import from Google Search Console" is one click.
-- Support / donation link — Ko-fi / GitHub Sponsors / Liberapay → footer.
+- ~~Bing Webmaster Tools~~ **DONE (2026-09).** Account created + sitemap
+  submitted manually — the Google Search Console import failed, so this
+  wasn't the planned one-click path.
+- ~~Support / donation link~~ **DONE (2026-09-13)** — see the
+  "Support/donation link" entry in the distribution checklist below.
 - Prerendering (vite-ssg) — deferred: Chart.js needs SSR guards, and a
   risky Apache rewrite. (The `@unhead/vue` version friction that also
   counted against it is resolved — now on v3.) Only worth it if social
@@ -928,10 +935,13 @@ live.**
 - Newsletters: **Data Elixir** (submit form), **Dataviz Universe**,
   **Dashing Data Viz**, **Flowing Data** (pitch a finding). Data Is
   Plural is dormant since Aug 2025 — skip.
-- **Bing Webmaster Tools** — "Import from Google Search Console".
 - Google Dataset Search — no submission; `/api` `DataCatalog` + per-view
   `Dataset` JSON-LD feed it. Re-check ~1 month out.
 - ~~Cookieless analytics~~ **DONE (2026-09)** — see above.
+- ~~Bing Webmaster Tools~~ **DONE (2026-09)** — wasn't actually blocked on
+  the Note/Wikipedia sequencing above, just hadn't been done yet. Account
+  created + sitemap submitted manually (Google Search Console import
+  failed).
 - ~~Features 7, 8 Phase 2, 9, 12~~ **ALL DONE (2026-09-13)** — see
   "Current state" above and the Tier 2/3 backlog entries. Pipeline
   hosting is still open (would unblock refreshing deaths-by-age past
