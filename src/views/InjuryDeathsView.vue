@@ -20,7 +20,7 @@ useHead({
           name: 'US suicide, homicide, and overdose deaths',
           description:
             'Annual United States suicide and homicide deaths since 1999, the share of each ' +
-            'involving a firearm, and a rough drug-overdose figure. National, from CDC WONDER.',
+            'involving a firearm, and the drug-overdose death rate. National, from CDC.',
           path: '/injury-deaths',
           temporal: '1999/..',
           keywords: [
@@ -110,7 +110,32 @@ const homicideSummary = computed(() => {
   return { lastYear: d.homicide.years[n - 1], last, share }
 })
 
-// --- Overdose (proxy) ---------------------------------------------------
+// --- Overdose: the real quarterly national rate (2023+) -----------------
+const rateFormatter = (v) => (v == null ? '—' : v.toFixed(1))
+const overdoseRateSeries = computed(() => {
+  const d = injury.data.value?.overdoseRate
+  if (!d) return null
+  return { labels: d.quarters, values: d.rate }
+})
+const overdoseRateTable = computed(() => {
+  const d = injury.data.value?.overdoseRate
+  if (!d) return null
+  return {
+    columns: ['Quarter', 'Age-adjusted rate (per 100,000)'],
+    rows: d.quarters.map((q, i) => [q, d.rate[i]])
+  }
+})
+const overdoseRateSummary = computed(() => {
+  const d = injury.data.value?.overdoseRate
+  if (!d?.rate?.length) return null
+  const first = d.rate[0]
+  const last = d.rate.at(-1)
+  const pct = first ? Math.round(((last - first) / first) * 100) : null
+  return { firstQuarter: d.quarters[0], lastQuarter: d.quarters.at(-1), first, last, pct }
+})
+
+// --- Overdose: the long-run proxy (1999+, no clean overdose row before
+// the quarterly release started in 2023) ---------------------------------
 const overdoseSeries = computed(() => {
   const d = injury.data.value
   if (!d?.overdoseProxy) return null
@@ -202,15 +227,49 @@ const summary = computed(() => {
         </template>
       </section>
 
-      <!-- Overdose (proxy) -->
+      <!-- Overdose: real rate, then long-run proxy -->
       <section>
-        <h2 class="mb-2 text-base font-semibold text-ink">Drug Overdose (approximate)</h2>
-        <p class="mb-4 max-w-2xl text-sm leading-relaxed text-ink-soft">
-          This isn't CDC's published "drug overdose deaths" figure — it's the closest stand-in
-          available today, "accidental poisoning" deaths, which misses overdoses ruled a suicide
-          or of undetermined intent, and includes a small number of non-drug poisonings. The last
-          two years are shown muted: overdose deaths take longer to certify than most, so recent
-          provisional counts run low and typically get revised upward.
+        <h2 class="mb-2 text-base font-semibold text-ink">Drug Overdose</h2>
+        <p v-if="overdoseRateSummary" class="mb-4 max-w-2xl text-sm leading-relaxed text-ink-soft">
+          The age-adjusted overdose death rate fell from {{ rateFormatter(overdoseRateSummary.first) }}
+          per 100,000 in {{ overdoseRateSummary.firstQuarter }} to
+          {{ rateFormatter(overdoseRateSummary.last) }} in {{ overdoseRateSummary.lastQuarter }},
+          a drop of about {{ Math.abs(overdoseRateSummary.pct) }}%. This is CDC's actual published
+          overdose-death definition, not the approximation further down.
+        </p>
+        <template v-if="overdoseRateSeries">
+          <div class="card">
+            <TimeSeriesChart
+              :labels="overdoseRateSeries.labels"
+              :values="overdoseRateSeries.values"
+              series-label="Age-adjusted rate per 100,000"
+              :value-formatter="rateFormatter"
+              aria-label="Line chart: US drug overdose age-adjusted death rate by quarter, 2023 to present, declining."
+              png-name="whywedie-overdose-rate"
+              png-source="NCHS/CDC"
+            />
+            <ChartToolbar
+              v-if="overdoseRateTable"
+              :columns="overdoseRateTable.columns"
+              :rows="overdoseRateTable.rows"
+              filename="whywedie-overdose-rate"
+              :note="`${overdoseRateSummary.firstQuarter}–${overdoseRateSummary.lastQuarter} · 12 months ending with quarter`"
+            />
+          </div>
+          <p class="mt-3 text-xs text-muted">
+            Quarterly, 12 months ending with the listed quarter, from NCHS's provisional release —
+            only available back to 2023. See
+            <RouterLink to="/state-comparison" class="link-underline">state-by-state overdose rates</RouterLink>
+            from the same source.
+          </p>
+        </template>
+
+        <p class="mb-4 mt-8 max-w-2xl text-sm leading-relaxed text-ink-soft">
+          For a longer run, the closest 113-cause-list stand-in back to 1999 is "accidental
+          poisoning" deaths — it misses overdoses ruled a suicide or of undetermined intent, and
+          includes a small number of non-drug poisonings, so treat it as shape, not a precise
+          count. The last two years are shown muted: overdose deaths take longer to certify than
+          most, so recent provisional counts run low and typically get revised upward.
         </p>
         <template v-if="overdoseSeries">
           <div class="card">

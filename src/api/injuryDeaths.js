@@ -1,9 +1,8 @@
 // Suicide, homicide, and overdose deaths — Feature #8 in CLAUDE.md's
 // backlog ("Drug overdose / suicide / firearm deaths as first-class
-// topics"). Phase 1: all of this reads rows already sitting in the
-// committed /data/mortality.json snapshot (the NCHS 113-cause list),
-// so no new pipeline era was needed for suicide, homicide, or the
-// firearm breakdown of each.
+// topics"). Phase 1: suicide, homicide, and the firearm breakdown of each
+// all read rows already sitting in the committed /data/mortality.json
+// snapshot (the NCHS 113-cause list) — no new pipeline era needed.
 //
 // "Firearm deaths" here = suicide-by-firearm + homicide-by-firearm. WONDER's
 // 113-cause list isolates those two rows but not unintentional or
@@ -11,20 +10,23 @@
 // a little low against CDC's own published "firearm deaths" figure, which
 // includes those too.
 //
-// "Overdose" is the roughest part of this module. The only 113-list row
-// that gets close is "Accidental poisoning and exposure to noxious
-// substances (X40-X49)" — it's NOT the same as CDC's published "drug
-// overdose deaths" figure, which also folds in poisoning deaths ruled a
-// suicide or of undetermined intent, and (this row) also includes a small
-// number of non-drug poisonings (gases, other chemicals). Treat it as a
-// placeholder until a dedicated WONDER pull (the "Drug/Alcohol Induced
-// Causes" grouping) replaces it — see the Remaining section in CLAUDE.md.
-// It's also visibly undercounted in the most recent 1-2 years: overdose
-// deaths take longer to certify (pending toxicology), so provisional
-// counts run low and get revised up over time — more so than the usual
-// provisional lag elsewhere on this site.
+// Overdose: the 113-list has no clean "drug overdose" row, only "Accidental
+// poisoning and exposure to noxious substances (X40-X49)" — it misses
+// poisoning deaths ruled a suicide or of undetermined intent, and includes
+// a small number of non-drug poisonings. That's `overdoseProxy` below, kept
+// for its long 1999+ run. Phase 2 originally planned a dedicated WONDER
+// pull to fix this, but NCHS already publishes the real thing on a
+// different Socrata dataset — the same quarterly VSRR release used for
+// State Comparison (489q-934x) carries a "Drug overdose" row with the
+// actual age-adjusted national rate, no proxy needed. It's `overdoseRate`
+// below: shorter (2023+, quarterly) but the genuine CDC definition, so the
+// view shows both — the proxy for long-run shape, this for an accurate
+// recent trend.
+
+import { socrataQuery } from './socrata.js'
 
 const SNAPSHOT_URL = `${import.meta.env.BASE_URL}data/mortality.json`
+const VSRR_DATASET_ID = '489q-934x'
 
 const CAUSE_KEYS = {
   suicide: '10:#Intentional self-harm (suicide) (*U03,X60-X84,Y87.0)',
@@ -61,6 +63,27 @@ function sum(a, b) {
   return { years, deaths }
 }
 
+async function fetchOverdoseRate() {
+  let rows
+  try {
+    rows = await socrataQuery(VSRR_DATASET_ID, {
+      $where: "cause_of_death='Drug overdose' AND time_period='12 months ending with quarter' AND rate_type='Age-adjusted'",
+      $select: 'year_and_quarter,rate_overall',
+      $order: 'year_and_quarter'
+    })
+  } catch {
+    return null // supplementary — the page works without it
+  }
+  const quarters = []
+  const rate = []
+  for (const r of rows) {
+    if (r.rate_overall == null) continue
+    quarters.push(r.year_and_quarter)
+    rate.push(Number(r.rate_overall))
+  }
+  return quarters.length ? { quarters, rate } : null
+}
+
 export async function fetchInjuryDeaths() {
   let res
   try {
@@ -75,7 +98,7 @@ export async function fetchInjuryDeaths() {
     )
   }
 
-  const raw = await res.json()
+  const [raw, overdoseRate] = await Promise.all([res.json(), fetchOverdoseRate()])
   const suicide = pick(raw, CAUSE_KEYS.suicide)
   const suicideFirearm = pick(raw, CAUSE_KEYS.suicideFirearm)
   const homicide = pick(raw, CAUSE_KEYS.homicide)
@@ -96,6 +119,7 @@ export async function fetchInjuryDeaths() {
     homicideFirearm,
     firearmTotal,
     overdoseProxy,
-    overdoseMuted
+    overdoseMuted,
+    overdoseRate
   }
 }
