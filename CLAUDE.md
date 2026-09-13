@@ -955,7 +955,30 @@ live.**
   the Worldometers pattern, applied directly to features 9 and 12.
 - ~~Support/donation link~~ **DONE (2026-09-13).** Footer "Sponsor" link
   → `github.com/sponsors/LeviDahl`, same styling and `outbound_click`
-  tracking as the other external footer links.
+  tracking as the other external footer links. Also added to the
+  sidebar's "Project" group (`nav.js`) — the owner felt the footer copy
+  buried it.
+- ~~Sidebar overflow on smaller phones~~ **DONE (2026-09-13).** Owner
+  reported having to scroll on an iPhone 17 Pro Max, and specifically
+  rejected shrinking padding further as a fix ("I imagine there will be
+  smaller phones, so I don't want to just keep making things smaller and
+  tighter"). Root cause was two things, not "too much content": (1) the
+  mobile drawer used `fixed inset-y-0` (`100vh`), which on iOS Safari
+  doesn't shrink for the address-bar chrome — fixed by switching to
+  Tailwind's `h-dvh` (`100dvh`, the real dynamic viewport) on `AppSidebar.vue`'s
+  `<aside>`; (2) the redundant "Data sourced from data.cdc.gov…" fine-print
+  block at the bottom (already said via the footer/`/api`) was cut
+  entirely rather than shrunk. The list will keep growing regardless, so
+  the actual fix is architectural, not cosmetic: the nav area
+  (`overflow-y-auto`) now scrolls with two affordances so that never
+  reads as "broken" — a bottom fade-gradient that only renders while
+  `scrollHeight - scrollTop - clientHeight > 4` (never lies about content
+  that isn't there), and the current page auto-scrolls into view
+  (`scrollIntoView({ block: 'center' })`, via a `data-current="true"`
+  attribute) when the mobile drawer opens, so a deep link never leaves
+  the reader hunting for "you are here." Verified at both 430×932
+  (iPhone 17 Pro Max — everything fits, no scroll needed) and 375×667
+  (iPhone SE — overflows, fade + auto-scroll both confirmed working).
 
 **Done for discovery (2026-09):** GitHub repo description + homepage +
 topics (were blank); `DataCatalog` JSON-LD on `/api` with real

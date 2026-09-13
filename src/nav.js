@@ -144,7 +144,13 @@ export const secondaryGroups = [
     links: [
       { path: '/api', label: 'Open API' },
       { path: '/contact', label: 'Contact' },
-      { path: '/privacy', label: 'Privacy' }
+      { path: '/privacy', label: 'Privacy' },
+      // External (github.com) — AppSidebar.vue renders any http(s) path as
+      // a plain <a target="_blank">, everything else as a <router-link>.
+      // `host` is precomputed rather than parsed from `path` in the
+      // template — Vue's template compiler doesn't resolve the global
+      // `URL` constructor (it's not in its default globals allowlist).
+      { path: 'https://github.com/sponsors/LeviDahl', label: 'Sponsor', host: 'github.com' }
     ]
   }
 ]
