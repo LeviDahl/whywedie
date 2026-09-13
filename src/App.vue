@@ -149,6 +149,15 @@ watch(
               >{{ l.label }}</router-link
             >
             <a
+              href="https://github.com/sponsors/LeviDahl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="transition-colors hover:text-ink"
+              data-umami-event="outbound_click"
+              data-umami-event-host="github.com/sponsors"
+              >Sponsor</a
+            >
+            <a
               href="https://data.cdc.gov/"
               target="_blank"
               rel="noopener noreferrer"
