@@ -30,13 +30,14 @@ Injury Deaths).
 - **Birth Statistics** — annual births 1960–present + fertility/birth-rate
   toggle (`src/api/natality.js` reads `/data/natality.json`: Socrata
   baseline 1960–2018, then WONDER D27/D66 + D192 provisional; rate series
-  stop earlier — see Next steps), Pew generation bands with drill-down on
-  the births view, an `(i)` explainer for the three figures, plus monthly
+  stop earlier — see Next steps), generation cohort bands (Pew through Gen
+  Z, McCrindle for Gen Alpha/Beta — see `src/data/generations.js`) with
+  drill-down on the births view, an `(i)` explainer for the three figures, plus monthly
   births (`src/api/monthlyBirths.js` → `/data/natality_monthly.json`, D192;
   Socrata `hmz2-vwda` fallback) + a YoY off the latest complete month.
 - **Population Decline/Gain** — births vs deaths and the shrinking natural
   increase (1968–2025), plus the century birth history (1909–present) with
-  Pew generation bands + drill-down. Births from `/data/natality.json`
+  generation cohort bands + drill-down. Births from `/data/natality.json`
   (+ Socrata `e6fc-ccez` for pre-1960), deaths from `/data/mortality.json`
   "All causes". Time-range tabs on each chart.
 - **By the Numbers** — Worldometers-style **live projected counters**
@@ -753,6 +754,19 @@ not JS), `contact_click` (`{ type: 'issue' | 'email' }` on `/contact`),
 `embed_preview` (the `/embed/:slug` preview link in the Embed panel).
 `/privacy`'s "Analytics" section names Umami + links its policy
 (umami.is/privacy) instead of saying "planned."
+
+**Generation cutoffs extended to Alpha/Beta — DONE (2026-09-12).**
+`src/data/generations.js`'s `PEW_GENERATIONS` (renamed `GENERATIONS`) used
+to leave Gen Z open-ended (Pew has never published an end year), which
+mislabeled every birth from 1997 on — including today's actual Gen Alpha
+births — as "Gen Z" forever. Now: Gen Z 1997–2012, Gen Alpha 2013–2024,
+Gen Beta 2025–2039, sourced from **McCrindle Research** (who coined both
+terms) since Pew has no cutoffs for them. Years past 2039 stay unlabeled
+rather than inventing a name. Every place that credited "Pew" alone for
+the bands (`BirthStatisticsView.vue`, `PopulationChangeView.vue`,
+`YearLookup.vue`'s captions and its inline "(Pew)" tag) now credits both
+sources. If Pew ever does publish official Alpha/Beta years, prefer
+those over McCrindle's for consistency with the rest of the file.
 
 **Deferred backlog (low priority, owner will decide when):**
 - Bing Webmaster Tools — "Import from Google Search Console" is one click.
