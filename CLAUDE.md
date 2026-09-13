@@ -953,7 +953,9 @@ live.**
   spans both domains). State Comparison and International each landed as
   ONE nav row with a picker inside, not a row per state or country —
   the Worldometers pattern, applied directly to features 9 and 12.
-  Support/donation link → footer is still open.
+- ~~Support/donation link~~ **DONE (2026-09-13).** Footer "Sponsor" link
+  → `github.com/sponsors/LeviDahl`, same styling and `outbound_click`
+  tracking as the other external footer links.
 
 **Done for discovery (2026-09):** GitHub repo description + homepage +
 topics (were blank); `DataCatalog` JSON-LD on `/api` with real
