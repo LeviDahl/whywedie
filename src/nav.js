@@ -86,7 +86,24 @@ export const sections = [
   }
 ]
 
-// Secondary sidebar groups — rendered below the 6 data sections as labelled,
+// How the sidebar groups the sections above (display only — routing/SEO
+// still reads the flat `sections` list). A `label: null` group renders with
+// no header, just its section(s) inline. Looked at how a few comparable
+// sites handle a growing topic list before landing here (OWID's full
+// mega-menu is built for 500+ articles — wrong scale for ~10 sections;
+// Worldometers instead collapses its biggest drill-down, "Countries", into
+// ONE nav link with a picker rather than one link per country) — the move
+// here is the same: group by domain instead of adding a nav row per
+// feature, and any future state/country-level page gets one entry with a
+// picker inside it, not dozens of rows.
+export const primaryGroups = [
+  { label: null, sections: ['home'] },
+  { label: 'Mortality', sections: ['death-statistics', 'causes-of-death', 'injury-deaths'] },
+  { label: 'Births & Population', sections: ['birth-statistics', 'population-change'] },
+  { label: null, sections: ['by-the-numbers'] }
+]
+
+// Secondary sidebar groups — rendered below the data sections as labelled,
 // icon-less lists. Routes for these live directly in router/index.js (not
 // generated from here), so keep the paths in sync.
 export const secondaryGroups = [

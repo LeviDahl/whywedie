@@ -1,5 +1,6 @@
 <script setup>
-import { sections, secondaryGroups } from '@/nav.js'
+import { computed } from 'vue'
+import { sections, primaryGroups, secondaryGroups } from '@/nav.js'
 import NavIcon from '@/components/NavIcon.vue'
 
 defineProps({
@@ -7,6 +8,11 @@ defineProps({
 })
 
 defineEmits(['close'])
+
+const byName = new Map(sections.map((s) => [s.name, s]))
+const renderedPrimaryGroups = computed(() =>
+  primaryGroups.map((g) => ({ ...g, items: g.sections.map((n) => byName.get(n)).filter(Boolean) }))
+)
 </script>
 
 <template>
@@ -40,18 +46,26 @@ defineEmits(['close'])
     </div>
 
     <nav class="mt-4 flex-1 space-y-1 overflow-y-auto px-3 pb-4">
-      <router-link
-        v-for="section in sections"
-        :key="section.path"
-        :to="section.path"
-        class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
-               text-paper/70 transition-colors duration-150 hover:bg-paper/10 hover:text-paper"
-        active-class="!bg-paper !text-ink hover:!bg-paper"
-        exact-active-class="!bg-paper !text-ink hover:!bg-paper"
-      >
-        <NavIcon :name="section.name" class="h-5 w-5 shrink-0 opacity-90 group-hover:opacity-100" />
-        <span class="flex-1">{{ section.shortLabel }}</span>
-      </router-link>
+      <template v-for="group in renderedPrimaryGroups" :key="group.label ?? 'ungrouped'">
+        <p
+          v-if="group.label"
+          class="mt-3 px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-paper/35"
+        >
+          {{ group.label }}
+        </p>
+        <router-link
+          v-for="section in group.items"
+          :key="section.path"
+          :to="section.path"
+          class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
+                 text-paper/70 transition-colors duration-150 hover:bg-paper/10 hover:text-paper"
+          active-class="!bg-paper !text-ink hover:!bg-paper"
+          exact-active-class="!bg-paper !text-ink hover:!bg-paper"
+        >
+          <NavIcon :name="section.name" class="h-5 w-5 shrink-0 opacity-90 group-hover:opacity-100" />
+          <span class="flex-1">{{ section.shortLabel }}</span>
+        </router-link>
+      </template>
 
       <div
         v-for="(group, gi) in secondaryGroups"
