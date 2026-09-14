@@ -394,6 +394,8 @@ public/
   data/natality_monthly.json # D192 monthly births, 2023–present (Socrata fallback if ever empty)
 pipeline/                    # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
                              #   own package.json (axios, mysql2, fast-xml-parser); see its README
+  seed/natality-baseline-1960-2002.json  # fixed source of truth for pre-2003 births —
+                             #   see the "natality.json pre-2003 baseline" gotcha below
 ```
 
 Adding a new sidebar section: add an entry to `nav.js`'s `sections` array,
@@ -679,6 +681,32 @@ half-year point is a cliff on the annual chart). `icd10_chapter` is D76
 (`yearMax: 2020`) so it needs no `--years`. If `build-snapshots` ever
 warns about an unmapped chapter label, add it to `CHAPTER_CANON` in
 `src/api/causesOfDeath.js` (one line) and rebuild.
+
+**⚠️ `natality.json`'s pre-2003 baseline regressed once, silently (found +
+fixed 2026-09-14).** WONDER's natality databases only start at 2003; years
+1960–2002 come from a one-time committed Socrata baseline (NCHS Natality
+Measures by Race), merged in by `buildNatality()` in `build-snapshots.js`.
+That function used to read *this run's own output directory's* existing
+`natality.json` as "last run's baseline" — which only works if that exact
+`SNAPSHOT_OUT_DIR` already had the 1960–2002 rows in it from a prior run.
+A routine "refresh the recurring eras" run on 2026-09-13 used an outDir
+that didn't, and `public/data/natality.json` silently dropped 43 years of
+committed birth history — down to 2003–2026 only — with no error, no
+warning, just a smaller file. It went undetected for about a day (the
+regressing commit's own message only claimed "natality current + monthly,"
+never mentioning the baseline) until a full site-copy accuracy pass caught
+the live Birth Statistics page contradicting its own "since 1960" text and
+JSON-LD. Recovered from git history (`git show 41ce68e:public/data/
+natality.json`, the last good commit before the regression) into
+**`pipeline/seed/natality-baseline-1960-2002.json`** — a fixed, permanent
+file. `buildNatality()` now reads *that* instead of its own last output,
+which removes the failure mode entirely: whatever `SNAPSHOT_OUT_DIR` a run
+uses, the pre-2003 years always come from the same place. If it ever goes
+missing again (it shouldn't — nothing regenerates or deletes it), there is
+no live source to rebuild it from; recover it from git history the same
+way. Lesson for any future "baseline merge" pattern in this pipeline:
+never make correctness depend on a specific output directory already
+having the right prior state — read a checked-in, named file instead.
 
 **On the 1909 / 1968 / 1999 start dates** (from a review question):
 

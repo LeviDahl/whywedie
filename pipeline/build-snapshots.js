@@ -228,7 +228,7 @@ async function buildMortalityMonthly() {
   return { file: payload, count: rows.length }
 }
 
-async function buildNatality(outDir) {
+async function buildNatality() {
   const rows = await query(
     `SELECT year, birth_count, population, birth_rate, fertility_rate, suppressed
        FROM natality
@@ -238,15 +238,27 @@ async function buildNatality(outDir) {
   if (rows.length === 0) return { file: null, count: 0 }
 
   // The WONDER natality databases wired so far start at 2003. Merge the
-  // committed Socrata baseline (usually 1960-2018) so pre-2003 history
-  // survives — DB rows win for any year they cover.
+  // committed Socrata baseline (1960-2002) so pre-2003 history survives —
+  // DB rows win for any year they cover.
+  //
+  // This reads a FIXED seed file (pipeline/seed/), not this run's own
+  // output directory. It used to read outDir/natality.json as "last run's
+  // baseline," which only works if that exact outDir already had the
+  // 1960-2002 rows merged in from a prior run — a self-referential design
+  // that silently regenerates 2003-only data forever the moment it's ever
+  // run against a fresh or different outDir (this is exactly what happened
+  // 2026-09-13: a routine refresh run used an outDir without the baseline
+  // already in it, and public/data/natality.json quietly lost 43 years of
+  // committed history — see pipeline/seed/natality-baseline-1960-2002.json
+  // for the recovery). Reading a fixed path removes that failure mode.
   const byYear = {}
   try {
-    const base = JSON.parse(await readFile(join(outDir, 'natality.json'), 'utf8'))
-    for (const [y, v] of Object.entries(base.byYear ?? {})) byYear[y] = v
-    log.info(`  merged ${Object.keys(byYear).length} baseline natality years`)
-  } catch {
-    /* no baseline present — fine */
+    const seedPath = new URL('./seed/natality-baseline-1960-2002.json', import.meta.url)
+    const seed = JSON.parse(await readFile(seedPath, 'utf8'))
+    for (const [y, v] of Object.entries(seed.byYear ?? {})) byYear[y] = v
+    log.info(`  merged ${Object.keys(byYear).length} baseline natality years from seed`)
+  } catch (err) {
+    log.info(`  WARNING: couldn't load the natality baseline seed (${err.message}) — pre-2003 years will be missing`)
   }
 
   for (const r of rows) {
@@ -321,7 +333,7 @@ async function main() {
   const mortality = await buildMortality()
   const mortalityDemographic = await buildMortalityDemographic()
   const mortalityMonthly = await buildMortalityMonthly()
-  const natality = await buildNatality(outDir)
+  const natality = await buildNatality()
   const natalityMonthly = await buildNatalityMonthly()
 
   const sources = {}
