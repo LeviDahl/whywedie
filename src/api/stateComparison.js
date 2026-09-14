@@ -10,6 +10,7 @@
 // 100,000, age-adjusted, "12 months ending with quarter" (rather than the
 // single 3-month figure, which is noisier and more seasonal).
 import { socrataQuery } from './socrata.js'
+import { REGIONS, STATE_REGION } from '@/data/usRegions.js'
 
 const DATASET_ID = '489q-934x'
 
@@ -67,6 +68,25 @@ const STATE_FIELDS = {
   rate_wyoming: 'Wyoming'
 }
 
+// Unweighted mean of a region's state rates — this dataset publishes
+// rates only, no populations to weight by, so this is a rough regional
+// "chunk," not a true population-weighted rate. A region with no states
+// reporting a rate that quarter is dropped rather than shown as zero.
+function regionRollup(states) {
+  const sums = {}
+  for (const { state, rate } of states) {
+    const region = STATE_REGION[state]
+    if (!region || rate == null) continue
+    ;(sums[region] ??= { total: 0, count: 0 })
+    sums[region].total += rate
+    sums[region].count += 1
+  }
+  return REGIONS.map((region) => {
+    const s = sums[region]
+    return s ? { region, rate: s.total / s.count, stateCount: s.count } : null
+  }).filter(Boolean)
+}
+
 export async function fetchStateComparison() {
   let rows
   try {
@@ -90,11 +110,13 @@ export async function fetchStateComparison() {
     const entry = byCause.get(cause)
     if (!entry.byQuarter[r.year_and_quarter]) {
       entry.quarters.push(r.year_and_quarter)
+      const states = Object.entries(STATE_FIELDS)
+        .map(([field, name]) => ({ state: name, rate: num(r[field]) }))
+        .filter((s) => s.rate != null)
       entry.byQuarter[r.year_and_quarter] = {
         national: num(r.rate_overall),
-        states: Object.entries(STATE_FIELDS)
-          .map(([field, name]) => ({ state: name, rate: num(r[field]) }))
-          .filter((s) => s.rate != null)
+        states,
+        regions: regionRollup(states)
       }
     }
   }

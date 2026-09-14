@@ -90,10 +90,10 @@ export const sections = [
     label: 'State Comparison',
     shortLabel: 'By State',
     description:
-      'Age-adjusted death rates by US state, for about 20 leading causes, updated quarterly.',
+      'Age-adjusted death rates by US state or region, for about 20 leading causes, updated quarterly.',
     seoTitle: 'US Death Rates by State',
     seoDescription:
-      'Age-adjusted death rates by US state for leading causes, from suicide and drug overdose to heart disease and cancer — a quarterly snapshot.'
+      'Age-adjusted death rates by US state or Census region for leading causes, from suicide and drug overdose to heart disease and cancer — a quarterly snapshot.'
   },
   {
     path: '/international',

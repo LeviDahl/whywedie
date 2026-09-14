@@ -81,6 +81,13 @@ section.
   browser-direct, no pipeline. Only runs 2023–present (a rolling quarterly
   release, not a historical archive); each cause tracks its own latest
   fully-populated quarter independently. `src/api/stateComparison.js`.
+  A **States / Regions** view toggle (added 2026-09-14) rolls the same
+  51 rows up into the US Census Bureau's 4 regions (`src/data/
+  usRegions.js`) — computed client-side from data already fetched, no
+  second API call. It's an **unweighted** mean of the region's state
+  rates (the source dataset has no population column to weight by),
+  labeled as a rough approximation in the UI on purpose — don't present
+  it as a precise regional rate anywhere else on the site either.
 - **International** (`/international`, added 2026-09) — feature #12. US
   vs. UK, France, and Japan on crude death rate, life expectancy, and
   fertility rate, 1968–2023. The only section not sourced from CDC — the
@@ -330,6 +337,8 @@ src/
   data/
     causeNames.js             # plain-language labels for the rankable causes
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
+    generations.js            # Pew (-> Gen Z) + McCrindle (Alpha/Beta) generation cutoff bands
+    usRegions.js               # US Census Bureau's 4-region breakdown, for State Comparison's Regions view
   api/
     socrata.js                # generic data.cdc.gov Socrata (SODA) JSON client
     currentVitalEvents.js     # Socrata hmz2-vwda monthly births (fallback source for monthlyBirths.js)
