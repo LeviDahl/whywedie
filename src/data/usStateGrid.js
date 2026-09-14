@@ -72,10 +72,12 @@ export const STATE_GRID = [
 export const GRID_COLS = 12
 export const GRID_ROWS = 8
 
-// A simple 4-cell layout for the Regions view — not meant to be precise
-// (there's no sensible way to grid-position 4 giant regions exactly), just
-// roughly compass-shaped: West on the left, the Northeast/Midwest pair up
-// top, South centered underneath spanning the middle.
+// A simple 4-cell layout for the Regions view (rendered by
+// RegionSquares.vue, a plain CSS grid — not TileGridMap.vue; see its
+// header for why) — not meant to be precise (there's no sensible way to
+// grid-position 4 giant regions exactly), just roughly compass-shaped:
+// West on the left, the Northeast/Midwest pair up top, South centered
+// underneath spanning the middle.
 export const REGION_GRID = [
   { name: 'West', abbr: 'W', col: 0, row: 0 },
   { name: 'Midwest', abbr: 'MW', col: 1, row: 0 },

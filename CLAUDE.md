@@ -94,9 +94,9 @@ section.
   clearly at this many tiles, and switched circles for filled squares so
   neighboring tiles visually connect instead of floating with gaps
   between them (a state like California, with real neighbors, was
-  reported as looking "by itself"). `TileGridMap.vue` is generic — it
-  takes any `{name,abbr,col,row}` grid, so the same component also draws
-  the Regions view (see below) with a different, much smaller grid.
+  reported as looking "by itself"). `TileGridMap.vue` is written generic
+  — it takes any `{name,abbr,col,row}` grid — but is currently only used
+  here; see the Regions entry below for why it isn't also used there.
   Native Chart.js `bubble` type (x/y/r per point) with `pointStyle:
   'rect'` rather than hand-rolled canvas, specifically so hover tooltips,
   PNG export, and responsive resize come free from the same machinery
@@ -134,10 +134,30 @@ section.
   rates (the source dataset has no population column to weight by),
   labeled as a rough approximation in the UI on purpose — don't present
   it as a precise regional rate anywhere else on the site either. Regions
-  reuses the same `TileGridMap.vue`, just with a tiny 3x2 `REGION_GRID`
-  (`usStateGrid.js`) instead of the 51-state one — not meant to be
-  geographically precise (there's no sensible way to grid-position 4
-  giant regions exactly), just roughly compass-shaped. Below
+  renders as 4 squares on a 3x2 `REGION_GRID` (`usStateGrid.js`) — not
+  meant to be geographically precise (there's no sensible way to
+  grid-position 4 giant regions exactly), just roughly compass-shaped.
+  **Not drawn with `TileGridMap.vue`** — that was the first attempt, and
+  it hit a genuine Chart.js bug specific to a few very large `bubble`/
+  `rect` points: two of the four squares rendered ~20% bigger than the
+  other two (measured directly off canvas pixels, not an eyeballing
+  call), overlapping their neighbors. Ruled out, empirically, both of the
+  obvious explanations — a mid-transition animation artifact (identical
+  measurements before and after a multi-second wait) and a stale
+  hover/`hoverRadius` state (identical after moving the mouse well away
+  and re-measuring) — but didn't chase the actual Chart.js mechanism
+  further once those were ruled out; every point genuinely gets the same
+  `r`, so the bug lives somewhere inside Chart.js's own bubble-controller
+  sizing for this shape of dataset. `RegionSquares.vue` (added
+  2026-09-14, replacing that first attempt) is a plain CSS grid instead —
+  4 items is few enough that Chart.js's tooltip/PNG/resize machinery
+  wasn't worth keeping (hand-rolled hover tooltip, no PNG button) to keep
+  fighting a canvas rendering bug that a CSS grid can't have by
+  construction. `TileGridMap.vue` itself is unaffected and still used for
+  the 51-state map, which has always rendered correctly — if a future
+  grid this small (few, large tiles) is ever needed again, don't assume
+  `TileGridMap.vue` will render it correctly without checking first.
+  Below
   that, a separate **"Population by Region"** line chart (also added
   2026-09-14) — total US population by the same 4 regions, 2010–present,
   from `src/api/populationByRegion.js` reading `/data/
@@ -397,7 +417,7 @@ src/
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
     generations.js            # Pew (-> Gen Z) + McCrindle (Alpha/Beta) generation cutoff bands
     usRegions.js               # US Census Bureau's 4-region breakdown, for State Comparison's Regions view
-    usStateGrid.js             # tile-grid (col,row) layouts for TileGridMap.vue: 51 states + a 3x2 region grid
+    usStateGrid.js             # tile-grid (col,row) layouts: 51 states (TileGridMap.vue) + a 3x2 region grid (RegionSquares.vue)
   api/
     socrata.js                # generic data.cdc.gov Socrata (SODA) JSON client
     currentVitalEvents.js     # Socrata hmz2-vwda monthly births (fallback source for monthlyBirths.js)
@@ -431,7 +451,8 @@ src/
     RangeTabs.vue             # segmented control for a chart's time window
     TimeSeriesChart.vue       # Chart.js line — single-/multi-series; PNG btn + ResizeObserver (iframe fix)
     RankedBarChart.vue        # Chart.js horizontal bars — single-/multi-series; PNG btn + ResizeObserver
-    TileGridMap.vue             # generic filled tile grid (Chart.js bubble + rect points) — used for States + Regions
+    TileGridMap.vue             # generic filled tile grid (Chart.js bubble + rect points) — State Comparison's States view
+    RegionSquares.vue           # 4-square CSS-grid version for the Regions view — see the TileGridMap.vue note above
     ChartToolbar.vue           # data table (<details>) + CSV + Copy-link + Embed (<iframe> snippet)
     DataTable.vue              # sortable table of a chart's underlying rows (in-DOM, maxRows 130)
     ArticleFigure.vue         # framed <figure> + caption + source, for embedding charts in articles

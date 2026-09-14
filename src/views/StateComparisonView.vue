@@ -4,6 +4,7 @@ import { useHead } from '@unhead/vue'
 import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import TileGridMap from '@/components/TileGridMap.vue'
+import RegionSquares from '@/components/RegionSquares.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
@@ -98,10 +99,6 @@ const ranked = computed(() => {
 })
 
 const unitLabel = computed(() => (view.value === 'regions' ? 'Region' : 'State'))
-
-const activeGrid = computed(() => (view.value === 'regions' ? REGION_GRID : STATE_GRID))
-const activeGridCols = computed(() => (view.value === 'regions' ? REGION_GRID_COLS : GRID_COLS))
-const activeGridRows = computed(() => (view.value === 'regions' ? REGION_GRID_ROWS : GRID_ROWS))
 
 const chartProps = computed(() => {
   if (!ranked.value) return null
@@ -253,14 +250,23 @@ const popSummary = computed(() => {
 
         <div v-if="chartProps" class="card">
           <TileGridMap
-            :grid="activeGrid"
-            :grid-cols="activeGridCols"
-            :grid-rows="activeGridRows"
+            v-if="view === 'states'"
+            :grid="STATE_GRID"
+            :grid-cols="GRID_COLS"
+            :grid-rows="GRID_ROWS"
             :items="ranked"
             :value-formatter="rateFormatter"
-            :aria-label="`US map, one tile per ${view === 'regions' ? 'Census region' : 'state'}, coloured by age-adjusted ${cause} death rate, ${current.latestQuarter}.`"
-            :png-name="view === 'regions' ? 'whywedie-region-death-rates' : 'whywedie-state-death-rates'"
+            :aria-label="`US map, one tile per state, coloured by age-adjusted ${cause} death rate, ${current.latestQuarter}.`"
+            png-name="whywedie-state-death-rates"
             png-source="NCHS/CDC"
+          />
+          <RegionSquares
+            v-else
+            :grid="REGION_GRID"
+            :grid-cols="REGION_GRID_COLS"
+            :grid-rows="REGION_GRID_ROWS"
+            :items="ranked"
+            :value-formatter="rateFormatter"
           />
           <ChartToolbar
             v-if="table"
