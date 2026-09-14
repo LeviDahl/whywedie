@@ -21,8 +21,8 @@ const endpoints = [
   },
   {
     path: '/mortality_demographic.json',
-    what: 'Annual US deaths by cause × {sex | race}, 1999–present. Race categories change at the 2020/2021 seam (bridged → single-race).',
-    size: '~6 MB'
+    what: 'Annual US deaths by cause × {sex | race | age}, 1999–present. Race categories change at the 2020/2021 seam (bridged → single-race); the age breakdown has no age-adjusted-rate figure.',
+    size: '~15 MB'
   },
   {
     path: '/mortality_monthly.json',
@@ -68,9 +68,12 @@ useHead({
         <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-muted">For researchers</p>
         <h1 class="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Open data API</h1>
         <p class="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-          Every chart here is drawn from a handful of plain JSON files. They're served with open
-          CORS, cached at the edge, and free to use — a small, stable dataset that stitches CDC's
-          fragmented mortality and natality series into one shape, 1900–present.
+          The core mortality and natality charts on this site are drawn from a handful of plain
+          JSON files, listed below. They're served with open CORS, cached at the edge, and free to
+          use — a small, stable dataset that stitches CDC's fragmented series into one shape, 1960
+          (natality) / 1968 (mortality) to present. A few sections — Deaths by Age, Life Expectancy,
+          seasonality, State Comparison, and the International comparison — pull live from
+          data.cdc.gov or the World Bank instead and aren't part of this file-based API.
         </p>
       </div>
     </header>

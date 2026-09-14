@@ -27,7 +27,7 @@ useHead({
             '1,000 women 15–44) and crude birth rate, generation cohort bands, and current monthly ' +
             'provisional counts. National, from CDC WONDER + Census.',
           path: '/birth-statistics',
-          temporal: '1909/..',
+          temporal: '1960/..',
           keywords: [
             'US birth rate',
             'US fertility rate by year',

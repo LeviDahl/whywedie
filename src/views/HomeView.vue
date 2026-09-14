@@ -71,9 +71,10 @@ onMounted(pace.load)
       <div class="mx-auto max-w-3xl">
         <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">What this site does</h2>
         <p class="mt-4 max-w-2xl text-base leading-relaxed text-ink">
-          Every chart on this site is built from public data published on
+          Nearly every chart on this site is built from public data published on
           <a href="https://data.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline" data-umami-event="outbound_click" data-umami-event-host="data.cdc.gov">data.cdc.gov</a>,
-          CDC's open data platform. Rather than a single snapshot, the goal is to make it
+          CDC's open data platform (the International comparison instead uses the World Bank's
+          open data). Rather than a single snapshot, the goal is to make it
           easy to see how these numbers move over time: which causes of death are rising or
           falling, how birth counts compare across recent years, and what that means for
           population growth overall.
@@ -148,7 +149,7 @@ onMounted(pace.load)
         <dl class="mt-6 grid gap-6 sm:grid-cols-3">
           <div>
             <dt class="text-xs font-medium uppercase tracking-wide text-muted">Source</dt>
-            <dd class="mt-1.5 text-sm text-ink">CDC WONDER + data.cdc.gov open data</dd>
+            <dd class="mt-1.5 text-sm text-ink">CDC WONDER + data.cdc.gov, plus World Bank for the international comparison</dd>
           </div>
           <div>
             <dt class="text-xs font-medium uppercase tracking-wide text-muted">Coverage</dt>

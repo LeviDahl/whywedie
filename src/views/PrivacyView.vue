@@ -1,10 +1,15 @@
 <script setup>
 // Static content page. Describes the site's actual privacy practices.
-// Current state: no cookies, no ads, no third-party requests. Analytics is
-// Umami Cloud (index.html + src/lib/analytics.js) — cookieless, aggregate
-// only, respects Do Not Track. Keep the "Analytics" section in sync with
-// what src/lib/analytics.js actually tracks if that list changes.
-const updated = 'September 2026'
+// Current state: no cookies, no ads. Analytics is Umami Cloud (index.html +
+// src/lib/analytics.js) — cookieless, aggregate only, respects Do Not
+// Track. Some data views (Deaths by Age, Life Expectancy, seasonality,
+// State Comparison, International) fetch straight from data.cdc.gov or
+// the World Bank in the visitor's browser (see src/api/socrata.js,
+// src/api/international.js) rather than from this site's own /data/*.json
+// files — keep "The data" section in sync if that set of pages changes.
+// Keep the "Analytics" section in sync with what src/lib/analytics.js
+// actually tracks if that list changes.
+const updated = 'September 14, 2026'
 </script>
 
 <template>
@@ -15,8 +20,9 @@ const updated = 'September 2026'
         <h1 class="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Privacy</h1>
         <p class="mt-4 max-w-2xl text-base leading-relaxed text-muted">
           This site sets no cookies and shows no ads. It doesn't identify you or follow you around
-          the web. The one third-party request it makes is a cookieless analytics script, described
-          below.
+          the web. Some charts fetch public data directly from CDC or the World Bank in your
+          browser (no login, no personal data in that request), and a cookieless analytics script
+          runs on every page — both described below.
         </p>
       </div>
     </header>
@@ -35,8 +41,10 @@ const updated = 'September 2026'
               stays aggregate.</li>
             <li>No ads and no ad networks.</li>
             <li>No accounts, no sign-in, no email collection.</li>
-            <li>No third-party embeds, fonts, or CDNs. The one third-party script is the analytics
-              tool below; everything else comes from this domain.</li>
+            <li>No third-party embeds, fonts, ads, or CDNs, and no third-party script apart from
+              the analytics tool below. Some charts do fetch public data directly from CDC's or
+              the World Bank's own servers in your browser (see "The data" below) — those are
+              plain, unauthenticated data requests, not a script or a tracker.</li>
           </ul>
         </div>
 
@@ -67,10 +75,13 @@ const updated = 'September 2026'
         <div>
           <h2 class="text-sm font-semibold uppercase tracking-widest text-muted">The data</h2>
           <p class="mt-4 max-w-2xl">
-            Every chart here draws on public, national statistics from the CDC (CDC WONDER and
-            data.cdc.gov). None of it is personal or individual-level; the CDC suppresses any
-            figure based on 1 to 9 deaths. The same files are available as an
-            <RouterLink to="/api" class="link-underline">open API</RouterLink>.
+            Nearly every chart here draws on public, national statistics from the CDC (CDC WONDER
+            and data.cdc.gov); most of that data is served from files on this domain, available as
+            an <RouterLink to="/api" class="link-underline">open API</RouterLink>. A handful of
+            charts — Deaths by Age, Life Expectancy, seasonality, and State Comparison — instead
+            query data.cdc.gov directly from your browser, and the International comparison
+            queries the World Bank's public API the same way. None of it is personal or
+            individual-level data; the CDC suppresses any figure based on 1 to 9 deaths.
           </p>
         </div>
 

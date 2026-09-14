@@ -24,6 +24,7 @@ useHead({
             'with the UK, France, and Japan, 1968–2023. From the World Bank.',
           path: '/international',
           temporal: '1968/2023',
+          citation: 'World Bank Open Data — World Development Indicators',
           keywords: [
             'US life expectancy vs other countries',
             'international death rate comparison',

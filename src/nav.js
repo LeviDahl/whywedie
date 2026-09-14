@@ -35,7 +35,7 @@ export const sections = [
     label: 'Causes of Death',
     shortLabel: 'Causes of Death',
     description:
-      'Leading causes of death ranked by year (1999–present) with deaths, crude rate, and age-adjusted rate — plus trends over time, a sex/race breakdown, and broad ICD chapters back to 1968.',
+      'Leading causes of death ranked by year (1999–present) with deaths, crude rate, and age-adjusted rate — plus trends over time, a sex/race/age breakdown, and broad ICD chapters back to 1968.',
     seoTitle: 'Leading Causes of Death in the US, by Year',
     seoDescription:
       'Leading causes of death in the US ranked by year (1999–2025): heart disease, cancer, COVID-19 and more, with crude/age-adjusted rates and long-run trends.'

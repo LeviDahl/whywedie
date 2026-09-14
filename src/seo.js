@@ -110,7 +110,11 @@ export function dataCatalogJsonLd(endpoints) {
  * JSON-LD Dataset block for a data page — helps it surface in Google
  * Dataset Search. `spatial`/`temporal`/`variable` describe the slice.
  */
-export function datasetJsonLd({ name, description, path, temporal, keywords }) {
+const CDC_CITATION =
+  'Centers for Disease Control and Prevention, National Center for Health Statistics — ' +
+  'CDC WONDER and data.cdc.gov'
+
+export function datasetJsonLd({ name, description, path, temporal, keywords, citation }) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Dataset',
@@ -124,9 +128,9 @@ export function datasetJsonLd({ name, description, path, temporal, keywords }) {
     spatialCoverage: 'United States',
     temporalCoverage: temporal,
     keywords,
-    citation:
-      'Centers for Disease Control and Prevention, National Center for Health Statistics — ' +
-      'CDC WONDER and data.cdc.gov',
+    // Defaults to CDC since every data page but International draws on it —
+    // pass `citation` explicitly for a page sourced elsewhere (World Bank).
+    citation: citation ?? CDC_CITATION,
     distribution: [
       {
         '@type': 'DataDownload',

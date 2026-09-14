@@ -32,7 +32,7 @@ useHead({
           name: 'Leading causes of death in the United States',
           description:
             'US deaths by cause and year — the NCHS 113-cause list 1999–present (deaths, crude ' +
-            'rate, age-adjusted rate), a sex and race breakdown, broad ICD chapters back to 1968, ' +
+            'rate, age-adjusted rate), a sex, race, and age breakdown, broad ICD chapters back to 1968, ' +
             'and 11 major causes trended to 1968. National, from CDC WONDER.',
           path: '/causes-of-death',
           temporal: '1968/..',
@@ -496,7 +496,7 @@ const summary = computed(() => {
     `(about ${a.deaths.toLocaleString()} deaths), ${named(b)} (${b.deaths.toLocaleString()}), and ` +
     `${named(c)} (${c.deaths.toLocaleString()}). This page ranks the top causes for any year from ` +
     `${d.years[0]} to ${d.years.at(-1)} — with crude and age-adjusted rates, trends over time, ` +
-    `a breakdown by sex or race, and broad ICD chapters back to 1968. Every chart has a data table and CSV.`
+    `a breakdown by sex, race, or age, and broad ICD chapters back to 1968. Every chart has a data table and CSV.`
   )
 })
 

@@ -67,8 +67,9 @@ const mailto = `mailto:${email}?subject=${encodeURIComponent('whywedie.org feedb
         <p class="border-t border-line pt-6 text-sm text-muted">
           For questions about the underlying figures themselves, the primary source is
           <a href="https://wonder.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline" data-umami-event="outbound_click" data-umami-event-host="wonder.cdc.gov">CDC
-          WONDER</a> and <a href="https://data.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline" data-umami-event="outbound_click" data-umami-event-host="data.cdc.gov">data.cdc.gov</a>.
-          This project is independent and not affiliated with the CDC.
+          WONDER</a> and <a href="https://data.cdc.gov/" target="_blank" rel="noopener noreferrer" class="link-underline" data-umami-event="outbound_click" data-umami-event-host="data.cdc.gov">data.cdc.gov</a>
+          (the World Bank for the international comparison). This project is independent and not
+          affiliated with the CDC.
         </p>
       </div>
     </section>
