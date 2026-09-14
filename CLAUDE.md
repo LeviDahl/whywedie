@@ -93,6 +93,17 @@ section.
   specifically so hover tooltips, PNG export, and responsive resize come
   free from the same machinery every other chart on the site already
   uses; only the per-tile abbreviation label is a small custom plugin.
+  Two non-obvious fixes from actually looking at it (2026-09-14): size
+  and colour are normalized against the *current data's own min-max*, not
+  against zero — an age-adjusted rate never gets near 0, so flooring at 0
+  squeezed every real state into a narrow band near the top of the scale
+  and made states hard to tell apart; and the colour ramp
+  (`sequentialFor()` in `palette.js`) varies HSL lightness at a fixed
+  hue/saturation rather than doing a plain RGB blend toward white — a
+  naive white→orange RGB lerp passes through a muddy, low-chroma "brown"
+  band that's genuinely hard to read, so it defaults to blue now with
+  saturation held constant. If a future sequential chart looks muddy or
+  flat, check both of these first before touching anything else.
   A **States / Regions** view toggle rolls the same
   51 rows up into the US Census Bureau's 4 regions (`src/data/
   usRegions.js`) — computed client-side from data already fetched, no

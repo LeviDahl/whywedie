@@ -62,11 +62,19 @@ const MAX_R = 26
 
 const points = computed(() => {
   const byState = new Map(props.states.map((s) => [s.label, s.rate]))
-  const maxRate = Math.max(0, ...props.states.map((s) => s.rate).filter((r) => r != null))
+  const rates = props.states.map((s) => s.rate).filter((r) => r != null)
+  const minRate = rates.length ? Math.min(...rates) : 0
+  const maxRate = rates.length ? Math.max(...rates) : 0
+  const span = maxRate - minRate
   return STATE_GRID.map((g) => {
     const rate = byState.get(g.name) ?? null
-    const t = rate != null && maxRate > 0 ? rate / maxRate : 0
-    const r = rate != null ? MIN_R + (MAX_R - MIN_R) * Math.sqrt(t) : MIN_R * 0.55
+    // Normalized against the DATA'S OWN min-max, not against zero — a
+    // death rate never gets close to 0, so flooring at 0 (as an earlier
+    // version of this did) squeezed every real state into a narrow band
+    // near the top of the scale. Stretching the actual observed range
+    // across the full 0-1 scale is what makes states visibly distinct.
+    const t = rate != null && span > 0 ? (rate - minRate) / span : rate != null ? 1 : 0
+    const r = rate != null ? MIN_R + (MAX_R - MIN_R) * t : MIN_R * 0.55
     return {
       x: g.col,
       y: g.row,
@@ -74,8 +82,9 @@ const points = computed(() => {
       name: g.name,
       abbr: g.abbr,
       rate,
+      t,
       backgroundColor: rate != null ? sequentialFor(t) : '#f0f0f0',
-      borderColor: rate != null ? sequentialFor(Math.min(1, t + 0.15)) : '#d4d4d4'
+      borderColor: rate != null ? sequentialFor(Math.min(1, t + 0.1)) : '#d4d4d4'
     }
   })
 })
@@ -91,10 +100,13 @@ const stateLabels = {
     ctx.save()
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = '#171717'
     meta.data.forEach((el, i) => {
       const p = points.value[i]
       if (!p) return
+      // Dark tiles at the top of the scale need light text, not the ink
+      // colour every other label on the site uses — plain #171717 on a
+      // dark-blue tile is close to unreadable.
+      ctx.fillStyle = p.t > 0.6 ? '#f5f5f5' : '#171717'
       const size = Math.max(9, Math.min(12, el.options.radius * 0.6))
       ctx.font = `${p.rate != null ? 600 : 400} ${size}px system-ui, -apple-system, sans-serif`
       ctx.fillText(p.abbr, el.x, el.y)

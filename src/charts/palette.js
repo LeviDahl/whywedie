@@ -32,19 +32,72 @@ export function fillFor(hex, alpha = 0.1) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-// Sequential scale for a single magnitude (e.g. StateGridMap.vue) — white
-// at t=0 up to the given series colour (orange by default) at t=1. One
-// hue, light -> dark, per the dataviz skill's rule for sequential data;
-// reuses an already-validated categorical slot rather than introducing an
-// unvalidated new hue.
-export function sequentialFor(t, hex = SERIES[1]) {
-  const n = parseInt(hex.slice(1), 16)
-  const r = (n >> 16) & 255
-  const g = (n >> 8) & 255
-  const b = n & 255
+// Sequential scale for a single magnitude (e.g. StateGridMap.vue). One
+// hue, light -> dark, per the dataviz skill's rule for sequential data —
+// but varying LIGHTNESS at fixed hue/saturation (HSL), not a straight RGB
+// blend toward white. A plain RGB lerp from white to an orange/red hue
+// passes through a low-chroma, muddy "brown" band in the middle that's
+// genuinely hard to read step-to-step (reported directly against
+// StateGridMap.vue); holding saturation high and only varying lightness
+// avoids that dead zone, and blue reads with more steps than orange did.
+// Reuses an already-validated categorical slot's hue rather than
+// introducing an unvalidated new one.
+export function sequentialFor(t, hex = SERIES[0]) {
+  const [h, s] = hexToHsl(hex)
   const clamped = Math.max(0, Math.min(1, t))
-  const mix = (channel) => Math.round(255 + (channel - 255) * clamped)
-  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`
+  // 92% (near-white, but never fully white — even t=0 stays a hair
+  // identifiable as "on the scale") down to 22% (dark, not black).
+  const lightness = 92 - clamped * 70
+  return hslToRgbString(h, s, lightness)
+}
+
+function hexToHsl(hex) {
+  const n = parseInt(hex.slice(1), 16)
+  const r = ((n >> 16) & 255) / 255
+  const g = ((n >> 8) & 255) / 255
+  const b = (n & 255) / 255
+  const max = Math.max(r, g, b)
+  const min = Math.min(r, g, b)
+  const l = (max + min) / 2
+  if (max === min) return [0, 0]
+  const d = max - min
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+  let h
+  switch (max) {
+    case r:
+      h = (g - b) / d + (g < b ? 6 : 0)
+      break
+    case g:
+      h = (b - r) / d + 2
+      break
+    default:
+      h = (r - g) / d + 4
+  }
+  return [h * 60, s * 100]
+}
+
+function hslToRgbString(h, s, l) {
+  const sN = s / 100
+  const lN = l / 100
+  const c = (1 - Math.abs(2 * lN - 1)) * sN
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = lN - c / 2
+  let [r, g, b] =
+    h < 60
+      ? [c, x, 0]
+      : h < 120
+        ? [x, c, 0]
+        : h < 180
+          ? [0, c, x]
+          : h < 240
+            ? [0, x, c]
+            : h < 300
+              ? [x, 0, c]
+              : [c, 0, x]
+  r = Math.round((r + m) * 255)
+  g = Math.round((g + m) * 255)
+  b = Math.round((b + m) * 255)
+  return `rgb(${r}, ${g}, ${b})`
 }
 
 // Chrome tokens reused inside charts (mirror src/style.css @theme).
