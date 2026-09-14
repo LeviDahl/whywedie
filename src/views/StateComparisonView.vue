@@ -4,6 +4,7 @@ import { useHead } from '@unhead/vue'
 import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
 import RankedBarChart from '@/components/RankedBarChart.vue'
+import StateGridMap from '@/components/StateGridMap.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
@@ -247,13 +248,22 @@ const popSummary = computed(() => {
         </div>
 
         <div v-if="chartProps" class="card">
+          <StateGridMap
+            v-if="view === 'states'"
+            :states="ranked"
+            :value-formatter="rateFormatter"
+            :aria-label="`US map, one tile per state, sized and coloured by age-adjusted ${cause} death rate, ${current.latestQuarter}.`"
+            png-name="whywedie-state-death-rates"
+            png-source="NCHS/CDC"
+          />
           <RankedBarChart
+            v-else
             :labels="chartProps.labels"
             :series="chartProps.series"
             :value-formatter="rateFormatter"
             :legend="false"
-            :aria-label="`Horizontal bar chart: age-adjusted ${cause} death rate by US ${view === 'regions' ? 'Census region' : 'state'}, ${current.latestQuarter}.`"
-            :png-name="view === 'regions' ? 'whywedie-region-death-rates' : 'whywedie-state-death-rates'"
+            :aria-label="`Horizontal bar chart: age-adjusted ${cause} death rate by US Census region, ${current.latestQuarter}.`"
+            png-name="whywedie-region-death-rates"
             png-source="NCHS/CDC"
           />
           <ChartToolbar
@@ -263,6 +273,11 @@ const popSummary = computed(() => {
             :filename="view === 'regions' ? 'whywedie-region-death-rates' : 'whywedie-state-death-rates'"
             :note="`${current.latestQuarter} · 12 months ending with quarter`"
           />
+          <p v-if="view === 'states'" class="mt-4 text-xs text-muted">
+            Each tile is a state (plus DC), sized and coloured together by its rate — bigger and
+            darker means higher for whichever cause is selected. Every state keeps its spot even
+            with no data this quarter (a small grey tile) so the map stays complete.
+          </p>
           <p v-if="view === 'regions'" class="mt-4 text-xs text-muted">
             Regions are the US Census Bureau's four — Northeast, Midwest, South, West — and each
             rate is a plain average of that region's state rates above, not a population-weighted

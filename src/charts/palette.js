@@ -32,6 +32,21 @@ export function fillFor(hex, alpha = 0.1) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
+// Sequential scale for a single magnitude (e.g. StateGridMap.vue) — white
+// at t=0 up to the given series colour (orange by default) at t=1. One
+// hue, light -> dark, per the dataviz skill's rule for sequential data;
+// reuses an already-validated categorical slot rather than introducing an
+// unvalidated new hue.
+export function sequentialFor(t, hex = SERIES[1]) {
+  const n = parseInt(hex.slice(1), 16)
+  const r = (n >> 16) & 255
+  const g = (n >> 8) & 255
+  const b = n & 255
+  const clamped = Math.max(0, Math.min(1, t))
+  const mix = (channel) => Math.round(255 + (channel - 255) * clamped)
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`
+}
+
 // Chrome tokens reused inside charts (mirror src/style.css @theme).
 export const GRID_LINE = '#e5e5e5' // --color-line
 export const AXIS_TEXT = '#737373' // --color-muted

@@ -81,7 +81,19 @@ section.
   browser-direct, no pipeline. Only runs 2023–present (a rolling quarterly
   release, not a historical archive); each cause tracks its own latest
   fully-populated quarter independently. `src/api/stateComparison.js`.
-  A **States / Regions** view toggle (added 2026-09-14) rolls the same
+  The **States** view is a "finviz-style" tile grid map
+  (`StateGridMap.vue` + `src/data/usStateGrid.js`, added 2026-09-14) —
+  every state sits in a fixed, real-ish geographic grid cell (so the US
+  shape is always recognizable and never has a gap, even for a state with
+  no data that quarter — it still gets a small grey placeholder tile),
+  but each tile's **size and colour both scale with its rate** for
+  whichever cause is picked, so the highest state visibly dominates (pick
+  Homicide — DC, not intuition, turns out to be the real answer). Native
+  Chart.js `bubble` type (x/y/r per point) rather than hand-rolled canvas,
+  specifically so hover tooltips, PNG export, and responsive resize come
+  free from the same machinery every other chart on the site already
+  uses; only the per-tile abbreviation label is a small custom plugin.
+  A **States / Regions** view toggle rolls the same
   51 rows up into the US Census Bureau's 4 regions (`src/data/
   usRegions.js`) — computed client-side from data already fetched, no
   second API call. It's an **unweighted** mean of the region's state
@@ -347,6 +359,7 @@ src/
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
     generations.js            # Pew (-> Gen Z) + McCrindle (Alpha/Beta) generation cutoff bands
     usRegions.js               # US Census Bureau's 4-region breakdown, for State Comparison's Regions view
+    usStateGrid.js             # tile-grid (col,row) position per state, for StateGridMap.vue
   api/
     socrata.js                # generic data.cdc.gov Socrata (SODA) JSON client
     currentVitalEvents.js     # Socrata hmz2-vwda monthly births (fallback source for monthlyBirths.js)
@@ -380,6 +393,7 @@ src/
     RangeTabs.vue             # segmented control for a chart's time window
     TimeSeriesChart.vue       # Chart.js line — single-/multi-series; PNG btn + ResizeObserver (iframe fix)
     RankedBarChart.vue        # Chart.js horizontal bars — single-/multi-series; PNG btn + ResizeObserver
+    StateGridMap.vue           # Chart.js bubble type as a US tile grid — size+colour=rate; PNG btn + ResizeObserver
     ChartToolbar.vue           # data table (<details>) + CSV + Copy-link + Embed (<iframe> snippet)
     DataTable.vue              # sortable table of a chart's underlying rows (in-DOM, maxRows 130)
     ArticleFigure.vue         # framed <figure> + caption + source, for embedding charts in articles
