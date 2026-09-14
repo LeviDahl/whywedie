@@ -22,6 +22,8 @@ pipeline/
   build-snapshots.js    DB -> mortality{,_demographic,_monthly}.json / natality{,_monthly}.json / meta.json
   fetch-census-fertility.js  Census PEP -> backfills natality.fertility_rate
                         past 2020 (NOT a WONDER dataset — see its own header)
+  fetch-census-population.js  Census PEP -> population_by_region.json directly
+                        (no DB table for this one — see its own header)
   app.js                placeholder HTTP listener — ONLY needed if you deploy
                         this to a Passenger/PaaS host that requires a server
   lib/                  config, dataset registry, template loader, WONDER
@@ -134,6 +136,7 @@ for chunk in \
 done
 node --env-file=.env fetch-census-fertility.js   # not WONDER — no sleep needed, needs CENSUS_API_KEY
 SNAPSHOT_OUT_DIR=../public/data node --env-file=.env build-snapshots.js
+SNAPSHOT_OUT_DIR=../public/data node --env-file=.env fetch-census-population.js   # also not WONDER
 ```
 
 (`icd9` = D16 1979-1998, `icd8` = D74 1968-1978 — both ICD-chapter grain;
@@ -207,6 +210,7 @@ line if it's a venv); `DIR` = the pipeline directory.
 52 3 1 * *  cd DIR && NODE --env-file=.env fetch.js --type=natality  --era=monthly            >> logs/cron.log 2>&1
 54 3 1 1 *  cd DIR && NODE --env-file=.env fetch-census-fertility.js                          >> logs/cron.log 2>&1
 40 4 1 * *  cd DIR && NODE --env-file=.env build-snapshots.js >> logs/cron.log 2>&1
+56 3 1 1 *  cd DIR && NODE --env-file=.env fetch-census-population.js                         >> logs/cron.log 2>&1
 # 55 4 1 * *  ...then the snapshot-publish step from section 6
 ```
 
@@ -216,6 +220,11 @@ single-year-age/sex vintage a year, so running it monthly is wasted work;
 `1 1 *` (once, every January) is plenty. It's a no-op once a year's rate
 is already filled (it only writes rows where `fertility_rate IS NULL`),
 so it's also safe to just run by hand whenever you remember.
+`fetch-census-population.js` is the same story — one new vintage a year —
+but it always overwrites `population_by_region.json` in full rather than
+skipping filled rows, since there's no DB table to check against; running
+it again with no new Census vintage published just rewrites the same
+numbers, harmless but not silent (log it like anything else).
 
 On GitHub Actions, one workflow with `on: schedule: - cron: '0 3 1 * *'`
 running the same commands in sequence, DB_* and FTP_* from Actions secrets.
@@ -270,3 +279,12 @@ locally, point `.env` at any MySQL 8 / MariaDB 10 (`brew install mysql` or a
 
 `byYear` / `byCause` mirror `src/api/causesOfDeath.js` so the frontend swap
 from Socrata to `fetch('/data/mortality.json')` is small.
+
+`fetch-census-population.js` writes its own file directly (not through
+`build-snapshots.js` — there's no DB table for this one):
+
+- **`population_by_region.json`** — `{ source, fetchedAt,
+  coverage:{yearMin,yearMax,note}, regions:[string], years:[int],
+  byYear: { <year>: { <region>: int } } }`. Real Census-published region
+  totals (Northeast/Midwest/South/West), not derived from anything else
+  on the site. `src/api/populationByRegion.js` reads it.

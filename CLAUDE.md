@@ -87,7 +87,15 @@ section.
   second API call. It's an **unweighted** mean of the region's state
   rates (the source dataset has no population column to weight by),
   labeled as a rough approximation in the UI on purpose — don't present
-  it as a precise regional rate anywhere else on the site either.
+  it as a precise regional rate anywhere else on the site either. Below
+  that, a separate **"Population by Region"** line chart (also added
+  2026-09-14) — total US population by the same 4 regions, 2010–present,
+  from `src/api/populationByRegion.js` reading `/data/
+  population_by_region.json`. Unlike the rate rollup above, this one *is*
+  a real Census-published sum (population is additive; no weighting
+  caveat needed). Produced out-of-band by
+  `pipeline/fetch-census-population.js` (Census PEP, no WONDER involved,
+  writes its own JSON file directly — no DB table for it).
 - **International** (`/international`, added 2026-09) — feature #12. US
   vs. UK, France, and Japan on crude death rate, life expectancy, and
   fertility rate, 1968–2023. The only section not sourced from CDC — the
@@ -351,6 +359,7 @@ src/
     causeBreakdown.js         # reads /data/mortality_demographic.json — Sex/Race/Age breakdown (optional)
     injuryDeaths.js           # mortality.json (suicide/homicide/firearm) + Socrata 489q-934x (real overdose rate)
     stateComparison.js        # Socrata 489q-934x — age-adjusted death rate by US state, ~20 causes, 2023+
+    populationByRegion.js     # reads /data/population_by_region.json — total US population by Census region, 2010+
     international.js          # World Bank API — US vs UK/France/Japan, death rate/life expectancy/fertility
     populationChange.js       # births (natality.json + e6fc-ccez) vs deaths (mortality.json) + natural increase
     dailyStats.js             # hmz2-vwda 12-month-ending births/deaths, for the daily average
@@ -401,6 +410,7 @@ public/
   data/mortality_monthly.json # D176 monthly all-cause deaths
   data/natality.json         # committed Socrata baseline 1960-2018; pipeline/ extends it
   data/natality_monthly.json # D192 monthly births, 2023–present (Socrata fallback if ever empty)
+  data/population_by_region.json  # US Census population by region, 2010+ — see fetch-census-population.js
 pipeline/                    # standalone Node job: CDC WONDER -> MySQL -> /data/*.json
                              #   own package.json (axios, mysql2, fast-xml-parser); see its README
   seed/natality-baseline-1960-2002.json  # fixed source of truth for pre-2003 births —
