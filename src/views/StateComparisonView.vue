@@ -3,13 +3,13 @@ import { computed, ref, onMounted } from 'vue'
 import { useHead } from '@unhead/vue'
 import { datasetJsonLd } from '@/seo.js'
 import PageHeader from '@/components/PageHeader.vue'
-import RankedBarChart from '@/components/RankedBarChart.vue'
-import StateGridMap from '@/components/StateGridMap.vue'
+import TileGridMap from '@/components/TileGridMap.vue'
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue'
 import ChartToolbar from '@/components/ChartToolbar.vue'
 import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchStateComparison } from '@/api/stateComparison.js'
 import { fetchRegionPopulation } from '@/api/populationByRegion.js'
+import { STATE_GRID, GRID_COLS, GRID_ROWS, REGION_GRID, REGION_GRID_COLS, REGION_GRID_ROWS } from '@/data/usStateGrid.js'
 import { sections } from '@/nav.js'
 import { trackEvent } from '@/lib/analytics.js'
 
@@ -98,6 +98,10 @@ const ranked = computed(() => {
 })
 
 const unitLabel = computed(() => (view.value === 'regions' ? 'Region' : 'State'))
+
+const activeGrid = computed(() => (view.value === 'regions' ? REGION_GRID : STATE_GRID))
+const activeGridCols = computed(() => (view.value === 'regions' ? REGION_GRID_COLS : GRID_COLS))
+const activeGridRows = computed(() => (view.value === 'regions' ? REGION_GRID_ROWS : GRID_ROWS))
 
 const chartProps = computed(() => {
   if (!ranked.value) return null
@@ -248,22 +252,14 @@ const popSummary = computed(() => {
         </div>
 
         <div v-if="chartProps" class="card">
-          <StateGridMap
-            v-if="view === 'states'"
-            :states="ranked"
+          <TileGridMap
+            :grid="activeGrid"
+            :grid-cols="activeGridCols"
+            :grid-rows="activeGridRows"
+            :items="ranked"
             :value-formatter="rateFormatter"
-            :aria-label="`US map, one tile per state, sized and coloured by age-adjusted ${cause} death rate, ${current.latestQuarter}.`"
-            png-name="whywedie-state-death-rates"
-            png-source="NCHS/CDC"
-          />
-          <RankedBarChart
-            v-else
-            :labels="chartProps.labels"
-            :series="chartProps.series"
-            :value-formatter="rateFormatter"
-            :legend="false"
-            :aria-label="`Horizontal bar chart: age-adjusted ${cause} death rate by US Census region, ${current.latestQuarter}.`"
-            png-name="whywedie-region-death-rates"
+            :aria-label="`US map, one tile per ${view === 'regions' ? 'Census region' : 'state'}, coloured by age-adjusted ${cause} death rate, ${current.latestQuarter}.`"
+            :png-name="view === 'regions' ? 'whywedie-region-death-rates' : 'whywedie-state-death-rates'"
             png-source="NCHS/CDC"
           />
           <ChartToolbar
@@ -274,7 +270,7 @@ const popSummary = computed(() => {
             :note="`${current.latestQuarter} · 12 months ending with quarter`"
           />
           <p v-if="view === 'states'" class="mt-4 text-xs text-muted">
-            Each tile is a state (plus DC), sized and coloured together by its rate — bigger and
+            Each tile is a state (plus DC) in its rough real position, coloured by its rate —
             darker means higher for whichever cause is selected. Every state keeps its spot even
             with no data this quarter (a small grey tile) so the map stays complete.
           </p>

@@ -81,36 +81,63 @@ section.
   browser-direct, no pipeline. Only runs 2023–present (a rolling quarterly
   release, not a historical archive); each cause tracks its own latest
   fully-populated quarter independently. `src/api/stateComparison.js`.
-  The **States** view is a "finviz-style" tile grid map
-  (`StateGridMap.vue` + `src/data/usStateGrid.js`, added 2026-09-14) —
-  every state sits in a fixed, real-ish geographic grid cell (so the US
-  shape is always recognizable and never has a gap, even for a state with
-  no data that quarter — it still gets a small grey placeholder tile),
-  but each tile's **size and colour both scale with its rate** for
-  whichever cause is picked, so the highest state visibly dominates (pick
-  Homicide — DC, not intuition, turns out to be the real answer). Native
-  Chart.js `bubble` type (x/y/r per point) rather than hand-rolled canvas,
-  specifically so hover tooltips, PNG export, and responsive resize come
-  free from the same machinery every other chart on the site already
-  uses; only the per-tile abbreviation label is a small custom plugin.
-  Two non-obvious fixes from actually looking at it (2026-09-14): size
-  and colour are normalized against the *current data's own min-max*, not
-  against zero — an age-adjusted rate never gets near 0, so flooring at 0
-  squeezed every real state into a narrow band near the top of the scale
-  and made states hard to tell apart; and the colour ramp
-  (`sequentialFor()` in `palette.js`) varies HSL lightness at a fixed
-  hue/saturation rather than doing a plain RGB blend toward white — a
-  naive white→orange RGB lerp passes through a muddy, low-chroma "brown"
-  band that's genuinely hard to read, so it defaults to blue now with
-  saturation held constant. If a future sequential chart looks muddy or
-  flat, check both of these first before touching anything else.
+  The **States** view is a filled tile grid map (`TileGridMap.vue` +
+  `src/data/usStateGrid.js`, added 2026-09-14, reworked 2026-09-14) —
+  every state sits in a fixed, real-ish geographic grid cell as a solid
+  square, touching its neighbors, so the shape reads as one connected US
+  map and never has a gap (a state with no data that quarter still gets a
+  small grey placeholder tile). Colour scales with the rate for whichever
+  cause is picked (pick Homicide — DC, not intuition, turns out to be the
+  real answer). Started as circles sized *and* coloured by rate
+  ("finviz-style"), like the mockup that inspired it — dropped the size
+  encoding once actually looking at it made clear color alone read more
+  clearly at this many tiles, and switched circles for filled squares so
+  neighboring tiles visually connect instead of floating with gaps
+  between them (a state like California, with real neighbors, was
+  reported as looking "by itself"). `TileGridMap.vue` is generic — it
+  takes any `{name,abbr,col,row}` grid, so the same component also draws
+  the Regions view (see below) with a different, much smaller grid.
+  Native Chart.js `bubble` type (x/y/r per point) with `pointStyle:
+  'rect'` rather than hand-rolled canvas, specifically so hover tooltips,
+  PNG export, and responsive resize come free from the same machinery
+  every other chart on the site already uses — **but a bubble chart's
+  radius comes from each data point's own `r` field, not a dataset-level
+  option**; an early version tried a scriptable `radius:` callback reading
+  `chart.scales`, which silently rendered nothing (radius resolved to
+  `NaN`). Fixed by computing the cell's pixel size straight from the
+  container's own measured width (the same one the ResizeObserver
+  iframe-fix already watches) and setting `r` directly on each point.
+  Getting a `rect` point to actually fill/touch its cell also needed one
+  non-obvious correction: Chart.js normalizes `rect` to the same *area*
+  as a circle of that radius, not the same *side length* — so the radius
+  fed in is `cellPx / sqrt(pi)`, not `cellPx` itself. Two more non-obvious
+  fixes from actually looking at it: colour is normalized against the
+  *current data's own min-max*, not against zero — an age-adjusted rate
+  never gets near 0, so flooring at 0 squeezed every real state into a
+  narrow band near the top of the scale and made states hard to tell
+  apart; and the colour ramp (`sequentialFor()` in `palette.js`) varies
+  HSL lightness at a fixed hue/saturation rather than doing a plain RGB
+  blend toward white — a naive white→orange RGB lerp passes through a
+  muddy, low-chroma "brown" band that's genuinely hard to read, so it
+  defaults to blue now with saturation held constant. If a future
+  sequential chart looks muddy, flat, or doesn't render at all, check
+  these three first before touching anything else. The grid layout itself
+  is NPR's published tile-grid (of several available from the same
+  source — see `usStateGrid.js`'s header), swapped in after the original
+  default (NYT's) grid put DC directly under Ohio and Virginia directly
+  above Georgia — both real, wrong-looking neighbors once the tiles were
+  actually touching, not just a taste call.
   A **States / Regions** view toggle rolls the same
   51 rows up into the US Census Bureau's 4 regions (`src/data/
   usRegions.js`) — computed client-side from data already fetched, no
   second API call. It's an **unweighted** mean of the region's state
   rates (the source dataset has no population column to weight by),
   labeled as a rough approximation in the UI on purpose — don't present
-  it as a precise regional rate anywhere else on the site either. Below
+  it as a precise regional rate anywhere else on the site either. Regions
+  reuses the same `TileGridMap.vue`, just with a tiny 3x2 `REGION_GRID`
+  (`usStateGrid.js`) instead of the 51-state one — not meant to be
+  geographically precise (there's no sensible way to grid-position 4
+  giant regions exactly), just roughly compass-shaped. Below
   that, a separate **"Population by Region"** line chart (also added
   2026-09-14) — total US population by the same 4 regions, 2010–present,
   from `src/api/populationByRegion.js` reading `/data/
@@ -370,7 +397,7 @@ src/
     dailyFacts.js             # rough "N per year" scale facts for By the Numbers
     generations.js            # Pew (-> Gen Z) + McCrindle (Alpha/Beta) generation cutoff bands
     usRegions.js               # US Census Bureau's 4-region breakdown, for State Comparison's Regions view
-    usStateGrid.js             # tile-grid (col,row) position per state, for StateGridMap.vue
+    usStateGrid.js             # tile-grid (col,row) layouts for TileGridMap.vue: 51 states + a 3x2 region grid
   api/
     socrata.js                # generic data.cdc.gov Socrata (SODA) JSON client
     currentVitalEvents.js     # Socrata hmz2-vwda monthly births (fallback source for monthlyBirths.js)
@@ -404,7 +431,7 @@ src/
     RangeTabs.vue             # segmented control for a chart's time window
     TimeSeriesChart.vue       # Chart.js line — single-/multi-series; PNG btn + ResizeObserver (iframe fix)
     RankedBarChart.vue        # Chart.js horizontal bars — single-/multi-series; PNG btn + ResizeObserver
-    StateGridMap.vue           # Chart.js bubble type as a US tile grid — size+colour=rate; PNG btn + ResizeObserver
+    TileGridMap.vue             # generic filled tile grid (Chart.js bubble + rect points) — used for States + Regions
     ChartToolbar.vue           # data table (<details>) + CSV + Copy-link + Embed (<iframe> snippet)
     DataTable.vue              # sortable table of a chart's underlying rows (in-DOM, maxRows 130)
     ArticleFigure.vue         # framed <figure> + caption + source, for embedding charts in articles
