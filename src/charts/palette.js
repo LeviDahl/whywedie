@@ -76,6 +76,11 @@ function hexToHsl(hex) {
   return [h * 60, s * 100]
 }
 
+// Returns a #rrggbb hex string, not rgb(...) — so this composes with
+// fillFor() (which parses a hex string) and any other colour consumer,
+// not just ones that accept an arbitrary CSS color string. Getting this
+// wrong is a silent bug, not a visible error: fillFor(hex.slice(1) on an
+// "rgb(...)" string parses to NaN -> 0 -> solid black, no warning.
 function hslToRgbString(h, s, l) {
   const sN = s / 100
   const lN = l / 100
@@ -94,10 +99,8 @@ function hslToRgbString(h, s, l) {
             : h < 300
               ? [x, 0, c]
               : [c, 0, x]
-  r = Math.round((r + m) * 255)
-  g = Math.round((g + m) * 255)
-  b = Math.round((b + m) * 255)
-  return `rgb(${r}, ${g}, ${b})`
+  const toHex = (v) => Math.round((v + m) * 255).toString(16).padStart(2, '0')
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
 // Chrome tokens reused inside charts (mirror src/style.css @theme).

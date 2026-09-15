@@ -44,6 +44,17 @@ const props = defineProps({
   // small label per span. Used for the Pew generation cohorts on the
   // annual-births chart. A band with `active: true` is emphasised.
   bands: { type: Array, default: () => [] },
+  // Renders a stacked area chart instead of separate lines — each
+  // series' band sits on top of the one before it, so the top edge reads
+  // as the combined total. Only meaningful when every series' values are
+  // genuinely additive parts of one whole (e.g. population by region);
+  // never turn this on for rates or anything else that doesn't sum to a
+  // real total. Caller controls stacking order via `series` array order
+  // (first = bottom of the stack) and should pass explicit `color`s —
+  // multi.value's categorical SERIES colors are for distinguishing
+  // unrelated series, not for a chart where the whole point is "these
+  // parts make up one thing."
+  stacked: { type: Boolean, default: false },
   // Text alternative for the <canvas> — screen readers + crawlers.
   ariaLabel: { type: String, default: '' },
   // Base filename for the "save PNG" button; source line stamped on the image.
@@ -185,18 +196,22 @@ const chartData = computed(() => ({
     return {
       label: s.label,
       data: s.values,
-      borderColor: s.color,
-      borderDash: s.dash,
+      // Stacked bands get a white seam between them (matching the
+      // reference this was modeled on) instead of each series' own
+      // colour as the line — the band's fill colour already carries
+      // identity, so the border is purely a visual divider here.
+      borderColor: props.stacked ? '#ffffff' : s.color,
+      borderDash: props.stacked ? [] : s.dash,
       segment: hasMuted ? segmentStyle(s, multi.value) : undefined,
-      backgroundColor: multi.value ? 'transparent' : fillFor(s.color, 0.1),
+      backgroundColor: props.stacked ? fillFor(s.color, 0.92) : multi.value ? 'transparent' : fillFor(s.color, 0.1),
       pointBackgroundColor: s.values.map((_, i) => (s.mutedPoints[i] ? MUTED_MARK : s.color)),
       pointBorderColor: '#ffffff',
       pointBorderWidth: 1.5,
-      pointRadius: multi.value ? 2.5 : 3,
-      pointHoverRadius: 5.5,
-      borderWidth: 2,
+      pointRadius: props.stacked ? 0 : multi.value ? 2.5 : 3,
+      pointHoverRadius: props.stacked ? 0 : 5.5,
+      borderWidth: props.stacked ? 1.5 : 2,
       tension: 0.25,
-      fill: s.fill,
+      fill: props.stacked ? true : s.fill,
       spanGaps: false
     }
   })
@@ -234,8 +249,11 @@ const chartOptions = computed(() => ({
       position: 'bottom',
       labels: {
         color: '#171717',
-        boxWidth: 22,
-        boxHeight: 2,
+        // Stacked bands are filled areas, not lines — a thin line swatch
+        // in the legend reads oddly next to a solid band, so use a small
+        // solid chip instead.
+        boxWidth: props.stacked ? 12 : 22,
+        boxHeight: props.stacked ? 12 : 2,
         usePointStyle: false,
         font: { size: 11 }
       }
@@ -265,7 +283,8 @@ const chartOptions = computed(() => ({
       ticks: { color: AXIS_TEXT, maxRotation: 0, autoSkipPadding: 16 }
     },
     y: {
-      beginAtZero: false,
+      stacked: props.stacked,
+      beginAtZero: props.stacked ? true : false,
       grid: { color: GRID_LINE },
       ticks: {
         color: AXIS_TEXT,

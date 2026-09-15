@@ -11,6 +11,7 @@ import { useAsyncData } from '@/composables/useAsyncData.js'
 import { fetchStateComparison } from '@/api/stateComparison.js'
 import { fetchRegionPopulation } from '@/api/populationByRegion.js'
 import { STATE_GRID, GRID_COLS, GRID_ROWS, REGION_GRID, REGION_GRID_COLS, REGION_GRID_ROWS } from '@/data/usStateGrid.js'
+import { sequentialFor } from '@/charts/palette.js'
 import { sections } from '@/nav.js'
 import { trackEvent } from '@/lib/analytics.js'
 
@@ -138,9 +139,22 @@ const popFormatter = (v) => (v == null ? '—' : `${(v / 1e6).toFixed(1)}M`)
 const popChart = computed(() => {
   const d = pop.data.value
   if (!d) return null
+  // Stacked area: order matters (first = bottom of the stack) and colour
+  // is one hue's light-to-dark range, not the categorical per-series
+  // palette used everywhere else — these regions are parts of one whole,
+  // not unrelated series, so a sequential ramp reads as "this splits
+  // into pieces" the way the categorical palette wouldn't. Ranked by the
+  // latest year's value rather than a hardcoded "South is biggest"
+  // assumption, so this stays correct if that ever changes.
+  const byLatest = [...d.regions].sort((a, b) => d.byRegion[b].at(-1) - d.byRegion[a].at(-1))
+  const n = byLatest.length
   return {
     labels: d.years,
-    series: d.regions.map((r) => ({ label: r, values: d.byRegion[r] }))
+    series: byLatest.map((r, i) => ({
+      label: r,
+      values: d.byRegion[r],
+      color: sequentialFor(1 - (i / Math.max(1, n - 1)) * 0.72)
+    }))
   }
 })
 
@@ -311,7 +325,8 @@ const popSummary = computed(() => {
               :labels="popChart.labels"
               :series="popChart.series"
               :value-formatter="popFormatter"
-              :aria-label="`Line chart: total US population by Census region, ${popChart.labels[0]} to ${popChart.labels.at(-1)}.`"
+              stacked
+              :aria-label="`Stacked area chart: total US population by Census region, ${popChart.labels[0]} to ${popChart.labels.at(-1)}.`"
               png-name="whywedie-population-by-region"
               png-source="US Census Bureau"
             />

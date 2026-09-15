@@ -158,12 +158,30 @@ section.
   grid this small (few, large tiles) is ever needed again, don't assume
   `TileGridMap.vue` will render it correctly without checking first.
   Below
-  that, a separate **"Population by Region"** line chart (also added
+  that, a separate **"Population by Region"** chart (also added
   2026-09-14) — total US population by the same 4 regions, 2010–present,
   from `src/api/populationByRegion.js` reading `/data/
   population_by_region.json`. Unlike the rate rollup above, this one *is*
   a real Census-published sum (population is additive; no weighting
-  caveat needed). Produced out-of-band by
+  caveat needed) — which is exactly why it's a **stacked area chart**
+  (styled directly after the Census Bureau's own "Population Growth by
+  Region" chart, at the owner's request), not separate lines: the top
+  edge reading as the true US total only makes sense because these parts
+  really do sum to one whole. `TimeSeriesChart.vue` grew a `stacked`
+  prop for this (white band-seam borders, no point markers, solid-chip
+  legend instead of line swatches) — it's opt-in and every other chart
+  on the site is unaffected, but **don't reach for `stacked` on rates or
+  anything else that isn't a genuine part-of-a-whole**, the same caveat
+  as the sequential color ramp below. Colour is `sequentialFor()`
+  (`palette.js`) ranked by each region's latest value — largest/bottom
+  of the stack is darkest, not a hardcoded "South is biggest" assumption.
+  Caught a real bug wiring this up: `sequentialFor()` returned an
+  `rgb(...)` string, which silently breaks `fillFor()` (parses a hex
+  string via `hex.slice(1)`) — `rgb(...)`.slice(1) parses to `NaN`, which
+  renders as solid black with no error. `sequentialFor()` now returns
+  `#rrggbb` so it composes with anything expecting a hex string, not just
+  things that happen to accept an arbitrary CSS color string. Produced
+  out-of-band by
   `pipeline/fetch-census-population.js` (Census PEP, no WONDER involved,
   writes its own JSON file directly — no DB table for it).
 - **International** (`/international`, added 2026-09) — feature #12. US
